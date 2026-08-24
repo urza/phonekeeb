@@ -1,14 +1,20 @@
 import { GestureDecoder } from './gesture-decoder.js';
 import { buildLayout, letterAt, QUADRANTS, DIRECTIONS, FIRST_ARM } from './layout.js';
+import { Predictor } from './prediction.js';
+import { WORDS as WORDS_EN } from './words-en.js';
+import { WORDS as WORDS_CS } from './words-cs.js';
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
 const output = document.getElementById('output');
 const logEl = document.getElementById('log');
+const suggestionsEl = document.getElementById('suggestions');
 const layoutModeEl = document.getElementById('layoutMode');
 const languageEl = document.getElementById('language');
 const deadZoneEl = document.getElementById('deadZone');
 const clearButton = document.getElementById('clearText');
+
+const predictors = { en: new Predictor(WORDS_EN), cs: new Predictor(WORDS_CS) };
 
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -23,6 +29,7 @@ let deadZoneRadius = Number(deadZoneEl.value);
 let layout = buildLayout(layoutModeEl.value, languageEl.value);
 let decoder = new GestureDecoder({ center, deadZoneRadius });
 let typedText = '';
+let currentWord = ''; // letters since the last space or accepted suggestion
 let currentSnapshot = decoder.snapshot();
 const history = [];
 
@@ -51,16 +58,38 @@ function commitGesture(commit) {
   if (!commit) return;
   if (commit.type === 'space') {
     typedText += ' ';
+    currentWord = '';
     history.unshift({ type: 'space' });
   } else {
     let letter = letterAt(layout, commit.quadrant, commit.direction, commit.crossings);
     if (letter && commit.capital) letter = letter.toUpperCase();
-    if (letter) typedText += letter;
+    if (letter) {
+      typedText += letter;
+      currentWord += letter;
+    }
     history.unshift({ ...commit, letter });
   }
   history.length = Math.min(history.length, 15);
   renderLog();
+  renderSuggestions();
 }
+
+function renderSuggestions() {
+  const words = predictors[languageEl.value].predict(currentWord, 5);
+  suggestionsEl.innerHTML = words
+    .map((w) => `<button type="button" data-word="${w}">${w}</button>`)
+    .join('');
+}
+
+suggestionsEl.addEventListener('click', (e) => {
+  const word = e.target.dataset?.word;
+  if (!word) return;
+  // Replace the partial word with the suggestion, then a space.
+  typedText = typedText.slice(0, typedText.length - currentWord.length) + word + ' ';
+  currentWord = '';
+  renderSuggestions();
+  output.textContent = typedText;
+});
 
 function renderLog() {
   logEl.innerHTML = history
@@ -115,6 +144,17 @@ function draw() {
         ctx.fillText(letter.toUpperCase(), center.x + r * Math.cos(rad), center.y + r * Math.sin(rad));
       });
     }
+  }
+
+  // Faint quadrant names in the outer corners, for talking about the
+  // layout and matching the log lines (e.g. "SE CCW lines:1").
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = colors.line;
+  const cornerR = armLength * 0.92;
+  const quadrantMid = { SE: 45, SW: 135, NW: 225, NE: 315 };
+  for (const quadrant of QUADRANTS) {
+    const rad = (quadrantMid[quadrant] * Math.PI) / 180;
+    ctx.fillText(quadrant, center.x + cornerR * Math.cos(rad), center.y + cornerR * Math.sin(rad));
   }
 
   // Dead zone / spacebar circle.
@@ -185,13 +225,18 @@ deadZoneEl.addEventListener('input', () => {
 });
 
 layoutModeEl.addEventListener('change', rebuildLayout);
-languageEl.addEventListener('change', rebuildLayout);
+languageEl.addEventListener('change', () => {
+  rebuildLayout();
+  renderSuggestions();
+});
 
 clearButton.addEventListener('click', () => {
   typedText = '';
+  currentWord = '';
   history.length = 0;
   output.textContent = '(draw from the center)';
   renderLog();
+  renderSuggestions();
 });
 
 darkQuery.addEventListener('change', draw);

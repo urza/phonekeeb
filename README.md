@@ -41,7 +41,11 @@ Then reach it from the phone through the host machine's address.
   design question, filling the 32-slot (quadrant x direction x crossings)
   address space, plus the frequency tables.
 - `main.js` — canvas drawing (letters along the boundary lines, 8pen
-  style) and Pointer Events wiring.
+  style), Pointer Events wiring, and the suggestion bar.
+- `prediction.js` — word completion over a static frequency list. Matches
+  on diacritics-stripped keys, so typing "rek" can suggest "řekl".
+- `words-en.js`, `words-cs.js` — top 3000 words per language, generated
+  from hermitdave/FrequencyWords (OpenSubtitles 2018, CC-BY-SA-4.0).
 - `index.html`, `style.css` — the page shell and controls.
 - `tests/hello-flow.mjs` — end-to-end browser test: types "hello " as one
   continuous stroke plus a center tap, asserts the output. Needs
@@ -50,12 +54,10 @@ Then reach it from the phone through the host machine's address.
 
 ### What it does not do yet
 
-No word prediction, no trie, no personal model, no typo repair. This phase
-is steps 1 to 3 of the build order in `gesture-keyboard-handoff.md`: gesture
-decoding and layout only. Prediction is the next phase.
-
-No accent long-press popup yet, which the real 8pen used for accented
-characters.
+No personal model yet (the blended count tables), and no typo repair
+(SymSpell layer). Prediction is a plain prefix scan; the trie plus beam
+search arrives with the fuzzy stage. No accent long-press popup yet,
+which the real 8pen used for accented characters.
 
 ### Known rough edges
 

@@ -73,6 +73,29 @@ main {
   background: var(--panel);
 }
 
+#suggestions {
+  /* Fixed height on purpose: chips appearing must not resize the canvas
+     mid-gesture, which would move the decoder's center under the finger. */
+  height: 44px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 0 12px;
+  overflow-x: auto;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+#suggestions button {
+  font-size: 16px;
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  color: var(--fg);
+  white-space: nowrap;
+}
+
 #output {
   padding: 8px 12px;
   font-size: 22px;
@@ -83,7 +106,9 @@ main {
 }
 
 aside#log {
-  max-height: 18vh;
+  /* Fixed height for the same reason as #suggestions: rows appearing
+     mid-stroke must not shrink the canvas under the finger. */
+  height: 18vh;
   overflow-y: auto;
   border-top: 1px solid var(--line);
   background: var(--bg);

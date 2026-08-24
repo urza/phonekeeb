@@ -1,3 +1,28 @@
+# Project: phonekeeb
+
+A gesture keyboard for iOS, in the web-prototype phase. The concept, prior
+art research, and build order live in `gesture-keyboard-handoff.md`. Read
+that file before design work.
+
+## Structure
+
+- Repo root is the web prototype and is served by GitHub Pages
+  (https://urza.github.io/phonekeeb/, `.nojekyll` present).
+- `gesture-decoder.js` is the core state machine. Keep it free of DOM
+  dependencies. It is the piece that later ports to Swift.
+- `tests/` holds plain-node Playwright scripts. Playwright is installed in
+  `~/pw`, not in the repo, because this filesystem rejects npm's symlinks.
+  Serve the root with `python3 -m http.server 8080`, then run
+  `node tests/hello-flow.mjs`.
+
+## Working mode
+
+- Work autonomously. Do not ask the user to pick between options. Take the
+  recommended option, or do all options behind flags when they are cheap.
+- After each completed change set: run the tests, then commit and push to
+  `main`. The user reviews on GitHub Pages from a phone.
+- Verify visual changes with a Playwright screenshot before pushing.
+
 # How to write and respond
 
 Always use ASD-STE100 Simplified Technical English style in responses. Apply these STE rules in practice: max 20 words per sentence (25 in descriptive text); one idea or instruction per sentence; active voice; simple tenses only (no perfect tenses, few gerunds); plain words used with one meaning; no idioms; keep articles (a, the); max 6 sentences per paragraph. Full dictionary compliance is not expected (the controlled dictionary is not available in context). Applies to normal conversation, not to code or quoted text.

@@ -61,3 +61,6 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 node_modules/
+
+# Claude Code memories, kept local per the user's choice (2026-08-24)
+.claude-memory/
