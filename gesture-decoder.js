@@ -151,16 +151,33 @@ export class GestureDecoder {
   }
 
   commitLetter() {
-    const raw = this.crossings;
-    if (raw === 0) return null; // no line crossed, no letter
-    const capital = raw > 4;
-    const crossings = capital ? Math.min(4, raw - 4) : raw;
+    return commitFor(this.entryQuadrant, this.signedCrossings);
+  }
+
+  // Live glide preview: for each screen quadrant, what committing after a
+  // glide there would type. Adjacent quadrants are one crossing away; the
+  // opposite one is two, and reachable both ways around; the quadrant
+  // that returns the count to zero is a cancel. main.js draws this big in
+  // the segment middles while the finger moves.
+  preview() {
+    if (this.state !== 'active') return null;
+    const entryIdx = QUADRANT_ORDER_CW.indexOf(this.entryQuadrant);
+    const c = this.signedCrossings;
+    const curIdx = entryIdx + c;
+    const q = (i) => QUADRANT_ORDER_CW[((i % 4) + 4) % 4];
     return {
-      type: 'letter',
-      quadrant: this.entryQuadrant,
-      direction: this.direction,
-      crossings,
-      capital,
+      current: q(curIdx),
+      commitNow: commitFor(this.entryQuadrant, c),
+      adjacent: {
+        [q(curIdx + 1)]: commitFor(this.entryQuadrant, c + 1),
+        [q(curIdx - 1)]: commitFor(this.entryQuadrant, c - 1),
+      },
+      opposite: {
+        quadrant: q(curIdx + 2),
+        cw: commitFor(this.entryQuadrant, c + 2),
+        ccw: commitFor(this.entryQuadrant, c - 2),
+        established: c === 0 ? null : c > 0 ? 'CW' : 'CCW',
+      },
     };
   }
 
@@ -170,7 +187,27 @@ export class GestureDecoder {
       quadrant: this.entryQuadrant,
       direction: this.direction,
       crossings: this.crossings,
+      preview: this.preview(),
       path: this.path,
     };
   }
+}
+
+// Screen-coordinate quadrant order for clockwise rotation (angle grows CW
+// because the y axis points down): SE [0,90) -> SW -> NW -> NE.
+export const QUADRANT_ORDER_CW = ['SE', 'SW', 'NW', 'NE'];
+
+// The commit a gesture would produce at a given net crossing count. Pure,
+// so the preview can evaluate hypothetical glides.
+export function commitFor(entryQuadrant, signedCrossings) {
+  const raw = Math.abs(signedCrossings);
+  if (raw === 0) return null; // returning with no net crossing types nothing
+  const capital = raw > 4;
+  return {
+    type: 'letter',
+    quadrant: entryQuadrant,
+    direction: signedCrossings > 0 ? 'CW' : 'CCW',
+    crossings: capital ? Math.min(4, raw - 4) : raw,
+    capital,
+  };
 }

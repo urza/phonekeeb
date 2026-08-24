@@ -102,12 +102,25 @@ function renderLog() {
     .join('');
 }
 
+// Display string a commit would type, with its real case: lowercase
+// normally, uppercase when the capital loop is in effect. The static map
+// draws uppercase for looks; the live preview must not lie about case.
+function letterOf(commit) {
+  if (!commit) return null;
+  const l = letterAt(layout, commit.quadrant, commit.direction, commit.crossings);
+  if (!l) return null;
+  return commit.capital ? l.toUpperCase() : l;
+}
+
+const QUADRANT_MID = { SE: 45, SW: 135, NW: 225, NE: 315 };
+
 function draw() {
   const rect = canvas.getBoundingClientRect();
   const colors = palette();
   ctx.clearRect(0, 0, rect.width, rect.height);
 
   const armLength = Math.min(rect.width, rect.height) * 0.44;
+  const pv = currentSnapshot.preview;
 
   // The four boundary arms, drawn from the dead zone edge outward.
   ctx.strokeStyle = colors.line;
@@ -122,9 +135,11 @@ function draw() {
 
   // Letters along each arm, on the side facing their start quadrant, the
   // way 8pen displayed its alphabet: radial position = how many lines to
-  // cross. Innermost letter = 1 crossing = cheapest gesture.
+  // cross. Innermost letter = 1 crossing = cheapest gesture. Dimmed while
+  // a stroke is active so the live preview letters stand out.
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.globalAlpha = pv ? 0.3 : 1;
   const rInner = deadZoneRadius + 24;
   const rStep = (armLength - rInner - 10) / 3;
   for (const quadrant of QUADRANTS) {
@@ -151,23 +166,14 @@ function draw() {
   ctx.font = '10px sans-serif';
   ctx.fillStyle = colors.line;
   const cornerR = armLength * 0.92;
-  const quadrantMid = { SE: 45, SW: 135, NW: 225, NE: 315 };
   for (const quadrant of QUADRANTS) {
-    const rad = (quadrantMid[quadrant] * Math.PI) / 180;
+    const rad = (QUADRANT_MID[quadrant] * Math.PI) / 180;
     ctx.fillText(quadrant, center.x + cornerR * Math.cos(rad), center.y + cornerR * Math.sin(rad));
   }
+  ctx.globalAlpha = 1;
 
-  // Dead zone / spacebar circle.
-  ctx.strokeStyle = colors.muted;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(center.x, center.y, deadZoneRadius, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillStyle = colors.muted;
-  ctx.font = '10px sans-serif';
-  ctx.fillText('space', center.x, center.y);
-
-  // Live finger path.
+  // Live finger path, drawn before the preview letters so they stay
+  // readable on top of it.
   if (currentSnapshot.path && currentSnapshot.path.length > 1) {
     ctx.strokeStyle = currentSnapshot.state === 'active' ? colors.path : colors.pathCenter;
     ctx.lineWidth = 3;
@@ -178,6 +184,69 @@ function draw() {
       else ctx.lineTo(p.x, p.y);
     });
     ctx.stroke();
+  }
+
+  // Live glide preview: big letters in the segment middles showing what
+  // gliding there (then returning to center) would type.
+  if (pv) {
+    const bigR = armLength * 0.6;
+    const posOf = (quadrant) => {
+      const rad = (QUADRANT_MID[quadrant] * Math.PI) / 180;
+      return [center.x + bigR * Math.cos(rad), center.y + bigR * Math.sin(rad)];
+    };
+
+    for (const [quadrant, commit] of Object.entries(pv.adjacent)) {
+      const letter = letterOf(commit);
+      const [x, y] = posOf(quadrant);
+      if (commit === null) {
+        // Gliding here returns the count to zero: it cancels the letter.
+        ctx.font = '22px sans-serif';
+        ctx.fillStyle = colors.muted;
+        ctx.fillText('×', x, y);
+      } else if (letter) {
+        ctx.font = 'bold 38px sans-serif';
+        ctx.fillStyle = colors.letter;
+        ctx.fillText(letter, x, y);
+      }
+      // commit without a letter = unassigned slot: draw nothing.
+    }
+
+    // Opposite segment: two ways around until rotation direction exists.
+    const opp = pv.opposite;
+    const [ox, oy] = posOf(opp.quadrant);
+    if (opp.established) {
+      const letter = letterOf(opp.established === 'CW' ? opp.cw : opp.ccw);
+      if (letter) {
+        ctx.font = 'bold 38px sans-serif';
+        ctx.fillStyle = colors.letter;
+        ctx.fillText(letter, ox, oy);
+      }
+    } else {
+      const cwLetter = letterOf(opp.cw);
+      const ccwLetter = letterOf(opp.ccw);
+      ctx.font = '20px sans-serif';
+      ctx.fillStyle = colors.muted;
+      if (cwLetter) ctx.fillText(cwLetter, ox + 14, oy);
+      if (ccwLetter) ctx.fillText(ccwLetter, ox - 14, oy);
+    }
+  }
+
+  // Dead zone circle: also a glide target. During a stroke it shows the
+  // letter that returning to center right now would commit.
+  ctx.strokeStyle = colors.muted;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, deadZoneRadius, 0, Math.PI * 2);
+  ctx.stroke();
+  const commitNowLetter = pv ? letterOf(pv.commitNow) : null;
+  if (commitNowLetter) {
+    ctx.font = 'bold 26px sans-serif';
+    ctx.fillStyle = colors.letter;
+    ctx.fillText(commitNowLetter, center.x, center.y);
+  } else if (!pv) {
+    ctx.fillStyle = colors.muted;
+    ctx.font = '10px sans-serif';
+    ctx.fillText('space', center.x, center.y);
   }
 
   // HUD.

@@ -77,11 +77,23 @@ The web prototype implements the 32-slot mechanism, the arm-side letter
 display, center-tap-for-space, and capitals via the extra loop. The accent
 popup is not built.
 
-Add three things 8pen never had.
+8pen is the starting point, not the target. The goal is a keyboard that is
+better than 8pen and personal to its user.
+
+## Divergences from 8pen
 
 1. Word prediction that runs during the gesture, not after it.
-2. A personal n-gram model trained only on what I type on this device.
+2. A personal n-gram model that starts from a default corpus and learns to
+   prefer the user's own text.
 3. Fuzzy matching, so a gesture that misses still resolves.
+4. Live glide preview (built 2026-08-24). While the finger moves, each
+   reachable segment shows one big letter in its middle: the letter that
+   gliding there and returning to center would type. The center shows the
+   commit-now letter. The backtrack segment shows a cancel mark. The
+   opposite segment shows both direction options until rotation direction
+   exists. This makes the layout readable during use instead of
+   memorized. Future hook: highlight the glide targets the language model
+   expects next.
 
 ## Open design question: letter placement
 

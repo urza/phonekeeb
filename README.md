@@ -40,8 +40,9 @@ Then reach it from the phone through the host machine's address.
 - `layout.js` — the two letter-placement modes from the handoff doc's open
   design question, filling the 32-slot (quadrant x direction x crossings)
   address space, plus the frequency tables.
-- `main.js` — canvas drawing (letters along the boundary lines, 8pen
-  style), Pointer Events wiring, and the suggestion bar.
+- `main.js` — canvas drawing (letters along the boundary lines, plus the
+  live glide preview: big letters in segment middles while the finger
+  moves), Pointer Events wiring, and the suggestion bar.
 - `prediction.js` — word completion over a static frequency list. Matches
   on diacritics-stripped keys, so typing "rek" can suggest "řekl".
 - `words-en.js`, `words-cs.js` — top 3000 words per language, generated
