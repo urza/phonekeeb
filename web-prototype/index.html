@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Gesture Keyboard Prototype</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+  <h1>Gesture Keyboard Prototype</h1>
+  <div class="controls">
+    <label>Layout
+      <select id="layoutMode">
+        <option value="qwerty-region">QWERTY region</option>
+        <option value="frequency">Pure frequency</option>
+      </select>
+    </label>
+    <label>Language
+      <select id="language">
+        <option value="en">English</option>
+        <option value="cs">Czech (base letters)</option>
+      </select>
+    </label>
+    <label>Dead zone
+      <input type="range" id="deadZone" min="20" max="80" value="40" />
+    </label>
+    <button id="clearText" type="button">Clear</button>
+  </div>
+</header>
+
+<main>
+  <canvas id="stage"></canvas>
+  <div id="output" aria-live="polite"></div>
+</main>
+
+<aside id="log"></aside>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
