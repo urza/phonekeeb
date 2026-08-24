@@ -125,6 +125,22 @@ a short alphabet after hand edits.
   Diacritics input is not built yet; the plan is an accent popup or
   combining swipes.
 
+## Color themes
+
+- A theme dropdown in the header. The default is Auto, which follows
+  the device light or dark setting.
+- Twelve fixed themes: Light, Dark, Black (true black for OLED), Grey,
+  Solarized Dark, Solarized Light, Nord, Dracula, Gruvbox Dark,
+  Monokai, One Dark, and Catppuccin Mocha.
+- Themes are data, like layouts. The registry in `themes.js` sets
+  seven CSS variables. The page and the canvas read the same
+  variables, so one map colors everything, trail included.
+- A unit test enforces contrast floors against the canvas background:
+  letters 4.5:1, dim letters 3:1, trail colors 2.2:1. A theme that
+  makes the letters hard to read fails the test.
+- The choice is saved in the browser (localStorage) and survives
+  reloads.
+
 ## Debug and test surface
 
 - HUD line: state, sector, direction, crossing count, shift state.

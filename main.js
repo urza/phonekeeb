@@ -1,6 +1,7 @@
 import { GestureDecoder } from './gesture-decoder.js';
 import { letterAt, validateLayout, SECTORS, DIRECTIONS, FIRST_ARM } from './layout.js';
 import { LAYOUTS, buildLayout, DEFAULT_LAYOUT } from './layouts.js';
+import { THEMES, THEME_VARS, DEFAULT_THEME } from './themes.js';
 import { Predictor } from './prediction.js';
 import { WORDS as WORDS_EN } from './words-en.js';
 import { WORDS as WORDS_CS } from './words-cs.js';
@@ -13,16 +14,42 @@ const suggestionsEl = document.getElementById('suggestions');
 const layoutModeEl = document.getElementById('layoutMode');
 const languageEl = document.getElementById('language');
 const deadZoneEl = document.getElementById('deadZone');
+const themeEl = document.getElementById('theme');
 const clearButton = document.getElementById('clearText');
 
 const predictors = { en: new Predictor(WORDS_EN), cs: new Predictor(WORDS_CS) };
 
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-function palette() {
-  return darkQuery.matches
-    ? { line: '#444', letter: '#ddd', muted: '#777', path: '#60a5fa', pathCenter: '#4ade80', hud: '#ccc' }
-    : { line: '#ccc', letter: '#222', muted: '#999', path: '#2563eb', pathCenter: '#16a34a', hud: '#111' };
+// Canvas colors come from the same CSS variables the page uses, so one
+// theme map in themes.js colors everything. Cached because draw() runs
+// on every pointer move; refreshed on theme change and on system
+// light/dark flips (which only matter for the auto theme).
+function readColors() {
+  const style = getComputedStyle(document.documentElement);
+  const v = (name) => style.getPropertyValue(name).trim();
+  return {
+    line: v('--line'), letter: v('--fg'), muted: v('--muted'),
+    path: v('--trail'), pathCenter: v('--trail-center'), hud: v('--fg'),
+  };
+}
+let colors = readColors();
+
+const THEME_KEY = 'phonekeeb.theme';
+
+function applyTheme(id) {
+  const def = THEMES[id] ?? THEMES[DEFAULT_THEME];
+  const root = document.documentElement;
+  // Inline variables override both the stylesheet and its dark-mode
+  // media query; clearing them returns auto to the system setting.
+  for (const name of THEME_VARS) root.style.removeProperty(name);
+  root.style.colorScheme = '';
+  if (def.vars) {
+    for (const [name, value] of Object.entries(def.vars)) root.style.setProperty(name, value);
+    root.style.colorScheme = def.scheme;
+  }
+  colors = readColors();
+  draw();
 }
 
 // The layout dropdown is generated from the registry, so adding a
@@ -34,6 +61,14 @@ for (const [id, def] of Object.entries(LAYOUTS)) {
   layoutModeEl.appendChild(option);
 }
 layoutModeEl.value = DEFAULT_LAYOUT;
+
+// Same pattern for themes: the dropdown mirrors the THEMES registry.
+for (const [id, def] of Object.entries(THEMES)) {
+  const option = document.createElement('option');
+  option.value = id;
+  option.textContent = def.label;
+  themeEl.appendChild(option);
+}
 
 let center = { x: 0, y: 0 };
 let deadZoneRadius = Number(deadZoneEl.value);
@@ -190,7 +225,6 @@ const SECTOR_MID = { E: 0, S: 90, W: 180, N: 270 };
 
 function draw() {
   const rect = canvas.getBoundingClientRect();
-  const colors = palette();
   ctx.clearRect(0, 0, rect.width, rect.height);
 
   const armLength = Math.min(rect.width, rect.height) * 0.44;
@@ -425,11 +459,24 @@ clearButton.addEventListener('click', () => {
   renderSuggestions();
 });
 
-darkQuery.addEventListener('change', draw);
+themeEl.addEventListener('change', () => {
+  applyTheme(themeEl.value);
+  // Saving can throw in private browsing; the theme still applies.
+  try { localStorage.setItem(THEME_KEY, themeEl.value); } catch {}
+});
+
+darkQuery.addEventListener('change', () => {
+  colors = readColors();
+  draw();
+});
 // ResizeObserver instead of window resize: the canvas box also changes
 // when the header wraps or fonts finish loading, and a stale buffer size
 // leaves the drawing stretched.
 new ResizeObserver(resize).observe(canvas);
 resize();
+let savedTheme = null;
+try { savedTheme = localStorage.getItem(THEME_KEY); } catch {}
+themeEl.value = THEMES[savedTheme] ? savedTheme : DEFAULT_THEME;
+applyTheme(themeEl.value);
 rebuildLayout(); // also validates the initial layout
 output.textContent = '(draw from the center)';

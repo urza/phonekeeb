@@ -4,20 +4,27 @@
 
 :root {
   color-scheme: light dark;
+  /* The auto theme. Keep both blocks in sync with the light and dark
+     entries in themes.js. Explicit themes override these with inline
+     variables set by main.js, which beat the media query below. */
   --bg: #fafafa;
-  --panel: #fff;
-  --fg: #111;
-  --muted: #666;
-  --line: #ddd;
+  --panel: #ffffff;
+  --fg: #111111;
+  --muted: #777777;
+  --line: #dddddd;
+  --trail: #2563eb;
+  --trail-center: #16a34a;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #141414;
     --panel: #1c1c1c;
-    --fg: #eee;
-    --muted: #999;
-    --line: #333;
+    --fg: #eeeeee;
+    --muted: #999999;
+    --line: #3a3a3a;
+    --trail: #60a5fa;
+    --trail-center: #4ade80;
   }
 }
 

@@ -48,6 +48,9 @@ Then reach it from the phone through the host machine's address.
 - `main.js` — canvas drawing (letters along the boundary lines, plus the
   live glide preview: big letters in segment middles while the finger
   moves), Pointer Events wiring, and the suggestion bar.
+- `themes.js` — the color theme registry (Solarized, Nord, Dracula,
+  Gruvbox, and more). The page CSS and the canvas read the same seven
+  variables, and a unit test enforces minimum letter contrast per theme.
 - `prediction.js` — word completion over a static frequency list. Matches
   on diacritics-stripped keys, so typing "rek" can suggest "řekl".
 - `words-en.js`, `words-cs.js` — top 3000 words per language, generated
