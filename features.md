@@ -74,6 +74,9 @@ While a stroke is active:
 - The center shows what returning right now does: the pending letter, a
   space mark for a fresh dip, or a cancel mark.
 - The static letter map dims to 30% so the live letters stand out.
+- The finger trail fades from its tail over about 0.7 seconds, so a
+  long continuous stroke shows only the recent motion. Green over the
+  center, blue in the quadrants, gray for ignored outside-start drags.
 - Preview letters show true case: lowercase normally, uppercase under
   the capital loop or an armed shift.
 

@@ -34,6 +34,30 @@ let shiftNext = false; // one-shot shift armed by a NW function tap
 let currentSnapshot = decoder.snapshot();
 const history = [];
 
+// The finger trail is a visual, not decoder state (the decoder is the
+// Swift-bound piece and knows nothing about it). Points carry their
+// birth time and the decoder state they were drawn under; segments fade
+// out over TRAIL_MS so a long continuous stroke shows only the recent
+// motion instead of accumulating a tangle.
+const TRAIL_MS = 700;
+const trail = []; // { x, y, t, state }
+let trailRaf = null;
+
+function pushTrail(x, y) {
+  trail.push({ x, y, t: performance.now(), state: currentSnapshot.state });
+}
+
+// Keeps redrawing while any trail remains, so the tail fades even when
+// the finger holds still or has lifted. Stops itself once the trail is
+// gone; pointer moves restart it via draw().
+function scheduleTrailFade() {
+  if (trailRaf !== null) return;
+  trailRaf = requestAnimationFrame(() => {
+    trailRaf = null;
+    if (trail.length) draw();
+  });
+}
+
 // Function taps: a stationary press-and-release in a quadrant. NE and SE
 // mirror where iOS keyboards put delete and return; NW arms a one-shot
 // shift (the capital loop still works too); SW is reserved for a future
@@ -213,24 +237,33 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Live finger path, drawn before the preview letters so they stay
-  // readable on top of it.
-  if (currentSnapshot.path && currentSnapshot.path.length > 1) {
-    // Outside-start drags are ignored input (reserved for future
-    // gestures); a muted trail signals that nothing will be typed.
-    ctx.strokeStyle =
-      currentSnapshot.state === 'active' ? colors.path
-      : currentSnapshot.state === 'outside' ? colors.muted
-      : colors.pathCenter;
-    ctx.lineWidth = 3;
+  // Fading finger trail, drawn before the preview letters so they stay
+  // readable on top of it. Each segment's opacity and width follow its
+  // age, and points past TRAIL_MS are dropped.
+  const now = performance.now();
+  while (trail.length && now - trail[0].t > TRAIL_MS) trail.shift();
+  if (trail.length > 1) {
+    ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.beginPath();
-    currentSnapshot.path.forEach((p, i) => {
-      if (i === 0) ctx.moveTo(p.x, p.y);
-      else ctx.lineTo(p.x, p.y);
-    });
-    ctx.stroke();
+    for (let i = 1; i < trail.length; i++) {
+      const p = trail[i];
+      const alpha = Math.max(0, 1 - (now - p.t) / TRAIL_MS);
+      // Outside-start drags are ignored input (reserved for future
+      // gestures); a muted trail signals that nothing will be typed.
+      ctx.strokeStyle =
+        p.state === 'active' ? colors.path
+        : p.state === 'outside' ? colors.muted
+        : colors.pathCenter;
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = 0.5 + 2.5 * alpha;
+      ctx.beginPath();
+      ctx.moveTo(trail[i - 1].x, trail[i - 1].y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
   }
+  if (trail.length) scheduleTrailFade();
 
   // Live glide preview: big letters in the segment middles showing what
   // gliding there (then returning to center) would type.
@@ -319,8 +352,9 @@ function draw() {
   ctx.fillText(hud, 10, 16);
 }
 
-function handleResult(result) {
+function handleResult(result, point) {
   currentSnapshot = result;
+  if (point) pushTrail(point.x, point.y);
   if (result.committed) commitGesture(result.committed);
   output.textContent = typedText || '(draw from the center)';
   draw();
@@ -331,13 +365,13 @@ canvas.style.touchAction = 'none';
 canvas.addEventListener('pointerdown', (e) => {
   canvas.setPointerCapture(e.pointerId);
   const { x, y } = toLocalPoint(e);
-  handleResult(decoder.pointerDown(x, y));
+  handleResult(decoder.pointerDown(x, y), { x, y });
 });
 
 canvas.addEventListener('pointermove', (e) => {
   if (!canvas.hasPointerCapture(e.pointerId)) return;
   const { x, y } = toLocalPoint(e);
-  handleResult(decoder.pointerMove(x, y));
+  handleResult(decoder.pointerMove(x, y), { x, y });
 });
 
 canvas.addEventListener('pointerup', (e) => {

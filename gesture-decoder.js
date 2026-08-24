@@ -51,7 +51,6 @@ export class GestureDecoder {
     this.leftCenter = false; // did this press ever cross out of the dead zone
     this.maxCrossings = 0; // most lines crossed at any point in this excursion
     this.downPoint = null; // where this press landed, for tap detection
-    this.path = [];
   }
 
   distanceAndAngle(x, y) {
@@ -89,7 +88,6 @@ export class GestureDecoder {
     this.reset();
     const { dist } = this.distanceAndAngle(x, y);
     this.downPoint = { x, y };
-    this.path.push({ x, y });
     // Letter gestures must start in the center, as in the original 8pen.
     // A press that starts out in a quadrant never types letters: held
     // still it is a function tap, and moving gestures from outside are
@@ -111,8 +109,6 @@ export class GestureDecoder {
 
   pointerMove(x, y) {
     if (this.state === 'idle') return this.snapshot();
-    this.path.push({ x, y });
-    if (this.path.length > 800) this.path.splice(0, this.path.length - 800);
     const { dist, angle } = this.distanceAndAngle(x, y);
 
     if (this.state === 'outside') return this.snapshot();
@@ -173,9 +169,8 @@ export class GestureDecoder {
       // Pure tap on the center dot, never left it: the spacebar.
       committed = { type: 'space', via: 'tap' };
     }
-    const path = this.path;
     this.reset();
-    return { committed, path };
+    return { committed };
   }
 
   commitLetter() {
@@ -220,7 +215,6 @@ export class GestureDecoder {
       // show the truth in the center circle.
       dipWouldSpace: this.state === 'active' && this.maxCrossings === 0,
       preview: this.preview(),
-      path: this.path,
     };
   }
 }
