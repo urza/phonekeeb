@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Phonekeeb Word Prediction</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #1a212c;
+    --muted: #576273;
+    --line: #dfe4eb;
+    --accent: #2b5fe3;      /* chart marks, validated on light surface */
+    --link: #2154cf;
+    --chip-bg: #eef1f6;
+    --warn-ink: #815409;
+    --warn-bg: #faf1df;
+    --warn-line: #e8d5a8;
+    --grid: #edf0f4;
+    --strip-bg: #202124;    /* the phone-strip mock keeps its own dark palette in both themes */
+    --strip-chip: #3c4043;
+    --strip-ink: #e8eaed;
+    --strip-accent: #8ab4f8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a;
+      --card: #181d24;
+      --ink: #e7eaf0;
+      --muted: #98a2b1;
+      --line: #2a313b;
+      --accent: #5c86f5;    /* validated on dark surface */
+      --link: #93b0ff;
+      --chip-bg: #232a33;
+      --warn-ink: #e3b76c;
+      --warn-bg: #251e0f;
+      --warn-line: #4a3d1e;
+      --grid: #202630;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a;
+    --card: #181d24;
+    --ink: #e7eaf0;
+    --muted: #98a2b1;
+    --line: #2a313b;
+    --accent: #5c86f5;
+    --link: #93b0ff;
+    --chip-bg: #232a33;
+    --warn-ink: #e3b76c;
+    --warn-bg: #251e0f;
+    --warn-line: #4a3d1e;
+    --grid: #202630;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.03rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .wrap { max-width: 42.5rem; margin: 0 auto; padding: 2.2rem 1.15rem 3.5rem; }
+  .eyebrow {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(1.9rem, 6vw, 2.5rem); font-weight: 700;
+    letter-spacing: -.015em; line-height: 1.08; text-wrap: balance; margin: 0 0 .7rem;
+  }
+  .dek { font-size: 1.11rem; color: var(--muted); max-width: 34em; margin: 0 0 1.8rem; }
+  h2 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.28rem; font-weight: 700; letter-spacing: -.01em;
+    text-wrap: balance; margin: 2.6rem 0 .8rem;
+  }
+  p { margin: .65rem 0; max-width: 65ch; }
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+  .mono { font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace; }
+
+  /* phone strip mock: a deliberate single-theme object */
+  .strip-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1rem 0.8rem; margin: 1.4rem 0 0; }
+  .strip { background: var(--strip-bg); border-radius: 10px; padding: .8rem .9rem .9rem; overflow-x: auto; }
+  .strip-typed { color: var(--strip-ink); font-family: "Spline Sans Mono", monospace; font-size: 1rem; margin: 0 0 .7rem; }
+  .cursor { display: inline-block; width: 2px; height: 1.05em; background: var(--strip-accent); vertical-align: text-bottom; margin-left: 1px; }
+  .chips { display: flex; gap: .45rem; }
+  .chip {
+    background: var(--strip-chip); color: var(--strip-ink);
+    font-family: "Spline Sans Mono", monospace; font-size: .92rem;
+    padding: .38rem .8rem; border-radius: 999px; white-space: nowrap;
+  }
+  .chip.hot { color: var(--strip-bg); background: var(--strip-accent); font-weight: 500; }
+  .caption { font-size: .84rem; color: var(--muted); margin: .7rem 0 0; }
+
+  .tldr { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.05rem 1.25rem; margin: 1.6rem 0 0; }
+  .tldr ul { margin: 0; padding-left: 1.1rem; }
+  .tldr li { margin: .45rem 0; }
+  .tldr b { font-weight: 600; }
+
+  .vendors { display: grid; gap: .7rem; margin: 1rem 0; }
+  .vendor { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .85rem 1.05rem; }
+  .vendor h3 {
+    font-family: "Schibsted Grotesk", sans-serif; font-size: 1rem; font-weight: 700; margin: 0 0 .3rem;
+  }
+  .vendor .model { font-family: "Spline Sans Mono", monospace; font-size: .8rem; color: var(--link); display: block; margin-bottom: .35rem; }
+  .vendor p { font-size: .95rem; margin: 0; color: var(--ink); }
+
+  /* chart */
+  .chart { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.2rem 1.3rem; margin: 1.2rem 0; }
+  .chart-title { font-weight: 600; font-size: .98rem; margin: 0 0 .15rem; }
+  .chart-sub { font-size: .84rem; color: var(--muted); margin: 0 0 1rem; }
+  .plot { position: relative; }
+  .gridlines { position: absolute; inset: 0 0 1.4rem 0; }
+  .gridlines span { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--grid); }
+  .refline { position: absolute; top: -0.2rem; bottom: 1.2rem; width: 0; border-left: 2px dashed var(--muted); opacity: .55; }
+  .row { position: relative; margin: 0 0 .85rem; }
+  .row-label { font-size: .86rem; color: var(--ink); margin-bottom: .22rem; }
+  .row-label .size { color: var(--muted); font-family: "Spline Sans Mono", monospace; font-size: .76rem; }
+  .bar-track { position: relative; height: 18px; }
+  .bar {
+    position: absolute; left: 0; top: 0; height: 18px;
+    background: var(--accent); border-radius: 0 4px 4px 0;
+  }
+  .bar-val {
+    position: absolute; top: -1px; font-family: "Spline Sans Mono", monospace;
+    font-size: .8rem; color: var(--ink); font-variant-numeric: tabular-nums;
+  }
+  .axis { position: relative; height: 1.2rem; margin-top: .1rem; }
+  .axis span {
+    position: absolute; transform: translateX(-50%);
+    font-family: "Spline Sans Mono", monospace; font-size: .72rem; color: var(--muted);
+  }
+  .row[data-tip] { cursor: default; }
+  .row[data-tip]:hover::after, .row[data-tip]:focus-visible::after {
+    content: attr(data-tip);
+    position: absolute; left: 0; bottom: calc(100% + 4px); z-index: 2;
+    background: var(--ink); color: var(--bg);
+    font-size: .78rem; line-height: 1.35; padding: .35rem .55rem; border-radius: 6px;
+    max-width: 90%;
+  }
+  .footnote { font-size: .82rem; color: var(--muted); margin: .6rem 0 0; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .5rem .7rem; border-top: 1px solid var(--line); vertical-align: top; }
+  thead th { border-top: 0; font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-family: "Spline Sans Mono", monospace; font-size: .84rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td:first-child { font-weight: 600; }
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; margin: 1rem 0; }
+  @media (max-width: 540px) { .compare { grid-template-columns: 1fr; } }
+  .register { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .85rem 1rem; }
+  .register h3 { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 .5rem; font-weight: 600; }
+  .register .score { font-family: "Schibsted Grotesk", sans-serif; font-size: 1.5rem; font-weight: 700; margin-bottom: .35rem; }
+  .register ul { margin: 0; padding-left: 1rem; font-size: .9rem; }
+  .register li { margin: .25rem 0; }
+  .register .mono { font-size: .84rem; }
+
+  .warncard { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: .9rem 1.1rem; margin: 1rem 0; }
+  .warncard .tag {
+    font-family: "Spline Sans Mono", monospace; font-size: .72rem; letter-spacing: .12em;
+    color: var(--warn-ink); font-weight: 500;
+  }
+  .warncard p { font-size: .95rem; margin: .4rem 0 0; }
+  .warncard code { font-family: "Spline Sans Mono", monospace; font-size: .87em; }
+
+  ol.plan { padding-left: 1.25rem; margin: .8rem 0; }
+  ol.plan li { margin: .55rem 0; max-width: 62ch; }
+  ol.plan b { font-weight: 600; }
+
+  .demo { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .9rem 1.05rem; overflow-x: auto; margin: 1rem 0; }
+  .demo table { font-size: .86rem; }
+  .demo td { border: 0; padding: .22rem .8rem .22rem 0; font-weight: 400; }
+  .demo td.h { font-family: "Spline Sans Mono", monospace; color: var(--link); white-space: nowrap; }
+  .demo td.s { font-family: "Spline Sans Mono", monospace; white-space: nowrap; }
+
+  .sources { border-top: 1px solid var(--line); margin-top: 2.6rem; padding-top: 1.2rem; }
+  .sources h2 { margin-top: 0; font-size: 1.05rem; }
+  .sources ul { columns: 2; column-gap: 2rem; padding-left: 1.1rem; margin: .5rem 0 0; font-size: .84rem; }
+  @media (max-width: 540px) { .sources ul { columns: 1; } }
+  .sources li { margin: .3rem 0; break-inside: avoid; }
+  .repo-note { font-size: .88rem; color: var(--muted); margin-top: 1.3rem; }
+  .repo-note code { font-family: "Spline Sans Mono", monospace; font-size: .85em; }
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: color .12s ease; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Phonekeeb · Research note · 2026-08-24</p>
+  <h1>Word Prediction</h1>
+  <p class="dek">What powers next-word suggestions in shipping keyboards, and what phonekeeb should build. All local numbers are measured against this repo's real 3000-word vocabularies.</p>
+
+  <div class="strip-card">
+    <div class="strip">
+      <p class="strip-typed">how<span class="cursor"></span></p>
+      <div class="chips">
+        <span class="chip">do</span>
+        <span class="chip">you</span>
+        <span class="chip">much</span>
+        <span class="chip">are</span>
+        <span class="chip hot">are&nbsp;you</span>
+      </div>
+    </div>
+    <p class="caption">The goal. Top bigram successors of "how" plus one chained two-word chip, from tables built for this note (OpenSubtitles 2018). Today the strip is blank until the first letter of the next word.</p>
+  </div>
+
+  <div class="tldr">
+    <ul>
+      <li><b>No shipping keyboard runs a large model in the strip.</b> Gboard uses a 1.4&nbsp;MB LSTM, Apple a ~34M transformer, SwiftKey a neural + n-gram blend. Large models only serve slow features like proofread.</li>
+      <li><b>Bigram tables cost ~37&nbsp;KB gzipped per language</b> and raise measured next-word hit@3 from 12% to 23%. A lazy trigram layer (~0.8&nbsp;MB) reaches 33%.</li>
+      <li><b>Corpus register beats model machinery.</b> Subtitle bigrams outscore web bigrams by 30% relative on the same test, and their chips read like chat, not like web boilerplate.</li>
+      <li><b>Bug found on the way:</b> <span class="mono">"i"</span> and <span class="mono">"a"</span> are missing from <span class="mono">words-en.js</span>. Fix before any model work.</li>
+    </ul>
+  </div>
+
+  <h2>What the suggestion strip runs on, 2026</h2>
+  <p>Every vendor splits the work the same way. A small on-device model answers inside roughly 20&nbsp;ms per keystroke. A big model handles optional, slower features. The strip itself never waits for an LLM.</p>
+  <div class="vendors">
+    <div class="vendor">
+      <h3>Google Gboard</h3>
+      <span class="model">FST decoder + n-gram LM · 1.4 MB federated LSTM for next-word</span>
+      <p>The decoder is a finite-state pipeline with a 5 to 10 MB language model budget. Next-word chips come from a 1.4M-parameter LSTM trained by federated learning with differential privacy. A 2024 paper swaps the n-gram inside the decoder for a small neural LM. Gemini Nano only powers proofread and rewrite.</p>
+    </div>
+    <div class="vendor">
+      <h3>Apple, stock keyboard</h3>
+      <span class="model">GPT-2-style transformer · 6 blocks · ~34M params · per keystroke</span>
+      <p>iOS 17 rebuilt autocorrect and inline predictions on this on-device model. Third-party keyboards get none of it; public APIs stop at prefix completion and the user lexicon. iOS 26 adds a system-hosted ~3B model (Foundation Models) that keyboard extensions can call, at phrase-level speed only.</p>
+    </div>
+    <div class="vendor">
+      <h3>Microsoft SwiftKey</h3>
+      <span class="model">static neural net + dynamic n-gram user model</span>
+      <p>Both models run side by side and compete for each suggestion slot. The n-gram side learns the user's own phrases. Two-word chips shipped in SwiftKey 6.0. Copilot features are a separate cloud call.</p>
+    </div>
+  </div>
+  <p>8pen shipped no prediction at all, and its successor 8VIM still has none. A working context model is a clear, deliberate divergence in phonekeeb's favor.</p>
+
+  <h2>Measured on our vocabulary</h2>
+  <p>A probe built real tables from OpenSubtitles 2018 for English and Czech, then scored them on a held-out split. Hit@3 means the correct next word was in the top three chips (in-vocab targets).</p>
+
+  <div class="chart">
+    <p class="chart-title">Next-word hit@3, English</p>
+    <p class="chart-sub">Held-out OpenSubtitles test · 3000-word vocabulary · sizes are gzipped</p>
+    <div class="plot">
+      <div class="gridlines" aria-hidden="true">
+        <span style="left:25%"></span><span style="left:50%"></span><span style="left:75%"></span><span style="left:100%"></span>
+      </div>
+      <div class="refline" style="left:67.5%" aria-hidden="true"></div>
+      <div class="row" tabindex="0" data-tip="Always suggest the three most frequent words. This is what today's data supports; the current UI shows no chips at all before the first letter.">
+        <div class="row-label">Unigram only, today's data <span class="size">+0 KB</span></div>
+        <div class="bar-track"><div class="bar" style="width:30%"></div><span class="bar-val" style="left:32.5%">12.0%</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip="Top-5 successors per word, rank order only, with unigram backoff. Czech: 20.6%.">
+        <div class="row-label">Bigram, top-5 per word <span class="size">+37 KB</span></div>
+        <div class="bar-track"><div class="bar" style="width:57.5%"></div><span class="bar-val" style="left:60%">23.0%</span></div>
+      </div>
+      <div class="row" tabindex="0" data-tip="Trigram top-3, contexts seen at least 20 times, backing off to bigram then unigram. Czech: 29.6%.">
+        <div class="row-label">+ Trigram layer, lazy-loaded <span class="size">+793 KB</span></div>
+        <div class="bar-track"><div class="bar" style="width:82.5%"></div><span class="bar-val" style="left:85%">33.0%</span></div>
+      </div>
+      <div class="axis" aria-hidden="true">
+        <span style="left:0%">0</span><span style="left:25%">10</span><span style="left:50%">20</span><span style="left:75%">30</span><span style="left:100%">40</span>
+      </div>
+    </div>
+    <p class="footnote">Dashed line: 27.0%, Gboard's published offline recall@3 for its federated LSTM. Gboard ranks a 164K vocabulary, ours has 3K words, so the numbers frame the approach and prove no superiority. Expect live hit rates about half the offline ones; Gboard reports the same gap.</p>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Option</th><th class="num">Size, gz</th><th class="num">EN hit@3</th><th class="num">CS hit@3</th><th>Verdict</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Unigram only (today's data)</td><td class="num">+0 KB</td><td class="num">12.0%</td><td class="num">11.9%</td><td>No context</td></tr>
+        <tr><td>Bigram top-5 + backoff</td><td class="num">37–41 KB</td><td class="num">23.0%</td><td class="num">20.6%</td><td>Build now</td></tr>
+        <tr><td>+ Trigram top-3, ctx ≥ 20</td><td class="num">547–793 KB</td><td class="num">33.0%</td><td class="num">29.6%</td><td>Later, behind a flag</td></tr>
+        <tr><td>Personal n-gram cache</td><td class="num">a few KB</td><td class="num">—</td><td class="num">—</td><td>After bigrams (handoff step 4)</td></tr>
+        <tr><td>Tiny custom LSTM</td><td class="num">~500 KB</td><td class="num">—</td><td class="num">—</td><td>Only if tables plateau</td></tr>
+        <tr><td>Browser LLM (distilgpt2 int8)</td><td class="num">85 MB</td><td class="num">—</td><td class="num">—</td><td>Skip, wrong tool</td></tr>
+        <tr><td>iOS 26 Foundation Models</td><td class="num">0 in-app</td><td class="num">—</td><td class="num">—</td><td>Spike at the iOS port</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Register beats machinery</h2>
+  <p>Two bigram sources were scored head to head on the same subtitle test set. The web-corpus table is not merely weaker, its chips read wrong for a chat keyboard.</p>
+  <div class="compare">
+    <div class="register">
+      <h3>Web corpus (Norvig count_2w)</h3>
+      <div class="score">17.7%<span style="font-size:.8rem; font-weight:400; color:var(--muted)"> hit@3</span></div>
+      <ul>
+        <li><span class="mono">how →</span> to, do, the</li>
+        <li>"how are" ranks 17th of 130</li>
+        <li><span class="mono">nice →</span> chains to "site map"</li>
+      </ul>
+    </div>
+    <div class="register">
+      <h3>OpenSubtitles 2018</h3>
+      <div class="score">23.0%<span style="font-size:.8rem; font-weight:400; color:var(--muted)"> hit@3</span></div>
+      <ul>
+        <li><span class="mono">how →</span> do, you, much, are</li>
+        <li><span class="mono">what →</span> "are you" · <span class="mono">good →</span> "night"</li>
+        <li><span class="mono">jak →</span> se · <span class="mono">dobrý →</span> den</li>
+      </ul>
+    </div>
+  </div>
+  <p>OpenSubtitles is also the corpus behind the existing word lists, so one corpus and one attribution line covers everything. Head coverage of our vocabularies: 99.9% English, 100% Czech. Czech alternatives fail on licenses: the national corpus is academic-use, Leipzig carries a non-commercial risk.</p>
+
+  <h2>The vocabulary bug</h2>
+  <div class="warncard">
+    <span class="tag">⚠ FIX BEFORE ANY MODEL WORK</span>
+    <p>Both word lists were generated with a minimum word length of 2, so <code>"i"</code> and <code>"a"</code> are missing from <code>words-en.js</code>. The generation also split on apostrophes and kept fragments like <code>didn</code>, <code>re</code>, <code>ll</code>. The bigram data then learns <code>you → re</code>. Fix the regeneration filter: allow length 1 and keep apostrophes inside words, so <code>don't</code> is one entry. Strip apostrophes in the match key so a gesture-typed <code>dont</code> still finds it.</p>
+  </div>
+
+  <h2>Recommended build order</h2>
+  <ol class="plan">
+    <li><b>Regenerate the word lists</b> with the filter fix above.</li>
+    <li><b>Build script</b> (<span class="mono">tools/build-ngrams.py</span>): one streaming pass over the OpenSubtitles dump, keep pairs where both words are in the vocabulary, prune to top-5 successors, emit <span class="mono">bigrams-en.js</span> / <span class="mono">bigrams-cs.js</span> as rank-ordered word lists. A partial 80 MB download already produced all numbers above.</li>
+    <li><b>Extend the predictor</b> to <span class="mono">predict(prefix, prevWords, limit)</span>: walk trigram, then bigram, then unigram lists, deduplicate, filter by prefix. An empty prefix now returns next-word chips. The call site passes the last words of <span class="mono">typedText</span>.</li>
+    <li><b>Two-word chips:</b> chain the rank-1 successor of a top candidate and show it as an extra chip ("are you" next to "are"). A wrong chain costs a strip slot, never a wrong insert.</li>
+    <li><b>Personal model:</b> count the user's committed bigrams in localStorage with per-session decay, promote candidates past a threshold.</li>
+    <li><b>Eval harness</b> (<span class="mono">tools/eval-prediction.mjs</span>): hit@1 / hit@3 on a held-out subtitle slice, run before and after each model change.</li>
+    <li><b>Trigram layer</b> when wanted: same script, contexts with count ≥ 20, lazy-loaded after first paint.</li>
+  </ol>
+  <p>Two UX notes. A gesture letter costs more than a tap, so an accepted chip saves more time here than on a normal keyboard, and the after-space moment is currently blank. And the next-word distribution predicts likely first letters, which can later feed the planned glide-target preview weighting.</p>
+
+  <h2>iOS port notes</h2>
+  <p><span class="mono">documentContextBeforeInput</span> hands a keyboard extension the text before the cursor (about 300 characters in practice), enough for trigram context. The tables sit far under the 48 to 60 MB extension memory ceiling. The Foundation Models route deserves one prototype spike later; the jKey keyboard already ships it, and the model's memory is system-managed, outside the extension's budget.</p>
+
+  <h2>Measured top successors</h2>
+  <div class="demo">
+    <table>
+      <tbody>
+        <tr><td class="h">how</td><td class="s">do · you · much · are · about</td><td class="h">jak</td><td class="s">se · to · je · dlouho</td></tr>
+        <tr><td class="h">what</td><td class="s">are · do · you · is · the</td><td class="h">co</td><td class="s">se · je · to · jsem</td></tr>
+        <tr><td class="h">thank</td><td class="s">you · god · me · the</td><td class="h">děkuji</td><td class="s">vám · pane · za · ti</td></tr>
+        <tr><td class="h">good</td><td class="s">night · morning · to · luck</td><td class="h">dobrý</td><td class="s">den · večer · nápad</td></tr>
+        <tr><td class="h">see</td><td class="s">you · the · what · that</td><td class="h">are</td><td class="s">you · we · the · they</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sources">
+    <h2>Sources</h2>
+    <ul>
+      <li><a href="https://arxiv.org/abs/1704.03987">Gboard FST decoder and budgets (2017)</a></li>
+      <li><a href="https://arxiv.org/abs/1811.03604">Gboard federated LSTM, recall numbers (2018)</a></li>
+      <li><a href="https://arxiv.org/abs/2305.18465">Gboard DP language models (2023)</a></li>
+      <li><a href="https://arxiv.org/abs/2410.15575">Neural LM inside the Gboard decoder (2024)</a></li>
+      <li><a href="https://arxiv.org/abs/2406.04523">Gboard Proofread, server LLM (2024)</a></li>
+      <li><a href="https://jackcook.com/2023/09/08/predictive-text.html">Apple iOS 17 transformer teardown</a></li>
+      <li><a href="https://machinelearning.apple.com/research/introducing-apple-foundation-models">Apple Foundation Models, size and speed</a></li>
+      <li><a href="https://developer.apple.com/forums/thread/795044">Foundation Models memory is system-managed</a></li>
+      <li><a href="https://dev.to/tbds_2dadf2b626f315902eae/the-three-hard-constraints-of-an-ios-keyboard-extension-46af">iOS keyboard extension constraints</a></li>
+      <li><a href="https://www.engadget.com/2016-09-15-swiftkey-android-neural-network-update.html">SwiftKey neural + n-gram blend</a></li>
+      <li><a href="https://aclanthology.org/D07-1090.pdf">Stupid backoff (Brants et al. 2007)</a></li>
+      <li><a href="https://norvig.com/ngrams/">Norvig n-gram data</a></li>
+      <li><a href="https://opus.nlpl.eu/legacy/OpenSubtitles-v2018.php">OPUS OpenSubtitles 2018</a></li>
+      <li><a href="https://dl.acm.org/doi/10.1145/1029632.1029640">SHARK2 gesture decoding (2004)</a></li>
+    </ul>
+    <p class="repo-note">The full note, with data licenses and verified download URLs, lives next to this page: <a href="https://github.com/urza/phonekeeb/blob/main/word-prediction-research.md"><code>word-prediction-research.md</code></a>.</p>
+  </div>
+</div>
+</body>
+</html>
