@@ -216,7 +216,12 @@ function draw() {
   // Live finger path, drawn before the preview letters so they stay
   // readable on top of it.
   if (currentSnapshot.path && currentSnapshot.path.length > 1) {
-    ctx.strokeStyle = currentSnapshot.state === 'active' ? colors.path : colors.pathCenter;
+    // Outside-start drags are ignored input (reserved for future
+    // gestures); a muted trail signals that nothing will be typed.
+    ctx.strokeStyle =
+      currentSnapshot.state === 'active' ? colors.path
+      : currentSnapshot.state === 'outside' ? colors.muted
+      : colors.pathCenter;
     ctx.lineWidth = 3;
     ctx.lineJoin = 'round';
     ctx.beginPath();

@@ -8,6 +8,8 @@ that file before design work.
 
 - Repo root is the web prototype and is served by GitHub Pages
   (https://urza.github.io/phonekeeb/, `.nojekyll` present).
+- `features.md` is the living reference of what the prototype does.
+  Update it in the same change set as any behavior change.
 - `gesture-decoder.js` is the core state machine. Keep it free of DOM
   dependencies. It is the piece that later ports to Swift.
 - `tests/` holds plain-node Playwright scripts. Playwright is installed in

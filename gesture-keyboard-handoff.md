@@ -80,31 +80,16 @@ popup is not built.
 8pen is the starting point, not the target. The goal is a keyboard that is
 better than 8pen and personal to its user.
 
-## Divergences from 8pen
+Planned additions the original never had:
 
 1. Word prediction that runs during the gesture, not after it.
 2. A personal n-gram model that starts from a default corpus and learns to
    prefer the user's own text.
 3. Fuzzy matching, so a gesture that misses still resolves.
-4. Live glide preview (built 2026-08-24). While the finger moves, each
-   reachable segment shows one big letter in its middle: the letter that
-   gliding there and returning to center would type. The center shows the
-   commit-now letter. The backtrack segment shows a cancel mark. The
-   opposite segment shows both direction options until rotation direction
-   exists. This makes the layout readable during use instead of
-   memorized. Future hook: highlight the glide targets the language model
-   expects next.
-5. Function taps (built 2026-08-24). A stationary press-and-release in a
-   quadrant: top-right deletes, bottom-right is enter, top-left arms a
-   one-shot shift, bottom-left is reserved for a number/symbol layer.
-   The original 8pen had no such taps; its successor 8VIM uses sector
-   taps this way, and the positions match where iOS keyboards put delete
-   and return.
-6. Backtrack-to-cancel (built 2026-08-24). In the original, any return to
-   center with no net crossing typed a space, including a backtracked
-   letter. Here a backtracked letter cancels silently; only a fresh dip
-   from the center types the space. A sloppy start from outside the
-   center settles silently too.
+
+What the prototype already does, including the deliberate divergences
+from the original, is documented in `features.md`. Keep that file
+current; this document stays the concept and research record.
 
 ## Open design question: letter placement
 

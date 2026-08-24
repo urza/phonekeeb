@@ -49,7 +49,6 @@ export class GestureDecoder {
     this.lastAngle = null; // raw angle of the previous sample, for delta tracking
     this.cumulativeAngle = 0;
     this.leftCenter = false; // did this press ever cross out of the dead zone
-    this.fromCenter = false; // did the current excursion start at the center
     this.maxCrossings = 0; // most lines crossed at any point in this excursion
     this.downPoint = null; // where this press landed, for tap detection
     this.path = [];
@@ -88,24 +87,21 @@ export class GestureDecoder {
 
   pointerDown(x, y) {
     this.reset();
-    const { dist, angle } = this.distanceAndAngle(x, y);
+    const { dist } = this.distanceAndAngle(x, y);
     this.downPoint = { x, y };
     this.path.push({ x, y });
-    if (dist <= this.deadZoneRadius) {
-      this.state = 'center';
-    } else {
-      // Finger landed outside the dead zone. Real 8pen usage always starts
-      // centered, but a prototype should stay usable for a sloppy start,
-      // and a press-and-release here is a function tap (see pointerUp).
-      this.activate(angle, false);
-    }
+    // Letter gestures must start in the center, as in the original 8pen.
+    // A press that starts out in a quadrant never types letters: held
+    // still it is a function tap, and moving gestures from outside are
+    // reserved address space for future features (the original used
+    // them for user-defined word macros).
+    this.state = dist <= this.deadZoneRadius ? 'center' : 'outside';
     return this.snapshot();
   }
 
-  activate(angle, fromCenter) {
+  activate(angle) {
     this.state = 'active';
     this.leftCenter = true;
-    this.fromCenter = fromCenter;
     this.maxCrossings = 0;
     this.entryAngle = normalizeAngle(angle);
     this.entryQuadrant = angleToQuadrant(angle);
@@ -119,10 +115,12 @@ export class GestureDecoder {
     if (this.path.length > 800) this.path.splice(0, this.path.length - 800);
     const { dist, angle } = this.distanceAndAngle(x, y);
 
+    if (this.state === 'outside') return this.snapshot();
+
     if (this.state === 'center') {
       // Hysteresis: leaving needs 15% more distance than returning, so
       // jitter at the dead zone edge cannot spray dip-spaces.
-      if (dist > this.deadZoneRadius * 1.15) this.activate(angle, true);
+      if (dist > this.deadZoneRadius * 1.15) this.activate(angle);
       return this.snapshot();
     }
 
@@ -133,13 +131,11 @@ export class GestureDecoder {
       // crossing starts the next letter in the same continuous stroke:
       // flow input, priority #1 in the handoff doc.
       // A dip that crossed no line at all is a space, exactly as the
-      // original 8pen did it, so whole sentences stay in one stroke. But
-      // only when the excursion began at the center and never crossed
-      // anything: a backtracked letter (crossed lines, then rotated back
-      // to zero) is a cancel, not a space, and a sloppy start from
-      // outside settles silently.
+      // original 8pen did it, so whole sentences stay in one stroke. A
+      // backtracked letter (crossed lines, then rotated back to zero) is
+      // a cancel instead, our deliberate divergence.
       let committed = this.commitLetter();
-      if (!committed && this.fromCenter && this.maxCrossings === 0) {
+      if (!committed && this.maxCrossings === 0) {
         committed = { type: 'space', via: 'dip' };
       }
       this.entryAngle = null;
@@ -162,16 +158,16 @@ export class GestureDecoder {
     if (this.state === 'active') {
       // Lifting outside the center still commits a letter in progress,
       // per the handoff doc's priority #4: sloppy gestures should land.
-      // With no crossings, a stationary press-and-release in a quadrant
-      // is a function tap (delete, enter, shift; assigned in main.js).
-      // A moved but crossing-less lift is 8pen's "end word without a
-      // space": silence.
+      // With no crossings this is 8pen's "end word without a space".
       committed = this.commitLetter();
-      if (!committed && !this.fromCenter && this.downPoint) {
-        const moved = Math.hypot(x - this.downPoint.x, y - this.downPoint.y);
-        if (moved < 18) {
-          committed = { type: 'function', quadrant: this.entryQuadrant };
-        }
+    } else if (this.state === 'outside') {
+      // Held still: a function tap (delete, enter, shift; assigned in
+      // main.js). Moved: reserved for future outside-start gestures,
+      // silence for now.
+      const moved = Math.hypot(x - this.downPoint.x, y - this.downPoint.y);
+      if (moved < 18) {
+        const { angle } = this.distanceAndAngle(this.downPoint.x, this.downPoint.y);
+        committed = { type: 'function', quadrant: angleToQuadrant(angle) };
       }
     } else if (this.state === 'center' && !this.leftCenter) {
       // Pure tap on the center dot, never left it: the spacebar.
@@ -222,7 +218,7 @@ export class GestureDecoder {
       // What returning to center now would do beyond a letter: a space
       // (fresh dip from center) or a silent cancel. Lets the preview
       // show the truth in the center circle.
-      dipWouldSpace: this.state === 'active' && this.fromCenter && this.maxCrossings === 0,
+      dipWouldSpace: this.state === 'active' && this.maxCrossings === 0,
       preview: this.preview(),
       path: this.path,
     };

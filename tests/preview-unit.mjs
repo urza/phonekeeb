@@ -67,4 +67,20 @@ d5.pointerDown(160, 40);
 d5.pointerMove(170, 70);
 check('dragged crossing-less lift is silent', d5.pointerUp(170, 70).committed, null);
 
+// Letter gestures must start in the center: an outside start that loops
+// through several quadrants still types nothing (reserved for future
+// outside-start gestures).
+const d6 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
+d6.pointerDown(160, 160);
+for (let deg = 45; deg <= 245; deg += 8) d6.pointerMove(100 + 80 * Math.cos((deg * Math.PI) / 180), 100 + 80 * Math.sin((deg * Math.PI) / 180));
+check('outside start never types letters', d6.pointerUp(100 + 80 * Math.cos((245 * Math.PI) / 180), 100 + 80 * Math.sin((245 * Math.PI) / 180)).committed, null);
+
+// An outside start that drags through the center still types nothing:
+// the press's role is fixed at pointer down.
+const d7 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
+d7.pointerDown(160, 160);
+d7.pointerMove(100, 100);
+d7.pointerMove(40, 100);
+check('outside start through center stays silent', d7.pointerUp(40, 100).committed, null);
+
 process.exit(failures ? 1 : 0);
