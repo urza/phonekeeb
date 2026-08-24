@@ -70,10 +70,10 @@ While a stroke is active:
   you get by gliding there and then returning to the center.
 - The opposite sector is reachable both ways around, so until the
   rotation direction exists it shows both candidate letters at nearly
-  full size. Each carries a small rotation arrow (clockwise or
-  counterclockwise) and sits toward the side the finger would travel
-  through. Once a direction exists, it shows one big letter for
-  continuing that direction.
+  full size. Each sits toward the side its path arrives from, with a
+  small arrow that enters across that arm and points along the travel
+  direction into the letter. Once a direction exists, the sector shows
+  one big letter for continuing that direction.
 - The backtrack sector shows a small x: gliding there cancels.
 - The center shows what returning right now does: the pending letter, a
   space mark for a fresh dip, or a cancel mark.

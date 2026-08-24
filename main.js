@@ -384,24 +384,33 @@ function draw() {
       };
       const cwLetter = letterOf(opp.cw);
       const ccwLetter = letterOf(opp.ccw);
-      // Two letters share this segment, one per rotation direction. A
-      // small rotation arrow beside each says which way around the X
-      // reaches it; without the arrows this pair reads as misplaced.
+      // Two letters share this segment, one per rotation direction.
+      // Beside each, a small arrow enters from the arm that path
+      // crosses and points along the travel direction into the letter,
+      // so the pair reads as two flows instead of two misplaced keys.
+      // Tangent direction: position angle +90 for clockwise travel
+      // (canvas angles grow clockwise), -90 for counterclockwise.
+      const flowArrow = (deg, tangentSign) => {
+        const [x, y] = posAt(deg, bigR);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(((deg + tangentSign * 90) * Math.PI) / 180);
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = colors.muted;
+        ctx.fillText('→', 0, 0);
+        ctx.restore();
+      };
+      ctx.font = 'bold 30px sans-serif';
+      ctx.fillStyle = colors.letter;
       if (cwLetter) {
+        ctx.fillText(cwLetter, ...posAt(oppMid - 22));
+        flowArrow(oppMid - 38, 1);
         ctx.font = 'bold 30px sans-serif';
         ctx.fillStyle = colors.letter;
-        ctx.fillText(cwLetter, ...posAt(oppMid - 22));
-        ctx.font = '14px sans-serif';
-        ctx.fillStyle = colors.muted;
-        ctx.fillText('↻', ...posAt(oppMid - 22, bigR + 30));
       }
       if (ccwLetter) {
-        ctx.font = 'bold 30px sans-serif';
-        ctx.fillStyle = colors.letter;
         ctx.fillText(ccwLetter, ...posAt(oppMid + 22));
-        ctx.font = '14px sans-serif';
-        ctx.fillStyle = colors.muted;
-        ctx.fillText('↺', ...posAt(oppMid + 22, bigR + 30));
+        flowArrow(oppMid + 38, -1);
       }
     }
   }
