@@ -61,17 +61,21 @@ gesture and no prediction. That gap is the project.
 Start from 8pen mechanics, confirmed by research rather than assumed. The
 real 8pen used a circle with 4 quadrants around a center dot, and the center
 dot was the spacebar. A letter is (entry quadrant, rotation direction,
-depth), where depth is how many quadrant boundaries you cross before
-returning to the dot: 4 quadrants x 2 directions x 4 depths = 32 addressable
-letters. The most frequent letters sit at the shallowest depth, so common
-letters need almost no rotation. Capitals reportedly needed one extra full
-loop before completing the letter, and accents used a long-press popup.
+crossings), where crossings is how many quadrant boundary lines you cross
+before returning to the dot, from 1 to 4: 4 x 2 x 4 = 32 addressable
+letters. The most frequent letters need only 1 crossing. The minimum of 1
+matters: it makes rotation direction unambiguous, and an out-and-back that
+crosses nothing types nothing, which forgives accidental exits. Letters are
+displayed along the boundary lines themselves, on the side facing their
+start quadrant, with radial position showing the crossing count. Capitals
+need one extra full loop before completing the letter, and accents used a
+long-press popup.
 Sources: [ploum.net review](https://ploum.net/writing-on-a-smartphone-review-of-8pen-and-messagease/index.html),
 [OSnews review](https://www.osnews.com/story/23988/8pen-good-but-not-for-everybody/).
 
-The web prototype implements the core 32-slot mechanism and the
-center-tap-for-space detail. The capitals-via-extra-loop modifier is not
-built yet.
+The web prototype implements the 32-slot mechanism, the arm-side letter
+display, center-tap-for-space, and capitals via the extra loop. The accent
+popup is not built.
 
 Add three things 8pen never had.
 
@@ -103,10 +107,10 @@ on swipes, which is worth copying.
 ## Technical approach
 
 **Gesture decoding.** A small state machine over quadrant crossings. Track
-entry quadrant, rotation direction, and how many quadrant boundaries are
-crossed before the finger returns to the center dot (depth, capped at 3).
-This produces a discrete symbol stream, which is much cleaner than
-SwiftKey's continuous finger paths. No machine learning needed here.
+entry quadrant, rotation direction, and how many boundary lines are crossed
+before the finger returns to the center dot (1 to 4, plus 4 more for a
+capital). This produces a discrete symbol stream, which is much cleaner
+than SwiftKey's continuous finger paths. No machine learning needed here.
 
 **Prediction.** Walk a trie of candidate words with beam search, rescored by
 the language model. Emit candidates while the finger still moves.

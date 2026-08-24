@@ -33,15 +33,20 @@ Then reach it from the phone through the host machine's address.
 ### What is here
 
 - `gesture-decoder.js` — the state machine, modeled on the real 8pen: entry
-  quadrant, rotation direction, and depth (quadrant boundaries crossed
-  before returning to the center dot) from a pointer path, plus a
-  center-tap for space. No DOM dependency, unit-testable, and the piece
-  meant to port to Swift later.
+  quadrant, rotation direction, and crossings (boundary lines crossed
+  before returning to the center dot, 1 to 4) from a pointer path. A
+  center tap is space. One extra full loop makes a capital. No DOM
+  dependency, unit-testable, and the piece meant to port to Swift later.
 - `layout.js` — the two letter-placement modes from the handoff doc's open
-  design question, filling the 32-slot (quadrant x direction x depth)
+  design question, filling the 32-slot (quadrant x direction x crossings)
   address space, plus the frequency tables.
-- `main.js` — canvas drawing and Pointer Events wiring.
+- `main.js` — canvas drawing (letters along the boundary lines, 8pen
+  style) and Pointer Events wiring.
 - `index.html`, `style.css` — the page shell and controls.
+- `tests/hello-flow.mjs` — end-to-end browser test: types "hello " as one
+  continuous stroke plus a center tap, asserts the output. Needs
+  Playwright installed outside the repo (`~/pw` by default, override with
+  `PW_DIR`), because this filesystem does not support npm's symlinks.
 
 ### What it does not do yet
 
@@ -49,8 +54,8 @@ No word prediction, no trie, no personal model, no typo repair. This phase
 is steps 1 to 3 of the build order in `gesture-keyboard-handoff.md`: gesture
 decoding and layout only. Prediction is the next phase.
 
-No capitals-via-extra-loop modifier yet, which the real 8pen reportedly
-used. No accent long-press popup either.
+No accent long-press popup yet, which the real 8pen used for accented
+characters.
 
 ### Known rough edges
 
