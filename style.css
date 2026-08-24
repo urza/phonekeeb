@@ -100,9 +100,13 @@ main {
   padding: 8px 12px;
   font-size: 22px;
   min-height: 1.4em;
+  max-height: 20vh;
+  overflow-y: auto;
   border-top: 1px solid var(--line);
   background: var(--bg);
   word-break: break-word;
+  /* enter taps insert real newlines; keep them visible */
+  white-space: pre-wrap;
 }
 
 aside#log {

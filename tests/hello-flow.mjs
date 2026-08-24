@@ -49,12 +49,14 @@ for (const { from, to } of STROKES) {
   }
   await page.mouse.move(cx, cy, { steps: 4 });
 }
-await page.mouse.up();
 
-// Space: a tap on the center dot. Re-query the box first: the log area
-// grew while typing, which shrinks the canvas and moves its center.
-const box2 = await page.locator('#stage').boundingBox();
-await page.mouse.click(box2.x + box2.width / 2, box2.y + box2.height / 2);
+// Space without lifting: dip out of the center and back, crossing no
+// line, exactly as the original 8pen did it. The whole of "hello " is
+// one continuous stroke.
+const dip = 80;
+await page.mouse.move(cx + dip * Math.cos(Math.PI / 4), cy + dip * Math.sin(Math.PI / 4), { steps: 4 });
+await page.mouse.move(cx, cy, { steps: 4 });
+await page.mouse.up();
 
 const text = await page.locator('#output').textContent();
 const pass = text === 'hello ';

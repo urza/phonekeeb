@@ -30,8 +30,16 @@ let layout = buildLayout(layoutModeEl.value, languageEl.value);
 let decoder = new GestureDecoder({ center, deadZoneRadius });
 let typedText = '';
 let currentWord = ''; // letters since the last space or accepted suggestion
+let shiftNext = false; // one-shot shift armed by a NW function tap
 let currentSnapshot = decoder.snapshot();
 const history = [];
+
+// Function taps: a stationary press-and-release in a quadrant. NE and SE
+// mirror where iOS keyboards put delete and return; NW arms a one-shot
+// shift (the capital loop still works too); SW is reserved for a future
+// number/symbol layer.
+const FUNCTION_KEYS = { NE: 'backspace', SE: 'enter', NW: 'shift', SW: null };
+const FUNCTION_GLYPHS = { NE: '⌫', SE: '⏎', NW: '⇧' };
 
 function resize() {
   const dpr = window.devicePixelRatio || 1;
@@ -59,19 +67,40 @@ function commitGesture(commit) {
   if (commit.type === 'space') {
     typedText += ' ';
     currentWord = '';
-    history.unshift({ type: 'space' });
+    history.unshift(commit);
+  } else if (commit.type === 'function') {
+    applyFunction(commit.quadrant);
   } else {
     let letter = letterAt(layout, commit.quadrant, commit.direction, commit.crossings);
-    if (letter && commit.capital) letter = letter.toUpperCase();
+    if (letter && (commit.capital || shiftNext)) letter = letter.toUpperCase();
     if (letter) {
       typedText += letter;
       currentWord += letter;
+      shiftNext = false;
     }
     history.unshift({ ...commit, letter });
   }
   history.length = Math.min(history.length, 15);
   renderLog();
   renderSuggestions();
+}
+
+function applyFunction(quadrant) {
+  const fn = FUNCTION_KEYS[quadrant];
+  if (fn === 'backspace') {
+    typedText = typedText.slice(0, -1);
+    // The word being typed may have shrunk, or a deleted space may have
+    // rejoined us to the previous word.
+    currentWord = typedText.match(/[^\s]*$/)[0];
+  } else if (fn === 'enter') {
+    typedText += '\n';
+    currentWord = '';
+  } else if (fn === 'shift') {
+    shiftNext = !shiftNext;
+  } else {
+    return; // unassigned quadrant, no history entry
+  }
+  history.unshift({ type: 'function', fn });
 }
 
 function renderSuggestions() {
@@ -94,7 +123,8 @@ suggestionsEl.addEventListener('click', (e) => {
 function renderLog() {
   logEl.innerHTML = history
     .map((h) => {
-      if (h.type === 'space') return `<div class="log-row"><b>&middot;</b> <span>space (center tap)</span></div>`;
+      if (h.type === 'space') return `<div class="log-row"><b>&middot;</b> <span>space (${h.via})</span></div>`;
+      if (h.type === 'function') return `<div class="log-row"><b>&#9670;</b> <span>${h.fn} (tap)</span></div>`;
       const letter = h.letter ?? '?';
       const cap = h.capital ? ' capital' : '';
       return `<div class="log-row"><b>${letter}</b> <span>${h.quadrant} ${h.direction} lines:${h.crossings}${cap}</span></div>`;
@@ -109,7 +139,7 @@ function letterOf(commit) {
   if (!commit) return null;
   const l = letterAt(layout, commit.quadrant, commit.direction, commit.crossings);
   if (!l) return null;
-  return commit.capital ? l.toUpperCase() : l;
+  return commit.capital || shiftNext ? l.toUpperCase() : l;
 }
 
 const QUADRANT_MID = { SE: 45, SW: 135, NW: 225, NE: 315 };
@@ -169,6 +199,17 @@ function draw() {
   for (const quadrant of QUADRANTS) {
     const rad = (QUADRANT_MID[quadrant] * Math.PI) / 180;
     ctx.fillText(quadrant, center.x + cornerR * Math.cos(rad), center.y + cornerR * Math.sin(rad));
+  }
+
+  // Function tap hints: a stationary tap in a quadrant triggers these.
+  ctx.font = '15px sans-serif';
+  ctx.fillStyle = shiftNext ? colors.letter : colors.muted;
+  const fnR = armLength * 0.78;
+  for (const [quadrant, glyph] of Object.entries(FUNCTION_GLYPHS)) {
+    const rad = (QUADRANT_MID[quadrant] * Math.PI) / 180;
+    // Only the shift glyph brightens while armed; the rest stay muted.
+    ctx.fillStyle = quadrant === 'NW' && shiftNext ? colors.letter : colors.muted;
+    ctx.fillText(glyph, center.x + fnR * Math.cos(rad), center.y + fnR * Math.sin(rad));
   }
   ctx.globalAlpha = 1;
 
@@ -243,7 +284,13 @@ function draw() {
     ctx.font = 'bold 26px sans-serif';
     ctx.fillStyle = colors.letter;
     ctx.fillText(commitNowLetter, center.x, center.y);
-  } else if (!pv) {
+  } else if (pv) {
+    // No letter pending: returning now is either a dip-space (fresh
+    // excursion) or a silent cancel (backtracked letter).
+    ctx.fillStyle = colors.muted;
+    ctx.font = '18px sans-serif';
+    ctx.fillText(currentSnapshot.dipWouldSpace ? '␣' : '×', center.x, center.y);
+  } else {
     ctx.fillStyle = colors.muted;
     ctx.font = '10px sans-serif';
     ctx.fillText('space', center.x, center.y);
@@ -253,7 +300,7 @@ function draw() {
   ctx.fillStyle = colors.hud;
   ctx.font = '13px sans-serif';
   ctx.textAlign = 'left';
-  const hud = `state:${currentSnapshot.state}  quadrant:${currentSnapshot.quadrant ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}`;
+  const hud = `state:${currentSnapshot.state}  quadrant:${currentSnapshot.quadrant ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}${shiftNext ? '  SHIFT' : ''}`;
   ctx.fillText(hud, 10, 16);
 }
 
@@ -302,6 +349,7 @@ languageEl.addEventListener('change', () => {
 clearButton.addEventListener('click', () => {
   typedText = '';
   currentWord = '';
+  shiftNext = false;
   history.length = 0;
   output.textContent = '(draw from the center)';
   renderLog();

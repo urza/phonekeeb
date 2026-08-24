@@ -94,6 +94,17 @@ better than 8pen and personal to its user.
    exists. This makes the layout readable during use instead of
    memorized. Future hook: highlight the glide targets the language model
    expects next.
+5. Function taps (built 2026-08-24). A stationary press-and-release in a
+   quadrant: top-right deletes, bottom-right is enter, top-left arms a
+   one-shot shift, bottom-left is reserved for a number/symbol layer.
+   The original 8pen had no such taps; its successor 8VIM uses sector
+   taps this way, and the positions match where iOS keyboards put delete
+   and return.
+6. Backtrack-to-cancel (built 2026-08-24). In the original, any return to
+   center with no net crossing typed a space, including a backtracked
+   letter. Here a backtracked letter cancels silently; only a fresh dip
+   from the center types the space. A sloppy start from outside the
+   center settles silently too.
 
 ## Open design question: letter placement
 

@@ -43,4 +43,28 @@ for (let deg = 110; deg <= 110 + 360; deg += 8) {
 pv = d.preview();
 check('after extra loop commitNow is capital (SE,CW,1)', [pv.commitNow.capital, pv.commitNow.crossings], [true, 1]);
 
+// Dip from center, no crossing: a space, as in the original 8pen.
+const d2 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
+d2.pointerDown(100, 100);
+d2.pointerMove(160, 160);
+check('dip types space', d2.pointerMove(100, 100).committed, { type: 'space', via: 'dip' });
+
+// Crossed a line, rotated back to zero, returned: a silent cancel.
+const d3 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
+d3.pointerDown(100, 100);
+for (let deg = 45; deg <= 115; deg += 8) d3.pointerMove(100 + 60 * Math.cos((deg * Math.PI) / 180), 100 + 60 * Math.sin((deg * Math.PI) / 180));
+for (let deg = 115; deg >= 45; deg -= 8) d3.pointerMove(100 + 60 * Math.cos((deg * Math.PI) / 180), 100 + 60 * Math.sin((deg * Math.PI) / 180));
+check('backtracked letter cancels, not a space', d3.pointerMove(100, 100).committed, null);
+
+// Stationary press-and-release in a quadrant: a function tap.
+const d4 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
+d4.pointerDown(160, 40);
+check('quadrant tap is a function', d4.pointerUp(161, 41).committed, { type: 'function', quadrant: 'NE' });
+
+// A moved, crossing-less lift outside: silence (end word without space).
+const d5 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
+d5.pointerDown(160, 40);
+d5.pointerMove(170, 70);
+check('dragged crossing-less lift is silent', d5.pointerUp(170, 70).committed, null);
+
 process.exit(failures ? 1 : 0);

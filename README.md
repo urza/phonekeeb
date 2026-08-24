@@ -34,9 +34,13 @@ Then reach it from the phone through the host machine's address.
 
 - `gesture-decoder.js` — the state machine, modeled on the real 8pen: entry
   quadrant, rotation direction, and crossings (boundary lines crossed
-  before returning to the center dot, 1 to 4) from a pointer path. A
-  center tap is space. One extra full loop makes a capital. No DOM
-  dependency, unit-testable, and the piece meant to port to Swift later.
+  before returning to the center dot, 1 to 4) from a pointer path. Space
+  two ways, both original: a center tap, or a dip from the center out and
+  back with no line crossed, which keeps a whole sentence in one stroke.
+  One extra full loop makes a capital. A stationary press-and-release in
+  a quadrant is a function tap: top-right deletes, bottom-right is enter,
+  top-left arms a one-shot shift. No DOM dependency, unit-testable, and
+  the piece meant to port to Swift later.
 - `layout.js` — the two letter-placement modes from the handoff doc's open
   design question, filling the 32-slot (quadrant x direction x crossings)
   address space, plus the frequency tables.

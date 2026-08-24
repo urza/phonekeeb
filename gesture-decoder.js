@@ -7,7 +7,11 @@
 // quadrants x 2 directions x 4 crossings = 32 letters. One extra full
 // loop (crossings 5-8) selects the same letter as crossings-4 but as a
 // capital, which is how 8pen reportedly did capitals. The center circle
-// doubles as the spacebar: a tap that never leaves it commits a space.
+// doubles as the spacebar two ways, both from the original: a tap that
+// never leaves it, or a dip from the center into a sector and back with
+// no line crossed, which keeps whole sentences in one stroke. A
+// stationary press-and-release out in a quadrant is a function tap
+// (delete, enter, shift; the mapping lives in main.js).
 // No DOM or canvas dependency here, so this file is unit-testable on its
 // own and is the piece meant to port to Swift once the design is proven.
 // See gesture-keyboard-handoff.md, "Technical approach: Gesture decoding".
@@ -45,6 +49,9 @@ export class GestureDecoder {
     this.lastAngle = null; // raw angle of the previous sample, for delta tracking
     this.cumulativeAngle = 0;
     this.leftCenter = false; // did this press ever cross out of the dead zone
+    this.fromCenter = false; // did the current excursion start at the center
+    this.maxCrossings = 0; // most lines crossed at any point in this excursion
+    this.downPoint = null; // where this press landed, for tap detection
     this.path = [];
   }
 
@@ -82,20 +89,24 @@ export class GestureDecoder {
   pointerDown(x, y) {
     this.reset();
     const { dist, angle } = this.distanceAndAngle(x, y);
+    this.downPoint = { x, y };
     this.path.push({ x, y });
     if (dist <= this.deadZoneRadius) {
       this.state = 'center';
     } else {
       // Finger landed outside the dead zone. Real 8pen usage always starts
-      // centered, but a prototype should stay usable for a sloppy start.
-      this.activate(angle);
+      // centered, but a prototype should stay usable for a sloppy start,
+      // and a press-and-release here is a function tap (see pointerUp).
+      this.activate(angle, false);
     }
     return this.snapshot();
   }
 
-  activate(angle) {
+  activate(angle, fromCenter) {
     this.state = 'active';
     this.leftCenter = true;
+    this.fromCenter = fromCenter;
+    this.maxCrossings = 0;
     this.entryAngle = normalizeAngle(angle);
     this.entryQuadrant = angleToQuadrant(angle);
     this.lastAngle = angle;
@@ -109,18 +120,28 @@ export class GestureDecoder {
     const { dist, angle } = this.distanceAndAngle(x, y);
 
     if (this.state === 'center') {
-      if (dist > this.deadZoneRadius) this.activate(angle);
+      // Hysteresis: leaving needs 15% more distance than returning, so
+      // jitter at the dead zone edge cannot spray dip-spaces.
+      if (dist > this.deadZoneRadius * 1.15) this.activate(angle, true);
       return this.snapshot();
     }
 
     // state === 'active'
     if (dist <= this.deadZoneRadius) {
-      // Returning to center is what completes a letter in 8pen ("loops
-      // starting and ending in the central dot"). The pointer stays down,
-      // so the next crossing starts the next letter in the same
-      // continuous stroke, matching the handoff doc's priority #1: flow
-      // input, one continuous movement, rather than one touch per letter.
-      const committed = this.commitLetter();
+      // Returning to center commits, as in 8pen ("loops starting and
+      // ending in the central dot"). The pointer stays down, so the next
+      // crossing starts the next letter in the same continuous stroke:
+      // flow input, priority #1 in the handoff doc.
+      // A dip that crossed no line at all is a space, exactly as the
+      // original 8pen did it, so whole sentences stay in one stroke. But
+      // only when the excursion began at the center and never crossed
+      // anything: a backtracked letter (crossed lines, then rotated back
+      // to zero) is a cancel, not a space, and a sloppy start from
+      // outside settles silently.
+      let committed = this.commitLetter();
+      if (!committed && this.fromCenter && this.maxCrossings === 0) {
+        committed = { type: 'space', via: 'dip' };
+      }
       this.entryAngle = null;
       this.entryQuadrant = null;
       this.lastAngle = null;
@@ -132,18 +153,29 @@ export class GestureDecoder {
     const delta = normalizeDelta(angle - this.lastAngle);
     this.cumulativeAngle += delta;
     this.lastAngle = angle;
+    this.maxCrossings = Math.max(this.maxCrossings, this.crossings);
     return this.snapshot();
   }
 
   pointerUp(x, y) {
     let committed = null;
     if (this.state === 'active') {
-      // Lifting outside the center still commits, per the handoff doc's
-      // priority #4: sloppy gestures should land.
+      // Lifting outside the center still commits a letter in progress,
+      // per the handoff doc's priority #4: sloppy gestures should land.
+      // With no crossings, a stationary press-and-release in a quadrant
+      // is a function tap (delete, enter, shift; assigned in main.js).
+      // A moved but crossing-less lift is 8pen's "end word without a
+      // space": silence.
       committed = this.commitLetter();
+      if (!committed && !this.fromCenter && this.downPoint) {
+        const moved = Math.hypot(x - this.downPoint.x, y - this.downPoint.y);
+        if (moved < 18) {
+          committed = { type: 'function', quadrant: this.entryQuadrant };
+        }
+      }
     } else if (this.state === 'center' && !this.leftCenter) {
       // Pure tap on the center dot, never left it: the spacebar.
-      committed = { type: 'space' };
+      committed = { type: 'space', via: 'tap' };
     }
     const path = this.path;
     this.reset();
@@ -187,6 +219,10 @@ export class GestureDecoder {
       quadrant: this.entryQuadrant,
       direction: this.direction,
       crossings: this.crossings,
+      // What returning to center now would do beyond a letter: a space
+      // (fresh dip from center) or a silent cancel. Lets the preview
+      // show the truth in the center circle.
+      dipWouldSpace: this.state === 'active' && this.fromCenter && this.maxCrossings === 0,
       preview: this.preview(),
       path: this.path,
     };
