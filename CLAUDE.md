@@ -23,6 +23,11 @@ that file before design work.
   recommended option, or do all options behind flags when they are cheap.
 - After each completed change set: run the tests, then commit and push to
   `main`. The user reviews on GitHub Pages from a phone.
+- Before each push that touches JS or CSS, bump every `?v=` number in
+  `index.html` to the same next value (grep for `?v=`). GitHub Pages
+  caches assets for 10 minutes and phones have no hard refresh; without
+  the bump a phone can mix modules from two pushes. The loaded build
+  number shows in the HUD as `bN`.
 - Verify visual changes with a Playwright screenshot before pushing.
 
 ## Research notes: how the original 8pen worked

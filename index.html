@@ -4,7 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Gesture Keyboard Prototype</title>
-<link rel="stylesheet" href="style.css" />
+<!-- Cache safety. GitHub Pages caches assets for 10 minutes and phones
+     have no hard refresh, so one page load could mix modules from two
+     different pushes; a mixed set draws letters in wrong places. The
+     ?v= query and the import map below pin every asset to one build.
+     Bump every ?v= in this file together on each push (grep "?v="). -->
+<link rel="stylesheet" href="style.css?v=1" />
 </head>
 <body>
 <header>
@@ -45,6 +50,19 @@
 
 <aside id="log"></aside>
 
-<script type="module" src="main.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "./gesture-decoder.js": "./gesture-decoder.js?v=1",
+    "./layout.js": "./layout.js?v=1",
+    "./layouts.js": "./layouts.js?v=1",
+    "./themes.js": "./themes.js?v=1",
+    "./prediction.js": "./prediction.js?v=1",
+    "./words-en.js": "./words-en.js?v=1",
+    "./words-cs.js": "./words-cs.js?v=1"
+  }
+}
+</script>
+<script type="module" src="main.js?v=1"></script>
 </body>
 </html>

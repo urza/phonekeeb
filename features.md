@@ -68,14 +68,19 @@ While a stroke is active:
 
 - Each adjacent sector shows one big letter in its middle: the letter
   you get by gliding there and then returning to the center.
-- The opposite sector shows both direction options until rotation
-  direction exists, at nearly full size, each placed toward the side the
-  finger would travel through to reach it. Once a direction exists, it
-  shows one big letter for continuing that direction.
+- The opposite sector is reachable both ways around, so until the
+  rotation direction exists it shows both candidate letters at nearly
+  full size. Each carries a small rotation arrow (clockwise or
+  counterclockwise) and sits toward the side the finger would travel
+  through. Once a direction exists, it shows one big letter for
+  continuing that direction.
 - The backtrack sector shows a small x: gliding there cancels.
 - The center shows what returning right now does: the pending letter, a
   space mark for a fresh dip, or a cancel mark.
-- The static letter map dims to 30% so the live letters stand out.
+- The static letter map dims during a stroke so the live letters stand
+  out, except the families still reachable from the entry sector: those
+  stay readable at their true map positions (both families until the
+  first crossing fixes the direction, then only the matching one).
 - The finger trail fades from its tail over about 0.7 seconds, so a
   long continuous stroke shows only the recent motion. Green over the
   center, blue in the sectors, gray for ignored outside-start drags.

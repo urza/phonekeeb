@@ -19,6 +19,11 @@ const clearButton = document.getElementById('clearText');
 
 const predictors = { en: new Predictor(WORDS_EN), cs: new Predictor(WORDS_CS) };
 
+// The build number this script was loaded under, taken from the ?v=
+// query that index.html pins on every asset. Shown in the HUD so a
+// phone stuck on a cached build is diagnosable at a glance.
+const BUILD = new URL(import.meta.url).searchParams.get('v') ?? '?';
+
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 // Canvas colors come from the same CSS variables the page uses, so one
@@ -248,11 +253,22 @@ function draw() {
   // a stroke is active so the live preview letters stand out.
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.globalAlpha = pv ? 0.3 : 1;
   const rInner = deadZoneRadius + 24;
   const rStep = (armLength - rInner - 10) / 3;
   for (const sector of SECTORS) {
     for (const direction of DIRECTIONS) {
+      // While a stroke is active, the families reachable from the entry
+      // sector stay readable (both until the first crossing fixes the
+      // rotation direction, then only the matching one); the rest dims
+      // hard so the big preview letters stand out. This keeps "which
+      // letters can I still reach" visible at their true map positions.
+      if (pv) {
+        const reachable = sector === currentSnapshot.sector &&
+          (!currentSnapshot.direction || direction === currentSnapshot.direction);
+        ctx.globalAlpha = reachable ? 0.6 : 0.22;
+      } else {
+        ctx.globalAlpha = 1;
+      }
       const armAngle = FIRST_ARM[sector][direction];
       // Nudge letters off the line toward the start sector. For a CW
       // slot the sector sits on the smaller-angle side of its arm; for
@@ -272,6 +288,7 @@ function draw() {
 
   // Faint sector names at the edges, for talking about the layout and
   // matching the log lines (e.g. "S CCW lines:1").
+  ctx.globalAlpha = pv ? 0.3 : 1;
   ctx.font = '10px sans-serif';
   ctx.fillStyle = colors.line;
   const cornerR = armLength * 0.92;
@@ -361,16 +378,31 @@ function draw() {
       // angles grow clockwise (y axis points down), so that is the
       // lower-angle side of the opposite sector.
       const oppMid = SECTOR_MID[opp.sector];
-      const posAt = (deg) => {
+      const posAt = (deg, r = bigR) => {
         const rad = (deg * Math.PI) / 180;
-        return [center.x + bigR * Math.cos(rad), center.y + bigR * Math.sin(rad)];
+        return [center.x + r * Math.cos(rad), center.y + r * Math.sin(rad)];
       };
-      ctx.font = 'bold 30px sans-serif';
-      ctx.fillStyle = colors.letter;
       const cwLetter = letterOf(opp.cw);
       const ccwLetter = letterOf(opp.ccw);
-      if (cwLetter) ctx.fillText(cwLetter, ...posAt(oppMid - 22));
-      if (ccwLetter) ctx.fillText(ccwLetter, ...posAt(oppMid + 22));
+      // Two letters share this segment, one per rotation direction. A
+      // small rotation arrow beside each says which way around the X
+      // reaches it; without the arrows this pair reads as misplaced.
+      if (cwLetter) {
+        ctx.font = 'bold 30px sans-serif';
+        ctx.fillStyle = colors.letter;
+        ctx.fillText(cwLetter, ...posAt(oppMid - 22));
+        ctx.font = '14px sans-serif';
+        ctx.fillStyle = colors.muted;
+        ctx.fillText('↻', ...posAt(oppMid - 22, bigR + 30));
+      }
+      if (ccwLetter) {
+        ctx.font = 'bold 30px sans-serif';
+        ctx.fillStyle = colors.letter;
+        ctx.fillText(ccwLetter, ...posAt(oppMid + 22));
+        ctx.font = '14px sans-serif';
+        ctx.fillStyle = colors.muted;
+        ctx.fillText('↺', ...posAt(oppMid + 22, bigR + 30));
+      }
     }
   }
 
@@ -402,7 +434,7 @@ function draw() {
   ctx.fillStyle = colors.hud;
   ctx.font = '13px sans-serif';
   ctx.textAlign = 'left';
-  const hud = `state:${currentSnapshot.state}  sector:${currentSnapshot.sector ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}${shiftNext ? '  SHIFT' : ''}`;
+  const hud = `state:${currentSnapshot.state}  sector:${currentSnapshot.sector ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}${shiftNext ? '  SHIFT' : ''}  b${BUILD}`;
   ctx.fillText(hud, 10, 16);
 }
 

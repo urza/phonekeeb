@@ -64,3 +64,4 @@ node_modules/
 
 # Claude Code memories, kept local per the user's choice (2026-08-24)
 .claude-memory/
+bug*.png
