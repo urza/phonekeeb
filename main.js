@@ -1,6 +1,6 @@
 import { GestureDecoder } from './gesture-decoder.js';
 import { letterAt, validateLayout, QUADRANTS, DIRECTIONS, FIRST_ARM } from './layout.js';
-import { LAYOUTS, buildLayout } from './layouts.js';
+import { LAYOUTS, buildLayout, DEFAULT_LAYOUT } from './layouts.js';
 import { Predictor } from './prediction.js';
 import { WORDS as WORDS_EN } from './words-en.js';
 import { WORDS as WORDS_CS } from './words-cs.js';
@@ -33,6 +33,7 @@ for (const [id, def] of Object.entries(LAYOUTS)) {
   option.textContent = def.label;
   layoutModeEl.appendChild(option);
 }
+layoutModeEl.value = DEFAULT_LAYOUT;
 
 let center = { x: 0, y: 0 };
 let deadZoneRadius = Number(deadZoneEl.value);

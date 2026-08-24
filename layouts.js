@@ -95,6 +95,9 @@ export const LAYOUTS = {
   },
 };
 
+// What the page starts on. The dropdown still lists everything.
+export const DEFAULT_LAYOUT = 'original-8pen';
+
 export function buildLayout(id, language) {
   const def = LAYOUTS[id];
   if (!def) throw new Error(`Unknown layout: ${id}`);

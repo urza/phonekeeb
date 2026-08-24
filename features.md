@@ -108,7 +108,8 @@ a short alphabet after hand edits.
   common letters need one crossing everywhere. The ranking is a
   hand-written approximation of published letter-frequency tables, not
   corpus-derived.
-- `original-8pen`: transcribed from a screenshot of the original app
+- `original-8pen` (the default on load): transcribed from a screenshot
+  of the original app
   (`8pen.png` in the repo root). The original's arms form an X, so its
   sectors map to ours by a 45-degree rotation: top to NW, right to NE,
   bottom to SE, left to SW. All 26 letters plus 6 punctuation marks
