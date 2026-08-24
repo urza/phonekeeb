@@ -259,21 +259,31 @@ function draw() {
 
     // Opposite segment: two ways around until rotation direction exists.
     const opp = pv.opposite;
-    const [ox, oy] = posOf(opp.quadrant);
     if (opp.established) {
       const letter = letterOf(opp.established === 'CW' ? opp.cw : opp.ccw);
       if (letter) {
+        const [ox, oy] = posOf(opp.quadrant);
         ctx.font = 'bold 38px sans-serif';
         ctx.fillStyle = colors.letter;
         ctx.fillText(letter, ox, oy);
       }
     } else {
+      // Both options, as big as the neighbors' letters, each placed
+      // toward the side the finger would travel through to reach it:
+      // the clockwise option sits on the clockwise-arrival side. Screen
+      // angles grow clockwise (y axis points down), so that is the
+      // lower-angle side of the opposite quadrant.
+      const oppMid = QUADRANT_MID[opp.quadrant];
+      const posAt = (deg) => {
+        const rad = (deg * Math.PI) / 180;
+        return [center.x + bigR * Math.cos(rad), center.y + bigR * Math.sin(rad)];
+      };
+      ctx.font = 'bold 30px sans-serif';
+      ctx.fillStyle = colors.letter;
       const cwLetter = letterOf(opp.cw);
       const ccwLetter = letterOf(opp.ccw);
-      ctx.font = '20px sans-serif';
-      ctx.fillStyle = colors.muted;
-      if (cwLetter) ctx.fillText(cwLetter, ox + 14, oy);
-      if (ccwLetter) ctx.fillText(ccwLetter, ox - 14, oy);
+      if (cwLetter) ctx.fillText(cwLetter, ...posAt(oppMid - 22));
+      if (ccwLetter) ctx.fillText(ccwLetter, ...posAt(oppMid + 22));
     }
   }
 

@@ -67,8 +67,9 @@ While a stroke is active:
 - Each adjacent quadrant shows one big letter in its middle: the letter
   you get by gliding there and then returning to the center.
 - The opposite quadrant shows both direction options until rotation
-  direction exists, then the letter for continuing the current
-  direction.
+  direction exists, at nearly full size, each placed toward the side the
+  finger would travel through to reach it. Once a direction exists, it
+  shows one big letter for continuing that direction.
 - The backtrack quadrant shows a small x: gliding there cancels.
 - The center shows what returning right now does: the pending letter, a
   space mark for a fresh dip, or a cancel mark.
