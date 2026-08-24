@@ -12,6 +12,9 @@ that file before design work.
   Update it in the same change set as any behavior change.
 - `gesture-decoder.js` is the core state machine. Keep it free of DOM
   dependencies. It is the piece that later ports to Swift.
+- `layouts.js` and `themes.js` are data registries. Each is the single
+  file to edit for its concern; dropdowns, validation, and tests read
+  from them. Contrast floors for themes live in `tests/themes-unit.mjs`.
 - `tests/` holds plain-node Playwright scripts. Playwright is installed in
   `~/pw`, not in the repo, because this filesystem rejects npm's symlinks.
   Serve the root with `python3 -m http.server 8080`, then run

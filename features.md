@@ -148,7 +148,9 @@ a short alphabet after hand edits.
 
 ## Debug and test surface
 
-- HUD line: state, sector, direction, crossing count, shift state.
+- HUD line: state, sector, direction, crossing count, shift state, and
+  the loaded build number (`bN`, from the `?v=` asset pinning in
+  `index.html`). A stale phone cache is visible as an old `bN`.
 - Gesture log: the last 15 commits with their decoded parameters.
 - Dead zone radius slider.
 - Tests in `tests/`: unit (decoder math, preview, space, cancel, taps)
