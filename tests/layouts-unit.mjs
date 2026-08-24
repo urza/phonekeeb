@@ -1,0 +1,46 @@
+// Unit test of the layout registry: every layout builds for every
+// language, has no duplicate letters, and the generated ones place the
+// full alphabet. Guards hand-edited entries in layouts.js against
+// typos. Run: node tests/layouts-unit.mjs
+
+import { LAYOUTS, buildLayout } from '../layouts.js';
+import { validateLayout, QUADRANTS, DIRECTIONS } from '../layout.js';
+
+let failures = 0;
+function check(name, ok, detail) {
+  console.log(ok ? 'PASS' : 'FAIL', name, ok ? '' : detail);
+  if (!ok) failures++;
+}
+
+for (const id of Object.keys(LAYOUTS)) {
+  for (const language of ['en', 'cs']) {
+    const layout = buildLayout(id, language);
+
+    // Shape: all 4 quadrants, both directions, exactly 4 slots each.
+    const shapeOk = QUADRANTS.every(
+      (q) => DIRECTIONS.every((d) => Array.isArray(layout[q]?.[d]) && layout[q][d].length === 4)
+    );
+    check(`${id}/${language} shape`, shapeOk, 'missing quadrant/direction or wrong slot count');
+
+    const { problems, letterCount } = validateLayout(layout);
+    check(`${id}/${language} no duplicates`, problems.length === 0, problems.join('; '));
+
+    // Generated layouts must place the full alphabet. Static layouts may
+    // be partial while their data is being transcribed.
+    if (LAYOUTS[id].build) {
+      check(`${id}/${language} places 26 letters`, letterCount === 26, `placed ${letterCount}`);
+    }
+  }
+}
+
+// The transcribed original: 26 letters + 6 punctuation = all 32 slots,
+// and spot checks against the 8pen.png screenshot.
+import { letterAt } from '../layout.js';
+const l8 = buildLayout('original-8pen', 'en');
+check('original-8pen fills all 32 slots', validateLayout(l8).letterCount === 32, `got ${validateLayout(l8).letterCount}`);
+check('original-8pen e innermost SE CW', letterAt(l8, 'SE', 'CW', 1) === 'e', letterAt(l8, 'SE', 'CW', 1));
+check('original-8pen y innermost NW CCW', letterAt(l8, 'NW', 'CCW', 1) === 'y', letterAt(l8, 'NW', 'CCW', 1));
+check('original-8pen period innermost SW CW', letterAt(l8, 'SW', 'CW', 1) === '.', letterAt(l8, 'SW', 'CW', 1));
+check('original-8pen z outermost NW CW', letterAt(l8, 'NW', 'CW', 4) === 'z', letterAt(l8, 'NW', 'CW', 4));
+
+process.exit(failures ? 1 : 0);

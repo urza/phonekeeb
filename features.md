@@ -97,13 +97,30 @@ weight to the glide targets the language model expects next.
 
 ## Layouts and languages, behind flags
 
+Layouts are data. The registry in `layouts.js` is the only file to
+edit when adding or changing one: the dropdown, the validation, and
+the tests read from it. A console warning reports duplicate letters or
+a short alphabet after hand edits.
+
 - `qwerty-region`: letters grouped by their QWERTY screen region, then
   ordered inside each quadrant by frequency.
 - `frequency`: pure frequency placement, crossing-major, so the most
-  common letters need one crossing everywhere. This matches the
-  original 8pen placement idea.
-- Languages: English and Czech letter frequencies. Diacritics input is
-  not built yet; the plan is an accent popup or combining swipes.
+  common letters need one crossing everywhere. The ranking is a
+  hand-written approximation of published letter-frequency tables, not
+  corpus-derived.
+- `original-8pen`: transcribed from a screenshot of the original app
+  (`8pen.png` in the repo root). The original's arms form an X, so its
+  sectors map to ours by a 45-degree rotation: top to NW, right to NE,
+  bottom to SE, left to SW. All 26 letters plus 6 punctuation marks
+  (. , ' ? ! @) fill the 32 slots exactly. The frequent marks sit
+  innermost, and y sits at one crossing, unlike the frequency mode's
+  ranking.
+- Slots can hold punctuation. A typed mark ends the prediction word,
+  and an armed shift waits for an actual letter.
+- Languages: English and Czech letter frequencies, affecting the two
+  generated layouts and prediction. Static layouts ignore language.
+  Diacritics input is not built yet; the plan is an accent popup or
+  combining swipes.
 
 ## Debug and test surface
 

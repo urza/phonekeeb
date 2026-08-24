@@ -1,5 +1,6 @@
 import { GestureDecoder } from './gesture-decoder.js';
-import { buildLayout, letterAt, QUADRANTS, DIRECTIONS, FIRST_ARM } from './layout.js';
+import { letterAt, validateLayout, QUADRANTS, DIRECTIONS, FIRST_ARM } from './layout.js';
+import { LAYOUTS, buildLayout } from './layouts.js';
 import { Predictor } from './prediction.js';
 import { WORDS as WORDS_EN } from './words-en.js';
 import { WORDS as WORDS_CS } from './words-cs.js';
@@ -22,6 +23,15 @@ function palette() {
   return darkQuery.matches
     ? { line: '#444', letter: '#ddd', muted: '#777', path: '#60a5fa', pathCenter: '#4ade80', hud: '#ccc' }
     : { line: '#ccc', letter: '#222', muted: '#999', path: '#2563eb', pathCenter: '#16a34a', hud: '#111' };
+}
+
+// The layout dropdown is generated from the registry, so adding a
+// layout means editing layouts.js only.
+for (const [id, def] of Object.entries(LAYOUTS)) {
+  const option = document.createElement('option');
+  option.value = id;
+  option.textContent = def.label;
+  layoutModeEl.appendChild(option);
 }
 
 let center = { x: 0, y: 0 };
@@ -78,6 +88,9 @@ function resize() {
 
 function rebuildLayout() {
   layout = buildLayout(layoutModeEl.value, languageEl.value);
+  const { problems, letterCount } = validateLayout(layout);
+  for (const p of problems) console.warn(`layout ${layoutModeEl.value}: ${p}`);
+  if (letterCount < 26) console.warn(`layout ${layoutModeEl.value}: only ${letterCount} letters placed`);
   draw();
 }
 
@@ -96,11 +109,17 @@ function commitGesture(commit) {
     applyFunction(commit.quadrant);
   } else {
     let letter = letterAt(layout, commit.quadrant, commit.direction, commit.crossings);
-    if (letter && (commit.capital || shiftNext)) letter = letter.toUpperCase();
+    // Slots can hold punctuation (the original 8pen layout does). A
+    // punctuation mark ends the word for prediction, and an armed shift
+    // waits for an actual letter instead of being wasted on it.
+    const isLetter = letter ? /\p{L}/u.test(letter) : false;
+    if (isLetter && (commit.capital || shiftNext)) {
+      letter = letter.toUpperCase();
+      shiftNext = false;
+    }
     if (letter) {
       typedText += letter;
-      currentWord += letter;
-      shiftNext = false;
+      currentWord = isLetter ? currentWord + letter : '';
     }
     history.unshift({ ...commit, letter });
   }
@@ -411,4 +430,5 @@ darkQuery.addEventListener('change', draw);
 // leaves the drawing stretched.
 new ResizeObserver(resize).observe(canvas);
 resize();
+rebuildLayout(); // also validates the initial layout
 output.textContent = '(draw from the center)';
