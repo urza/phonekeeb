@@ -21,12 +21,13 @@ const cy = box.y + box.height / 2;
 const R = Math.min(box.width, box.height) * 0.3;
 const pt = (deg, r = R) => [cx + r * Math.cos((deg * Math.PI) / 180), cy + r * Math.sin((deg * Math.PI) / 180)];
 
-// h = (SE, CCW, 1) in the frequency EN layout.
+// h = (W, CCW, 1) in the frequency EN layout: enter left (180), curl
+// counterclockwise across the 135 arm.
 async function strokeH() {
   await page.mouse.move(cx, cy);
   await page.mouse.down();
-  await page.mouse.move(...pt(45), { steps: 3 });
-  for (let a = 45; a >= -25; a -= 8) await page.mouse.move(...pt(a));
+  await page.mouse.move(...pt(180), { steps: 3 });
+  for (let a = 180; a >= 110; a -= 8) await page.mouse.move(...pt(a));
   await page.mouse.move(cx, cy, { steps: 4 });
   await page.mouse.up();
 }
@@ -34,13 +35,13 @@ async function strokeH() {
 async function dipSpace() {
   await page.mouse.move(cx, cy);
   await page.mouse.down();
-  await page.mouse.move(...pt(45, 80), { steps: 4 });
+  await page.mouse.move(...pt(90, 80), { steps: 4 });
   await page.mouse.move(cx, cy, { steps: 4 });
   await page.mouse.up();
 }
 
-// A stationary press-and-release out in a quadrant.
-async function tapQuadrant(midDeg) {
+// A stationary press-and-release out in a sector.
+async function tapSector(midDeg) {
   const [x, y] = pt(midDeg, Math.min(box.width, box.height) * 0.35);
   await page.mouse.click(x, y);
 }
@@ -57,12 +58,12 @@ await strokeH();
 await expectOutput('letter h', 'h');
 await dipSpace();
 await expectOutput('dip space', 'h ');
-await tapQuadrant(315); // NE = backspace
+await tapSector(0); // E = backspace
 await expectOutput('backspace removes space', 'h');
-await tapQuadrant(225); // NW = shift
+await tapSector(270); // N = shift
 await strokeH();
 await expectOutput('shifted letter', 'hH');
-await tapQuadrant(45); // SE = enter
+await tapSector(90); // S = enter
 await expectOutput('enter newline', 'hH\n');
 
 await page.screenshot({ path: process.env.SHOT ?? '/tmp/functions-flow.png' });

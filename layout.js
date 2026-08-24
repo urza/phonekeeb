@@ -1,32 +1,34 @@
-// Core geometry and lookup for the 32-slot address space (4 quadrants x
+// Core geometry and lookup for the 32-slot address space (4 sectors x
 // 2 directions x crossings 1-4) that gesture-decoder.js produces. The
-// actual letter placements live in layouts.js as data; this file only
-// knows the shape.
+// arms sit on the screen diagonals, so the sectors are up (N), right
+// (E), down (S), and left (W), matching the original 8pen's X
+// orientation. The actual letter placements live in layouts.js as
+// data; this file only knows the shape.
 
-export const QUADRANTS = ['NW', 'NE', 'SW', 'SE'];
+export const SECTORS = ['N', 'E', 'S', 'W'];
 export const DIRECTIONS = ['CW', 'CCW'];
 
-// The boundary line ("arm") a gesture crosses first, per (quadrant,
-// direction), as the arm's screen angle in degrees (y grows downward, so
-// 90 points down and 270 points up). This is where each slot's letters
-// are drawn, on the side of the arm facing the start quadrant, which is
-// exactly how 8pen displayed its alphabet.
+// The arm a gesture crosses first, per (sector, direction), as the
+// arm's screen angle in degrees (y grows downward, so 90 points down
+// and 270 points up). This is where each slot's letters are drawn, on
+// the side of the arm facing the start sector, which is exactly how
+// 8pen displayed its alphabet.
 export const FIRST_ARM = {
-  SE: { CW: 90, CCW: 0 },
-  SW: { CW: 180, CCW: 90 },
-  NW: { CW: 270, CCW: 180 },
-  NE: { CW: 0, CCW: 270 },
+  E: { CW: 45, CCW: 315 },
+  S: { CW: 135, CCW: 45 },
+  W: { CW: 225, CCW: 135 },
+  N: { CW: 315, CCW: 225 },
 };
 
 export function emptyLayout() {
   const layout = {};
-  for (const q of QUADRANTS) layout[q] = { CW: [null, null, null, null], CCW: [null, null, null, null] };
+  for (const s of SECTORS) layout[s] = { CW: [null, null, null, null], CCW: [null, null, null, null] };
   return layout;
 }
 
 // crossings is 1-based (1-4), matching the decoder's commit payload.
-export function letterAt(layout, quadrant, direction, crossings) {
-  return layout[quadrant]?.[direction]?.[crossings - 1] ?? null;
+export function letterAt(layout, sector, direction, crossings) {
+  return layout[sector]?.[direction]?.[crossings - 1] ?? null;
 }
 
 // Sanity report for hand-edited layouts: duplicate letters and the
@@ -37,12 +39,12 @@ export function validateLayout(layout) {
   const seen = new Map();
   const problems = [];
   let count = 0;
-  for (const q of QUADRANTS) {
+  for (const s of SECTORS) {
     for (const d of DIRECTIONS) {
-      (layout[q]?.[d] ?? []).forEach((letter, i) => {
+      (layout[s]?.[d] ?? []).forEach((letter, i) => {
         if (!letter) return;
         count++;
-        const where = `${q} ${d} crossing ${i + 1}`;
+        const where = `${s} ${d} crossing ${i + 1}`;
         if (seen.has(letter)) problems.push(`duplicate "${letter}": ${seen.get(letter)} and ${where}`);
         else seen.set(letter, where);
       });

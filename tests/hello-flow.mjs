@@ -18,14 +18,15 @@ const { chromium } = createRequire(path.join(pwDir, 'package.json'))('playwright
 const URL = process.env.URL ?? 'http://localhost:8080';
 
 // (entry angle, target angle) per letter, screen degrees, y axis down.
-// Frequency EN layout: h=(SE,CCW,1) e=(NW,CW,1) l=(NE,CW,2) o=(NE,CCW,1).
-// Entry is mid-quadrant; target overshoots the last boundary by 25 deg.
+// X geometry: arms on the diagonals, sectors N(270) E(0) S(90) W(180).
+// Frequency EN layout: h=(W,CCW,1) e=(N,CW,1) l=(E,CW,2) o=(E,CCW,1).
+// Entry is mid-sector; target overshoots the last arm by 25 deg.
 const STROKES = [
-  { letter: 'h', from: 45, to: -25 },
-  { letter: 'e', from: 225, to: 295 },
-  { letter: 'l', from: 315, to: 475 },
-  { letter: 'l', from: 315, to: 475 },
-  { letter: 'o', from: 315, to: 245 },
+  { letter: 'h', from: 180, to: 110 },
+  { letter: 'e', from: 270, to: 340 },
+  { letter: 'l', from: 0, to: 160 },
+  { letter: 'l', from: 0, to: 160 },
+  { letter: 'o', from: 360, to: 290 },
 ];
 
 const browser = await chromium.launch();
@@ -51,10 +52,9 @@ for (const { from, to } of STROKES) {
 }
 
 // Space without lifting: dip out of the center and back, crossing no
-// line, exactly as the original 8pen did it. The whole of "hello " is
-// one continuous stroke.
-const dip = 80;
-await page.mouse.move(cx + dip * Math.cos(Math.PI / 4), cy + dip * Math.sin(Math.PI / 4), { steps: 4 });
+// arm, exactly as the original 8pen did it. The whole of "hello " is
+// one continuous stroke. Straight down = mid of the S sector.
+await page.mouse.move(cx, cy + 80, { steps: 4 });
 await page.mouse.move(cx, cy, { steps: 4 });
 await page.mouse.up();
 

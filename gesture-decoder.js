@@ -1,31 +1,40 @@
-// Pure gesture state machine, modeled on how 8pen actually worked. A
-// letter is (entry quadrant, rotation direction, crossings), where
-// crossings is how many quadrant boundary lines the finger crosses before
-// returning to the center dot. Minimum is 1: an out-and-back that crosses
-// no line types nothing, which both forgives accidental exits and makes
-// rotation direction unambiguous (the first crossing fixes it). 4
-// quadrants x 2 directions x 4 crossings = 32 letters. One extra full
-// loop (crossings 5-8) selects the same letter as crossings-4 but as a
-// capital, which is how 8pen reportedly did capitals. The center circle
-// doubles as the spacebar two ways, both from the original: a tap that
-// never leaves it, or a dip from the center into a sector and back with
-// no line crossed, which keeps whole sentences in one stroke. A
-// stationary press-and-release out in a quadrant is a function tap
-// (delete, enter, shift; the mapping lives in main.js).
-// No DOM or canvas dependency here, so this file is unit-testable on its
-// own and is the piece meant to port to Swift once the design is proven.
-// See gesture-keyboard-handoff.md, "Technical approach: Gesture decoding".
+// Pure gesture state machine, modeled on how 8pen actually worked. The
+// four boundary lines ("arms") sit on the screen diagonals (45, 135,
+// 225, 315 degrees), matching the original's X orientation, so the
+// sectors between them are up (N), right (E), down (S), and left (W).
+// A letter is (entry sector, rotation direction, crossings), where
+// crossings is how many arms the finger crosses before returning to the
+// center dot. Minimum is 1: an out-and-back that crosses no arm types
+// nothing, which makes rotation direction unambiguous (the first
+// crossing fixes it). 4 sectors x 2 directions x 4 crossings = 32
+// letters. One extra full loop (crossings 5-8) selects the same letter
+// as crossings-4 but as a capital, which is how 8pen reportedly did
+// capitals. The center circle doubles as the spacebar two ways, both
+// from the original: a tap that never leaves it, or a dip from the
+// center into a sector and back with no arm crossed, which keeps whole
+// sentences in one stroke. A stationary press-and-release out in a
+// sector is a function tap (delete, enter, shift; the mapping lives in
+// main.js). No DOM or canvas dependency here, so this file is
+// unit-testable on its own and is the piece meant to port to Swift once
+// the design is proven.
+// See gesture-keyboard-handoff.md and features.md.
 
 function normalizeAngle(angleDeg) {
   return ((angleDeg % 360) + 360) % 360;
 }
 
-export function angleToQuadrant(angleDeg) {
-  const a = normalizeAngle(angleDeg);
-  if (a < 90) return 'SE';
-  if (a < 180) return 'SW';
-  if (a < 270) return 'NW';
-  return 'NE';
+// Screen-coordinate sector ring for clockwise rotation (angle grows CW
+// because the y axis points down): E [315,45) -> S -> W -> N.
+export const SECTOR_ORDER_CW = ['E', 'S', 'W', 'N'];
+
+// Shifting by +45 puts the diagonal arms on multiples of 90, so sector
+// and crossing math reduce to plain floor division.
+function shifted(angleDeg) {
+  return normalizeAngle(angleDeg + 45);
+}
+
+export function angleToSector(angleDeg) {
+  return SECTOR_ORDER_CW[Math.floor(shifted(angleDeg) / 90) % 4];
 }
 
 function normalizeDelta(deltaDeg) {
@@ -43,13 +52,13 @@ export class GestureDecoder {
   }
 
   reset() {
-    this.state = 'idle'; // idle | center | active
-    this.entryAngle = null; // normalized angle where the finger left the dead zone
-    this.entryQuadrant = null;
+    this.state = 'idle'; // idle | center | active | outside
+    this.entryShifted = null; // shifted angle where the finger left the dead zone
+    this.entrySector = null;
     this.lastAngle = null; // raw angle of the previous sample, for delta tracking
     this.cumulativeAngle = 0;
     this.leftCenter = false; // did this press ever cross out of the dead zone
-    this.maxCrossings = 0; // most lines crossed at any point in this excursion
+    this.maxCrossings = 0; // most arms crossed at any point in this excursion
     this.downPoint = null; // where this press landed, for tap detection
   }
 
@@ -61,16 +70,17 @@ export class GestureDecoder {
     return { dist, angle };
   }
 
-  // Signed count of boundary lines crossed since leaving the center.
-  // Every time the unwrapped angle (entry + cumulative) passes a multiple
-  // of 90, the floor changes by one, which is exactly one line crossing.
-  // Wobbling back across a line un-counts it, so the value at commit time
-  // is the net position, matching how 8pen resolved a gesture.
+  // Signed count of arms crossed since leaving the center. In the
+  // shifted frame the arms sit on multiples of 90, so every time the
+  // unwrapped angle passes one, the floor changes by exactly one
+  // crossing. Wobbling back across an arm un-counts it, so the value at
+  // commit time is the net position, matching how 8pen resolved a
+  // gesture.
   get signedCrossings() {
-    if (this.entryAngle === null) return 0;
+    if (this.entryShifted === null) return 0;
     return (
-      Math.floor((this.entryAngle + this.cumulativeAngle) / 90) -
-      Math.floor(this.entryAngle / 90)
+      Math.floor((this.entryShifted + this.cumulativeAngle) / 90) -
+      Math.floor(this.entryShifted / 90)
     );
   }
 
@@ -89,7 +99,7 @@ export class GestureDecoder {
     const { dist } = this.distanceAndAngle(x, y);
     this.downPoint = { x, y };
     // Letter gestures must start in the center, as in the original 8pen.
-    // A press that starts out in a quadrant never types letters: held
+    // A press that starts out in a sector never types letters: held
     // still it is a function tap, and moving gestures from outside are
     // reserved address space for future features (the original used
     // them for user-defined word macros).
@@ -101,8 +111,8 @@ export class GestureDecoder {
     this.state = 'active';
     this.leftCenter = true;
     this.maxCrossings = 0;
-    this.entryAngle = normalizeAngle(angle);
-    this.entryQuadrant = angleToQuadrant(angle);
+    this.entryShifted = shifted(angle);
+    this.entrySector = angleToSector(angle);
     this.lastAngle = angle;
     this.cumulativeAngle = 0;
   }
@@ -126,16 +136,16 @@ export class GestureDecoder {
       // ending in the central dot"). The pointer stays down, so the next
       // crossing starts the next letter in the same continuous stroke:
       // flow input, priority #1 in the handoff doc.
-      // A dip that crossed no line at all is a space, exactly as the
+      // A dip that crossed no arm at all is a space, exactly as the
       // original 8pen did it, so whole sentences stay in one stroke. A
-      // backtracked letter (crossed lines, then rotated back to zero) is
+      // backtracked letter (crossed arms, then rotated back to zero) is
       // a cancel instead, our deliberate divergence.
       let committed = this.commitLetter();
       if (!committed && this.maxCrossings === 0) {
         committed = { type: 'space', via: 'dip' };
       }
-      this.entryAngle = null;
-      this.entryQuadrant = null;
+      this.entryShifted = null;
+      this.entrySector = null;
       this.lastAngle = null;
       this.cumulativeAngle = 0;
       this.state = 'center';
@@ -157,13 +167,12 @@ export class GestureDecoder {
       // With no crossings this is 8pen's "end word without a space".
       committed = this.commitLetter();
     } else if (this.state === 'outside') {
-      // Held still: a function tap (delete, enter, shift; assigned in
-      // main.js). Moved: reserved for future outside-start gestures,
-      // silence for now.
+      // Held still: a function tap. Moved: reserved for future
+      // outside-start gestures, silence for now.
       const moved = Math.hypot(x - this.downPoint.x, y - this.downPoint.y);
       if (moved < 18) {
         const { angle } = this.distanceAndAngle(this.downPoint.x, this.downPoint.y);
-        committed = { type: 'function', quadrant: angleToQuadrant(angle) };
+        committed = { type: 'function', sector: angleToSector(angle) };
       }
     } else if (this.state === 'center' && !this.leftCenter) {
       // Pure tap on the center dot, never left it: the spacebar.
@@ -174,31 +183,31 @@ export class GestureDecoder {
   }
 
   commitLetter() {
-    return commitFor(this.entryQuadrant, this.signedCrossings);
+    return commitFor(this.entrySector, this.signedCrossings);
   }
 
-  // Live glide preview: for each screen quadrant, what committing after a
-  // glide there would type. Adjacent quadrants are one crossing away; the
-  // opposite one is two, and reachable both ways around; the quadrant
-  // that returns the count to zero is a cancel. main.js draws this big in
-  // the segment middles while the finger moves.
+  // Live glide preview: for each screen sector, what committing after a
+  // glide there would type. Adjacent sectors are one crossing away; the
+  // opposite one is two, and reachable both ways around; the sector
+  // that returns the count to zero is a cancel. main.js draws this big
+  // in the sector middles while the finger moves.
   preview() {
     if (this.state !== 'active') return null;
-    const entryIdx = QUADRANT_ORDER_CW.indexOf(this.entryQuadrant);
+    const entryIdx = SECTOR_ORDER_CW.indexOf(this.entrySector);
     const c = this.signedCrossings;
     const curIdx = entryIdx + c;
-    const q = (i) => QUADRANT_ORDER_CW[((i % 4) + 4) % 4];
+    const q = (i) => SECTOR_ORDER_CW[((i % 4) + 4) % 4];
     return {
       current: q(curIdx),
-      commitNow: commitFor(this.entryQuadrant, c),
+      commitNow: commitFor(this.entrySector, c),
       adjacent: {
-        [q(curIdx + 1)]: commitFor(this.entryQuadrant, c + 1),
-        [q(curIdx - 1)]: commitFor(this.entryQuadrant, c - 1),
+        [q(curIdx + 1)]: commitFor(this.entrySector, c + 1),
+        [q(curIdx - 1)]: commitFor(this.entrySector, c - 1),
       },
       opposite: {
-        quadrant: q(curIdx + 2),
-        cw: commitFor(this.entryQuadrant, c + 2),
-        ccw: commitFor(this.entryQuadrant, c - 2),
+        sector: q(curIdx + 2),
+        cw: commitFor(this.entrySector, c + 2),
+        ccw: commitFor(this.entrySector, c - 2),
         established: c === 0 ? null : c > 0 ? 'CW' : 'CCW',
       },
     };
@@ -207,7 +216,7 @@ export class GestureDecoder {
   snapshot() {
     return {
       state: this.state,
-      quadrant: this.entryQuadrant,
+      sector: this.entrySector,
       direction: this.direction,
       crossings: this.crossings,
       // What returning to center now would do beyond a letter: a space
@@ -219,19 +228,15 @@ export class GestureDecoder {
   }
 }
 
-// Screen-coordinate quadrant order for clockwise rotation (angle grows CW
-// because the y axis points down): SE [0,90) -> SW -> NW -> NE.
-export const QUADRANT_ORDER_CW = ['SE', 'SW', 'NW', 'NE'];
-
-// The commit a gesture would produce at a given net crossing count. Pure,
-// so the preview can evaluate hypothetical glides.
-export function commitFor(entryQuadrant, signedCrossings) {
+// The commit a gesture would produce at a given net crossing count.
+// Pure, so the preview can evaluate hypothetical glides.
+export function commitFor(entrySector, signedCrossings) {
   const raw = Math.abs(signedCrossings);
   if (raw === 0) return null; // returning with no net crossing types nothing
   const capital = raw > 4;
   return {
     type: 'letter',
-    quadrant: entryQuadrant,
+    sector: entrySector,
     direction: signedCrossings > 0 ? 'CW' : 'CCW',
     crossings: capital ? Math.min(4, raw - 4) : raw,
     capital,

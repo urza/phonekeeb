@@ -6,26 +6,27 @@ behavior changes. The concept, prior art, and research live in
 
 ## Gesture alphabet
 
-- The screen is a center circle with four quadrants (NW, NE, SW, SE)
-  separated by four boundary lines (arms).
-- A letter is (entry quadrant, rotation direction, crossings). Crossings
-  is how many boundary lines the finger crosses before returning to the
-  center, from 1 to 4. That gives 4 x 2 x 4 = 32 letter slots.
+- The screen is a center circle with four boundary lines (arms) on the
+  diagonals, forming an X exactly like the original 8pen. The sectors
+  between them are up (N), right (E), down (S), and left (W).
+- A letter is (entry sector, rotation direction, crossings). Crossings
+  is how many arms the finger crosses before returning to the center,
+  from 1 to 4. That gives 4 x 2 x 4 = 32 letter slots.
 - Letters are drawn along the arms, on the side facing their start
-  quadrant. Radial position shows the crossing count. The innermost
+  sector. Radial position shows the crossing count. The innermost
   letter is the cheapest gesture.
 - **Every letter gesture must start in the center circle.** A press that
-  starts out in a quadrant never types letters. Stationary presses there
+  starts out in a sector never types letters. Stationary presses there
   are function taps (below); moving gestures from outside are reserved
   for future features, such as user-defined word macros, which is what
   the original 8pen used them for.
-- The crossing count is net: rotating backward un-counts a line. Only
+- The crossing count is net: rotating backward un-counts an arm. Only
   touching the center commits.
 
 ## Space, three original behaviors
 
 - Tap the center circle: space.
-- Dip: from the center, out into a quadrant and back with no line
+- Dip: from the center, out into a sector and back with no arm
   crossed: space. This keeps a whole sentence in one continuous stroke.
 - Lift the finger outside the center with no letter pending: the word
   ends without a space.
@@ -34,9 +35,9 @@ behavior changes. The concept, prior art, and research live in
 
 - One extra full loop before returning (crossings 5 to 8): the same
   letter, uppercase. This is the original 8pen mechanic.
-- One-shot shift: tap the top-left quadrant. The next letter is
-  uppercase. The shift glyph brightens while armed, and the live preview
-  shows uppercase letters.
+- One-shot shift: tap the top sector. The next letter is uppercase. The
+  shift glyph brightens while armed, and the live preview shows
+  uppercase letters.
 
 ## Cancel and correction
 
@@ -50,33 +51,34 @@ behavior changes. The concept, prior art, and research live in
 
 ## Function taps
 
-A stationary press-and-release out in a quadrant:
+A stationary press-and-release out in a sector:
 
-- Top-right (NE): backspace.
-- Bottom-right (SE): enter. Matches the iOS return-key corner.
-- Top-left (NW): one-shot shift.
-- Bottom-left (SW): reserved for a number and symbol layer.
+- Right (E): backspace.
+- Bottom (S): enter.
+- Top (N): one-shot shift.
+- Left (W): reserved for a number and symbol layer.
 
-The tap idea comes from the 8VIM successor project. The original 8pen
+This is exactly the 8VIM successor project's assignment, which now maps
+directly because the geometry matches. The original 8pen
 had no function taps.
 
 ## Live glide preview
 
 While a stroke is active:
 
-- Each adjacent quadrant shows one big letter in its middle: the letter
+- Each adjacent sector shows one big letter in its middle: the letter
   you get by gliding there and then returning to the center.
-- The opposite quadrant shows both direction options until rotation
+- The opposite sector shows both direction options until rotation
   direction exists, at nearly full size, each placed toward the side the
   finger would travel through to reach it. Once a direction exists, it
   shows one big letter for continuing that direction.
-- The backtrack quadrant shows a small x: gliding there cancels.
+- The backtrack sector shows a small x: gliding there cancels.
 - The center shows what returning right now does: the pending letter, a
   space mark for a fresh dip, or a cancel mark.
 - The static letter map dims to 30% so the live letters stand out.
 - The finger trail fades from its tail over about 0.7 seconds, so a
   long continuous stroke shows only the recent motion. Green over the
-  center, blue in the quadrants, gray for ignored outside-start drags.
+  center, blue in the sectors, gray for ignored outside-start drags.
 - Preview letters show true case: lowercase normally, uppercase under
   the capital loop or an armed shift.
 
@@ -102,20 +104,20 @@ edit when adding or changing one: the dropdown, the validation, and
 the tests read from it. A console warning reports duplicate letters or
 a short alphabet after hand edits.
 
-- `qwerty-region`: letters grouped by their QWERTY screen region, then
-  ordered inside each quadrant by frequency.
+- `qwerty-region`: letters grouped by their QWERTY screen region (top
+  row split N/E by keyboard half, lower-left block W, lower-right block
+  S), then ordered inside each sector by frequency.
 - `frequency`: pure frequency placement, crossing-major, so the most
   common letters need one crossing everywhere. The ranking is a
   hand-written approximation of published letter-frequency tables, not
   corpus-derived.
 - `original-8pen` (the default on load): transcribed from a screenshot
-  of the original app
-  (`8pen.png` in the repo root). The original's arms form an X, so its
-  sectors map to ours by a 45-degree rotation: top to NW, right to NE,
-  bottom to SE, left to SW. All 26 letters plus 6 punctuation marks
-  (. , ' ? ! @) fill the 32 slots exactly. The frequent marks sit
-  innermost, and y sits at one crossing, unlike the frequency mode's
-  ranking.
+  of the original app (`8pen.png` in the repo root). The geometry now
+  matches the original directly, X arms and all, so the transcription
+  is a plain copy: top sector to N, right to E, bottom to S, left to W.
+  All 26 letters plus 6 punctuation marks (. , ' ? ! @) fill the 32
+  slots exactly. The frequent marks sit innermost, and y sits at one
+  crossing, unlike the frequency mode's ranking.
 - Slots can hold punctuation. A typed mark ends the prediction word,
   and an armed shift waits for an actual letter.
 - Languages: English and Czech letter frequencies, affecting the two
@@ -125,7 +127,7 @@ a short alphabet after hand edits.
 
 ## Debug and test surface
 
-- HUD line: state, quadrant, direction, crossing count, shift state.
+- HUD line: state, sector, direction, crossing count, shift state.
 - Gesture log: the last 15 commits with their decoded parameters.
 - Dead zone radius slider.
 - Tests in `tests/`: unit (decoder math, preview, space, cancel, taps)

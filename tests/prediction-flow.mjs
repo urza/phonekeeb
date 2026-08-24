@@ -14,11 +14,12 @@ const { chromium } = createRequire(path.join(pwDir, 'package.json'))('playwright
 
 const URL = process.env.URL ?? 'http://localhost:8080';
 
-// Frequency EN layout strokes: h=(SE,CCW,1) e=(NW,CW,1) l=(NE,CW,2).
+// Frequency EN layout strokes in the X geometry:
+// h=(W,CCW,1) e=(N,CW,1) l=(E,CW,2).
 const HEL = [
-  { from: 45, to: -25 },
-  { from: 225, to: 295 },
-  { from: 315, to: 475 },
+  { from: 180, to: 110 },
+  { from: 270, to: 340 },
+  { from: 0, to: 160 },
 ];
 
 const browser = await chromium.launch();

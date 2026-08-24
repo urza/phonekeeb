@@ -11,12 +11,12 @@ const { chromium } = createRequire(path.join(pwDir, 'package.json'))('playwright
 
 const URL = process.env.URL ?? 'http://localhost:8080';
 
-// In the transcription: e=(SE,CW,1) t=(SE,CCW,1) .=(SW,CW,1).
-// Entry at each quadrant's middle; overshoot the last boundary by 25.
+// In the transcription: e=(S,CW,1) t=(S,CCW,1) .=(W,CW,1).
+// Entry at each sector's middle; overshoot the last arm by 25.
 const STROKES = [
-  { from: 45, to: 115 },   // e: SE clockwise across the south arm
-  { from: 45, to: -25 },   // t: SE counterclockwise across the east arm
-  { from: 135, to: 205 },  // .: SW clockwise across the west arm
+  { from: 90, to: 160 },   // e: S clockwise across the 135 arm
+  { from: 90, to: 20 },    // t: S counterclockwise across the 45 arm
+  { from: 180, to: 250 },  // .: W clockwise across the 225 arm
 ];
 
 const browser = await chromium.launch();

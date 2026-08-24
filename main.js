@@ -1,5 +1,5 @@
 import { GestureDecoder } from './gesture-decoder.js';
-import { letterAt, validateLayout, QUADRANTS, DIRECTIONS, FIRST_ARM } from './layout.js';
+import { letterAt, validateLayout, SECTORS, DIRECTIONS, FIRST_ARM } from './layout.js';
 import { LAYOUTS, buildLayout, DEFAULT_LAYOUT } from './layouts.js';
 import { Predictor } from './prediction.js';
 import { WORDS as WORDS_EN } from './words-en.js';
@@ -69,12 +69,12 @@ function scheduleTrailFade() {
   });
 }
 
-// Function taps: a stationary press-and-release in a quadrant. NE and SE
-// mirror where iOS keyboards put delete and return; NW arms a one-shot
-// shift (the capital loop still works too); SW is reserved for a future
-// number/symbol layer.
-const FUNCTION_KEYS = { NE: 'backspace', SE: 'enter', NW: 'shift', SW: null };
-const FUNCTION_GLYPHS = { NE: '⌫', SE: '⏎', NW: '⇧' };
+// Function taps: a stationary press-and-release in a sector. Same
+// assignment as the 8VIM successor project: right deletes, bottom is
+// enter, top arms a one-shot shift (the capital loop still works too),
+// left is reserved for a future number/symbol layer.
+const FUNCTION_KEYS = { E: 'backspace', S: 'enter', N: 'shift', W: null };
+const FUNCTION_GLYPHS = { E: '⌫', S: '⏎', N: '⇧' };
 
 function resize() {
   const dpr = window.devicePixelRatio || 1;
@@ -107,9 +107,9 @@ function commitGesture(commit) {
     currentWord = '';
     history.unshift(commit);
   } else if (commit.type === 'function') {
-    applyFunction(commit.quadrant);
+    applyFunction(commit.sector);
   } else {
-    let letter = letterAt(layout, commit.quadrant, commit.direction, commit.crossings);
+    let letter = letterAt(layout, commit.sector, commit.direction, commit.crossings);
     // Slots can hold punctuation (the original 8pen layout does). A
     // punctuation mark ends the word for prediction, and an armed shift
     // waits for an actual letter instead of being wasted on it.
@@ -129,8 +129,8 @@ function commitGesture(commit) {
   renderSuggestions();
 }
 
-function applyFunction(quadrant) {
-  const fn = FUNCTION_KEYS[quadrant];
+function applyFunction(sector) {
+  const fn = FUNCTION_KEYS[sector];
   if (fn === 'backspace') {
     typedText = typedText.slice(0, -1);
     // The word being typed may have shrunk, or a deleted space may have
@@ -142,7 +142,7 @@ function applyFunction(quadrant) {
   } else if (fn === 'shift') {
     shiftNext = !shiftNext;
   } else {
-    return; // unassigned quadrant, no history entry
+    return; // unassigned sector, no history entry
   }
   history.unshift({ type: 'function', fn });
 }
@@ -171,7 +171,7 @@ function renderLog() {
       if (h.type === 'function') return `<div class="log-row"><b>&#9670;</b> <span>${h.fn} (tap)</span></div>`;
       const letter = h.letter ?? '?';
       const cap = h.capital ? ' capital' : '';
-      return `<div class="log-row"><b>${letter}</b> <span>${h.quadrant} ${h.direction} lines:${h.crossings}${cap}</span></div>`;
+      return `<div class="log-row"><b>${letter}</b> <span>${h.sector} ${h.direction} lines:${h.crossings}${cap}</span></div>`;
     })
     .join('');
 }
@@ -181,12 +181,12 @@ function renderLog() {
 // draws uppercase for looks; the live preview must not lie about case.
 function letterOf(commit) {
   if (!commit) return null;
-  const l = letterAt(layout, commit.quadrant, commit.direction, commit.crossings);
+  const l = letterAt(layout, commit.sector, commit.direction, commit.crossings);
   if (!l) return null;
   return commit.capital || shiftNext ? l.toUpperCase() : l;
 }
 
-const QUADRANT_MID = { SE: 45, SW: 135, NW: 225, NE: 315 };
+const SECTOR_MID = { E: 0, S: 90, W: 180, N: 270 };
 
 function draw() {
   const rect = canvas.getBoundingClientRect();
@@ -196,10 +196,11 @@ function draw() {
   const armLength = Math.min(rect.width, rect.height) * 0.44;
   const pv = currentSnapshot.preview;
 
-  // The four boundary arms, drawn from the dead zone edge outward.
+  // The four boundary arms on the diagonals (the original 8pen's X
+  // orientation), drawn from the dead zone edge outward.
   ctx.strokeStyle = colors.line;
   ctx.lineWidth = 1.5;
-  for (const armAngle of [0, 90, 180, 270]) {
+  for (const armAngle of [45, 135, 225, 315]) {
     const rad = (armAngle * Math.PI) / 180;
     ctx.beginPath();
     ctx.moveTo(center.x + deadZoneRadius * Math.cos(rad), center.y + deadZoneRadius * Math.sin(rad));
@@ -207,7 +208,7 @@ function draw() {
     ctx.stroke();
   }
 
-  // Letters along each arm, on the side facing their start quadrant, the
+  // Letters along each arm, on the side facing their start sector, the
   // way 8pen displayed its alphabet: radial position = how many lines to
   // cross. Innermost letter = 1 crossing = cheapest gesture. Dimmed while
   // a stroke is active so the live preview letters stand out.
@@ -216,15 +217,15 @@ function draw() {
   ctx.globalAlpha = pv ? 0.3 : 1;
   const rInner = deadZoneRadius + 24;
   const rStep = (armLength - rInner - 10) / 3;
-  for (const quadrant of QUADRANTS) {
+  for (const sector of SECTORS) {
     for (const direction of DIRECTIONS) {
-      const armAngle = FIRST_ARM[quadrant][direction];
-      // Nudge letters off the line toward the start quadrant. For a CW
-      // slot the quadrant sits on the smaller-angle side of its arm; for
+      const armAngle = FIRST_ARM[sector][direction];
+      // Nudge letters off the line toward the start sector. For a CW
+      // slot the sector sits on the smaller-angle side of its arm; for
       // CCW the larger-angle side.
       const nudge = direction === 'CW' ? -13 : 13;
       const rad = ((armAngle + nudge) * Math.PI) / 180;
-      layout[quadrant][direction].forEach((letter, i) => {
+      layout[sector][direction].forEach((letter, i) => {
         if (!letter) return;
         const r = rInner + i * rStep;
         // Emphasize cheap letters: biggest at 1 crossing.
@@ -235,24 +236,23 @@ function draw() {
     }
   }
 
-  // Faint quadrant names in the outer corners, for talking about the
-  // layout and matching the log lines (e.g. "SE CCW lines:1").
+  // Faint sector names at the edges, for talking about the layout and
+  // matching the log lines (e.g. "S CCW lines:1").
   ctx.font = '10px sans-serif';
   ctx.fillStyle = colors.line;
   const cornerR = armLength * 0.92;
-  for (const quadrant of QUADRANTS) {
-    const rad = (QUADRANT_MID[quadrant] * Math.PI) / 180;
-    ctx.fillText(quadrant, center.x + cornerR * Math.cos(rad), center.y + cornerR * Math.sin(rad));
+  for (const sector of SECTORS) {
+    const rad = (SECTOR_MID[sector] * Math.PI) / 180;
+    ctx.fillText(sector, center.x + cornerR * Math.cos(rad), center.y + cornerR * Math.sin(rad));
   }
 
-  // Function tap hints: a stationary tap in a quadrant triggers these.
+  // Function tap hints: a stationary tap in a sector triggers these.
   ctx.font = '15px sans-serif';
-  ctx.fillStyle = shiftNext ? colors.letter : colors.muted;
   const fnR = armLength * 0.78;
-  for (const [quadrant, glyph] of Object.entries(FUNCTION_GLYPHS)) {
-    const rad = (QUADRANT_MID[quadrant] * Math.PI) / 180;
+  for (const [sector, glyph] of Object.entries(FUNCTION_GLYPHS)) {
+    const rad = (SECTOR_MID[sector] * Math.PI) / 180;
     // Only the shift glyph brightens while armed; the rest stay muted.
-    ctx.fillStyle = quadrant === 'NW' && shiftNext ? colors.letter : colors.muted;
+    ctx.fillStyle = sector === 'N' && shiftNext ? colors.letter : colors.muted;
     ctx.fillText(glyph, center.x + fnR * Math.cos(rad), center.y + fnR * Math.sin(rad));
   }
   ctx.globalAlpha = 1;
@@ -289,14 +289,14 @@ function draw() {
   // gliding there (then returning to center) would type.
   if (pv) {
     const bigR = armLength * 0.6;
-    const posOf = (quadrant) => {
-      const rad = (QUADRANT_MID[quadrant] * Math.PI) / 180;
+    const posOf = (sector) => {
+      const rad = (SECTOR_MID[sector] * Math.PI) / 180;
       return [center.x + bigR * Math.cos(rad), center.y + bigR * Math.sin(rad)];
     };
 
-    for (const [quadrant, commit] of Object.entries(pv.adjacent)) {
+    for (const [sector, commit] of Object.entries(pv.adjacent)) {
       const letter = letterOf(commit);
-      const [x, y] = posOf(quadrant);
+      const [x, y] = posOf(sector);
       if (commit === null) {
         // Gliding here returns the count to zero: it cancels the letter.
         ctx.font = '22px sans-serif';
@@ -310,12 +310,12 @@ function draw() {
       // commit without a letter = unassigned slot: draw nothing.
     }
 
-    // Opposite segment: two ways around until rotation direction exists.
+    // Opposite sector: two ways around until rotation direction exists.
     const opp = pv.opposite;
     if (opp.established) {
       const letter = letterOf(opp.established === 'CW' ? opp.cw : opp.ccw);
       if (letter) {
-        const [ox, oy] = posOf(opp.quadrant);
+        const [ox, oy] = posOf(opp.sector);
         ctx.font = 'bold 38px sans-serif';
         ctx.fillStyle = colors.letter;
         ctx.fillText(letter, ox, oy);
@@ -325,8 +325,8 @@ function draw() {
       // toward the side the finger would travel through to reach it:
       // the clockwise option sits on the clockwise-arrival side. Screen
       // angles grow clockwise (y axis points down), so that is the
-      // lower-angle side of the opposite quadrant.
-      const oppMid = QUADRANT_MID[opp.quadrant];
+      // lower-angle side of the opposite sector.
+      const oppMid = SECTOR_MID[opp.sector];
       const posAt = (deg) => {
         const rad = (deg * Math.PI) / 180;
         return [center.x + bigR * Math.cos(rad), center.y + bigR * Math.sin(rad)];
@@ -368,7 +368,7 @@ function draw() {
   ctx.fillStyle = colors.hud;
   ctx.font = '13px sans-serif';
   ctx.textAlign = 'left';
-  const hud = `state:${currentSnapshot.state}  quadrant:${currentSnapshot.quadrant ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}${shiftNext ? '  SHIFT' : ''}`;
+  const hud = `state:${currentSnapshot.state}  sector:${currentSnapshot.sector ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}${shiftNext ? '  SHIFT' : ''}`;
   ctx.fillText(hud, 10, 16);
 }
 

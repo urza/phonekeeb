@@ -4,7 +4,7 @@
 // typos. Run: node tests/layouts-unit.mjs
 
 import { LAYOUTS, buildLayout } from '../layouts.js';
-import { validateLayout, QUADRANTS, DIRECTIONS } from '../layout.js';
+import { validateLayout, SECTORS, DIRECTIONS } from '../layout.js';
 
 let failures = 0;
 function check(name, ok, detail) {
@@ -16,11 +16,11 @@ for (const id of Object.keys(LAYOUTS)) {
   for (const language of ['en', 'cs']) {
     const layout = buildLayout(id, language);
 
-    // Shape: all 4 quadrants, both directions, exactly 4 slots each.
-    const shapeOk = QUADRANTS.every(
-      (q) => DIRECTIONS.every((d) => Array.isArray(layout[q]?.[d]) && layout[q][d].length === 4)
+    // Shape: all 4 sectors, both directions, exactly 4 slots each.
+    const shapeOk = SECTORS.every(
+      (s) => DIRECTIONS.every((d) => Array.isArray(layout[s]?.[d]) && layout[s][d].length === 4)
     );
-    check(`${id}/${language} shape`, shapeOk, 'missing quadrant/direction or wrong slot count');
+    check(`${id}/${language} shape`, shapeOk, 'missing sector/direction or wrong slot count');
 
     const { problems, letterCount } = validateLayout(layout);
     check(`${id}/${language} no duplicates`, problems.length === 0, problems.join('; '));
@@ -38,9 +38,9 @@ for (const id of Object.keys(LAYOUTS)) {
 import { letterAt } from '../layout.js';
 const l8 = buildLayout('original-8pen', 'en');
 check('original-8pen fills all 32 slots', validateLayout(l8).letterCount === 32, `got ${validateLayout(l8).letterCount}`);
-check('original-8pen e innermost SE CW', letterAt(l8, 'SE', 'CW', 1) === 'e', letterAt(l8, 'SE', 'CW', 1));
-check('original-8pen y innermost NW CCW', letterAt(l8, 'NW', 'CCW', 1) === 'y', letterAt(l8, 'NW', 'CCW', 1));
-check('original-8pen period innermost SW CW', letterAt(l8, 'SW', 'CW', 1) === '.', letterAt(l8, 'SW', 'CW', 1));
-check('original-8pen z outermost NW CW', letterAt(l8, 'NW', 'CW', 4) === 'z', letterAt(l8, 'NW', 'CW', 4));
+check('original-8pen e innermost S CW', letterAt(l8, 'S', 'CW', 1) === 'e', letterAt(l8, 'S', 'CW', 1));
+check('original-8pen y innermost N CCW', letterAt(l8, 'N', 'CCW', 1) === 'y', letterAt(l8, 'N', 'CCW', 1));
+check('original-8pen period innermost W CW', letterAt(l8, 'W', 'CW', 1) === '.', letterAt(l8, 'W', 'CW', 1));
+check('original-8pen z outermost N CW', letterAt(l8, 'N', 'CW', 4) === 'z', letterAt(l8, 'N', 'CW', 4));
 
 process.exit(failures ? 1 : 0);
