@@ -1,6 +1,9 @@
-// Letter placement tables for the two layout modes named in
-// gesture-keyboard-handoff.md: build both behind a flag, measure rather
-// than argue.
+// Letter placement for the 32-slot address space (4 quadrants x 2
+// directions x 4 depths) that gesture-decoder.js produces, modeled on how
+// the real 8pen keyboard worked: most frequent letters need the least
+// rotation. Two placement strategies, selectable behind a flag, per the
+// open design question in gesture-keyboard-handoff.md: build both, measure
+// rather than argue.
 
 // Approximate letter frequency, most common first, base 26 Latin letters
 // only. Diacritics are out of scope for this prototype (see handoff doc,
@@ -10,48 +13,72 @@ export const FREQUENCY = {
   cs: ['o','e','a','n','t','s','i','v','l','d','k','r','u','p','m','c','h','z','y','j','b','g','f','w','x','q'],
 };
 
-// Physical QWERTY keys grouped by screen quadrant (NW/NE/SW/SE), so the eye
-// finds a letter's general area from day one. Row 3 is short, so it merges
-// into the row-2 group on each side rather than forming its own sector.
+// Physical QWERTY keys grouped by screen quadrant, rebalanced to at most 8
+// letters each (2 directions x 4 depths per quadrant is the hard cap). A
+// few letters moved from their literal row into the geographically
+// nearest quadrant to fit: f/g into SW (below them), k/l into SE.
 export const QWERTY_GROUPS = {
-  NW: ['q','w','e','r','t','a','s','d','f','g'],
-  NE: ['y','u','i','o','p','h','j','k','l'],
-  SW: ['z','x','c','v','b'],
-  SE: ['n','m'],
+  NW: ['q','w','e','r','t','a','s','d'],
+  NE: ['y','u','i','o','p','h','j'],
+  SW: ['z','x','c','v','b','f','g'],
+  SE: ['n','m','k','l'],
 };
 
-export const SECTORS = ['NW', 'NE', 'SW', 'SE'];
+export const QUADRANTS = ['NW', 'NE', 'SW', 'SE'];
+export const DIRECTIONS = ['CW', 'CCW'];
 
 function byFrequency(letters, language) {
   const rank = FREQUENCY[language];
   return [...letters].sort((a, b) => rank.indexOf(a) - rank.indexOf(b));
 }
 
+function emptyLayout() {
+  const layout = {};
+  for (const q of QUADRANTS) layout[q] = { CW: [null, null, null, null], CCW: [null, null, null, null] };
+  return layout;
+}
+
+// Fills a quadrant's 8 slots from a frequency-sorted letter list: the two
+// most frequent split across CW/CCW at depth 0, next two at depth 1, etc.
+function fillQuadrant(layout, quadrant, sortedLetters) {
+  sortedLetters.forEach((letter, i) => {
+    const direction = DIRECTIONS[i % 2];
+    const depth = Math.floor(i / 2);
+    layout[quadrant][direction][depth] = letter;
+  });
+}
+
 export function buildLayout(mode, language) {
+  const layout = emptyLayout();
+
   if (mode === 'qwerty-region') {
-    const layout = {};
-    for (const sector of SECTORS) {
-      layout[sector] = byFrequency(QWERTY_GROUPS[sector], language);
+    for (const quadrant of QUADRANTS) {
+      fillQuadrant(layout, quadrant, byFrequency(QWERTY_GROUPS[quadrant], language));
     }
     return layout;
   }
 
   if (mode === 'frequency') {
-    // Pure frequency placement, spread round-robin across sectors so the
-    // most common letters land shallow in every sector, not just one.
-    const layout = { NW: [], NE: [], SW: [], SE: [] };
-    FREQUENCY[language].forEach((letter, i) => {
-      layout[SECTORS[i % 4]].push(letter);
-    });
+    // Depth-major fill: every depth-0 slot (all quadrants, both
+    // directions) gets filled before any depth-1 slot, so the most common
+    // letters land at minimal rotation everywhere, not just in one
+    // quadrant. This is the placement 8pen itself used.
+    const ranked = FREQUENCY[language];
+    let i = 0;
+    for (let depth = 0; depth < 4 && i < ranked.length; depth++) {
+      for (const quadrant of QUADRANTS) {
+        for (const direction of DIRECTIONS) {
+          if (i >= ranked.length) break;
+          layout[quadrant][direction][depth] = ranked[i++];
+        }
+      }
+    }
     return layout;
   }
 
   throw new Error(`Unknown layout mode: ${mode}`);
 }
 
-export function letterAt(layout, sector, loopCount) {
-  const letters = layout[sector];
-  if (!letters || letters.length === 0) return null;
-  const index = Math.min(loopCount, letters.length - 1);
-  return letters[index];
+export function letterAt(layout, quadrant, direction, depth) {
+  return layout[quadrant]?.[direction]?.[depth] ?? null;
 }

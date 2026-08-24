@@ -58,9 +58,20 @@ gesture and no prediction. That gap is the project.
 
 ## The concept
 
-Start from 8pen mechanics. A center circle, four sectors around it. You
-start in the center, cross into a sector, circle some number of times, then
-return. Sector plus rotation direction plus loop count identify a letter.
+Start from 8pen mechanics, confirmed by research rather than assumed. The
+real 8pen used a circle with 4 quadrants around a center dot, and the center
+dot was the spacebar. A letter is (entry quadrant, rotation direction,
+depth), where depth is how many quadrant boundaries you cross before
+returning to the dot: 4 quadrants x 2 directions x 4 depths = 32 addressable
+letters. The most frequent letters sit at the shallowest depth, so common
+letters need almost no rotation. Capitals reportedly needed one extra full
+loop before completing the letter, and accents used a long-press popup.
+Sources: [ploum.net review](https://ploum.net/writing-on-a-smartphone-review-of-8pen-and-messagease/index.html),
+[OSnews review](https://www.osnews.com/story/23988/8pen-good-but-not-for-everybody/).
+
+The web prototype implements the core 32-slot mechanism and the
+center-tap-for-space detail. The capitals-via-extra-loop modifier is not
+built yet.
 
 Add three things 8pen never had.
 
@@ -91,10 +102,11 @@ on swipes, which is worth copying.
 
 ## Technical approach
 
-**Gesture decoding.** A small state machine over sector crossings. Track
-entry sector, rotation direction, and crossing count. This produces a
-discrete symbol stream, which is much cleaner than SwiftKey's continuous
-finger paths. No machine learning needed here.
+**Gesture decoding.** A small state machine over quadrant crossings. Track
+entry quadrant, rotation direction, and how many quadrant boundaries are
+crossed before the finger returns to the center dot (depth, capped at 3).
+This produces a discrete symbol stream, which is much cleaner than
+SwiftKey's continuous finger paths. No machine learning needed here.
 
 **Prediction.** Walk a trie of candidate words with beam search, rescored by
 the language model. Emit candidates while the finger still moves.

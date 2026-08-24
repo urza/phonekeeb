@@ -32,11 +32,14 @@ Then reach it from the phone through the host machine's address.
 
 ### What is here
 
-- `gesture-decoder.js` — the state machine. Sector, rotation direction, and
-  loop count from a pointer path. No DOM dependency, unit-testable, and the
-  piece meant to port to Swift later.
+- `gesture-decoder.js` — the state machine, modeled on the real 8pen: entry
+  quadrant, rotation direction, and depth (quadrant boundaries crossed
+  before returning to the center dot) from a pointer path, plus a
+  center-tap for space. No DOM dependency, unit-testable, and the piece
+  meant to port to Swift later.
 - `layout.js` — the two letter-placement modes from the handoff doc's open
-  design question, plus the frequency tables.
+  design question, filling the 32-slot (quadrant x direction x depth)
+  address space, plus the frequency tables.
 - `main.js` — canvas drawing and Pointer Events wiring.
 - `index.html`, `style.css` — the page shell and controls.
 
@@ -45,6 +48,9 @@ Then reach it from the phone through the host machine's address.
 No word prediction, no trie, no personal model, no typo repair. This phase
 is steps 1 to 3 of the build order in `gesture-keyboard-handoff.md`: gesture
 decoding and layout only. Prediction is the next phase.
+
+No capitals-via-extra-loop modifier yet, which the real 8pen reportedly
+used. No accent long-press popup either.
 
 ### Known rough edges
 

@@ -1,5 +1,5 @@
 import { GestureDecoder } from './gesture-decoder.js';
-import { buildLayout, letterAt } from './layout.js';
+import { buildLayout, letterAt, QUADRANTS } from './layout.js';
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
@@ -39,11 +39,16 @@ function toLocalPoint(event) {
   return { x: event.clientX - rect.left, y: event.clientY - rect.top };
 }
 
-function commitLetter(commit) {
+function commitGesture(commit) {
   if (!commit) return;
-  const letter = letterAt(layout, commit.sector, commit.loopCount);
-  if (letter) typedText += letter;
-  history.unshift({ ...commit, letter });
+  if (commit.type === 'space') {
+    typedText += ' ';
+    history.unshift({ type: 'space' });
+  } else {
+    const letter = letterAt(layout, commit.quadrant, commit.direction, commit.depth);
+    if (letter) typedText += letter;
+    history.unshift({ ...commit, letter });
+  }
   history.length = Math.min(history.length, 15);
   renderLog();
 }
@@ -51,9 +56,9 @@ function commitLetter(commit) {
 function renderLog() {
   logEl.innerHTML = history
     .map((h) => {
-      const dir = h.rotationDirection ?? '-';
+      if (h.type === 'space') return `<div class="log-row"><b>&middot;</b> <span>space (center tap)</span></div>`;
       const letter = h.letter ?? '?';
-      return `<div class="log-row"><b>${letter}</b> <span>${h.sector} ${dir} loop:${h.loopCount}</span></div>`;
+      return `<div class="log-row"><b>${letter}</b> <span>${h.quadrant} ${h.direction} depth:${h.depth}</span></div>`;
     })
     .join('');
 }
@@ -74,9 +79,9 @@ function draw() {
   ctx.lineTo(center.x, center.y + radius);
   ctx.stroke();
 
-  // Sector labels, showing the shallowest (most reachable) letters first.
+  // Quadrant labels: depth-0-first letter order for each rotation
+  // direction, so the shallowest (most reachable) letters read first.
   ctx.fillStyle = '#888';
-  ctx.font = '14px sans-serif';
   ctx.textAlign = 'center';
   const labelOffsets = {
     NW: { x: -radius * 0.6, y: -radius * 0.6 },
@@ -84,18 +89,25 @@ function draw() {
     SW: { x: -radius * 0.6, y: radius * 0.6 },
     SE: { x: radius * 0.6, y: radius * 0.6 },
   };
-  for (const sector of Object.keys(labelOffsets)) {
-    const letters = layout[sector].join(' ').toUpperCase();
-    const { x, y } = labelOffsets[sector];
-    ctx.fillText(sector, center.x + x, center.y + y - 14);
-    wrapText(letters, center.x + x, center.y + y, radius * 0.9, 16);
+  for (const quadrant of QUADRANTS) {
+    const { x, y } = labelOffsets[quadrant];
+    const cw = layout[quadrant].CW.filter(Boolean).join(' ').toUpperCase();
+    const ccw = layout[quadrant].CCW.filter(Boolean).join(' ').toUpperCase();
+    ctx.font = '14px sans-serif';
+    ctx.fillText(quadrant, center.x + x, center.y + y - 14);
+    ctx.font = '11px sans-serif';
+    ctx.fillText(`cw  ${cw}`, center.x + x, center.y + y + 2);
+    ctx.fillText(`ccw ${ccw}`, center.x + x, center.y + y + 15);
   }
 
-  // Dead zone.
+  // Dead zone / spacebar circle.
   ctx.strokeStyle = '#999';
   ctx.beginPath();
   ctx.arc(center.x, center.y, deadZoneRadius, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.fillStyle = '#bbb';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('space', center.x, center.y + 3);
 
   // Live finger path.
   if (currentSnapshot.path && currentSnapshot.path.length > 1) {
@@ -113,31 +125,13 @@ function draw() {
   ctx.fillStyle = '#111';
   ctx.font = '16px sans-serif';
   ctx.textAlign = 'left';
-  const hud = `state:${currentSnapshot.state}  sector:${currentSnapshot.sector ?? '-'}  dir:${currentSnapshot.rotationDirection ?? '-'}  loop:${currentSnapshot.loopCount}`;
+  const hud = `state:${currentSnapshot.state}  quadrant:${currentSnapshot.quadrant ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  depth:${currentSnapshot.depth ?? '-'}`;
   ctx.fillText(hud, 12, rect.height - 12);
-}
-
-function wrapText(text, x, y, maxWidth, lineHeight) {
-  const words = text.split(' ');
-  let line = '';
-  let offsetY = y;
-  ctx.font = '11px sans-serif';
-  for (const word of words) {
-    const test = line ? `${line} ${word}` : word;
-    if (ctx.measureText(test).width > maxWidth && line) {
-      ctx.fillText(line, x, offsetY);
-      line = word;
-      offsetY += lineHeight;
-    } else {
-      line = test;
-    }
-  }
-  if (line) ctx.fillText(line, x, offsetY);
 }
 
 function handleResult(result) {
   currentSnapshot = result;
-  if (result.committed) commitLetter(result.committed);
+  if (result.committed) commitGesture(result.committed);
   output.textContent = typedText || '(start a gesture from the center)';
   draw();
 }
@@ -159,7 +153,7 @@ canvas.addEventListener('pointermove', (e) => {
 canvas.addEventListener('pointerup', (e) => {
   const { x, y } = toLocalPoint(e);
   const result = decoder.pointerUp(x, y);
-  if (result.committed) commitLetter(result.committed);
+  if (result.committed) commitGesture(result.committed);
   currentSnapshot = decoder.snapshot();
   output.textContent = typedText || '(start a gesture from the center)';
   draw();
