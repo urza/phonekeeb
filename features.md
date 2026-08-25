@@ -145,6 +145,9 @@ a short alphabet after hand edits.
   generated layouts and prediction. Static layouts ignore language.
   Diacritics input is not built yet; the plan is an accent popup or
   combining swipes.
+- The end goal is one layout that serves English and Czech together;
+  the language switch is a prototype experiment tool, and the final
+  layout optimization runs on combined en+cs statistics.
 
 ## Color themes
 
