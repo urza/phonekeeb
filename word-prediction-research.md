@@ -277,6 +277,27 @@ Agreed build order, each step measurable:
    crossing-count slips and sector misses, not QWERTY neighbor taps);
    the personal model blends into the same score (plan below).
 
+Step 1 is built (2026-08-25): `tools/eval-prediction.mjs`. The
+conventions: every 100th line of the 80 MB dump prefix is held out
+(build-ngrams.py now skips those lines), 4000 pairs per language are
+sampled evenly across the prefix, chips cap at the strip's 5, and the
+typo mode corrupts one of the two prefix letters with a seeded
+substitution. Baselines of the shipped tables (they predate the split
+and saw the eval lines in training; the next rebuild clears that
+caveat):
+
+| Mode | EN hit@1 | EN hit@3 | CS hit@1 | CS hit@3 |
+|---|---|---|---|---|
+| next-word (empty prefix) | 16.3% | 29.3% | 15.9% | 28.3% |
+| prefix, 2 letters typed | 57.3% | 75.3% | 52.5% | 69.8% |
+| typo, 1 edit in 2 letters | 0.0% | 0.0% | 0.0% | 0.0% |
+
+The typo row is the scored design's target: exact-prefix matching
+cannot recover a corrupted prefix, so any nonzero number there is new
+capability. The next-word numbers sit above the earlier probe's 23.0%
+hit@3 because the split and the pair rules differ; compare future runs
+against this table, not against the probe.
+
 ## Personalization plan (added 2026-08-25)
 
 Goal: rank suggestions by how this user actually writes. Two

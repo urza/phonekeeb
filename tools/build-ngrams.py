@@ -42,6 +42,9 @@ spec.loader.exec_module(bw)
 TOP_SUCCESSORS = 5
 MIN_PAIR = 3
 CLAUSE_END = set('.!?…')
+# Every HOLDOUT_MODth line (0-based) is the eval slice of
+# tools/eval-prediction.mjs (keep in sync). Training must never see it.
+HOLDOUT_MOD = 100
 
 DEMO_HEADS = {
     'en': ['how', 'what', 'thank', 'good', 'see', 'are'],
@@ -55,8 +58,10 @@ def count_pairs(dump_path, vocab):
     opener = gzip.open if str(dump_path).endswith('.gz') else open
     f = opener(dump_path, 'rt', encoding='utf-8', errors='replace')
     try:
-        for line in f:
+        for idx, line in enumerate(f):
             lines += 1
+            if idx % HOLDOUT_MOD == 0:
+                continue  # held out for the eval harness
             line = line.lower().replace('’', "'")
             if '{' in line:
                 line = bw.ASS_TAGS.sub(' ', line)

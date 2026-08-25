@@ -355,6 +355,12 @@ storage failure (private browsing) never breaks the feature itself.
   end-to-end flows (hello in one stroke, prediction chips, function
   taps, delete glide with undelete, double-tap period, caret glide,
   letter-cards smoke).
+- `tools/eval-prediction.mjs`: the prediction quality harness. It
+  scores the real `Predictor` on held-out subtitle lines (every 100th
+  line of an 80 MB dump prefix, cached in `tools/corpus/`), reporting
+  hit@1 and hit@3 for next-word, 2-letter prefix, and one-edit typo
+  modes. Run it before and after every prediction change; the
+  baselines live in `word-prediction-research.md`.
 
 ## Porting notes (Swift)
 
