@@ -16,6 +16,8 @@ const languageEl = document.getElementById('language');
 const deadZoneEl = document.getElementById('deadZone');
 const themeEl = document.getElementById('theme');
 const clearButton = document.getElementById('clearText');
+const settingsEl = document.getElementById('settings');
+const settingsToggle = document.getElementById('settingsToggle');
 
 const predictors = { en: new Predictor(WORDS_EN), cs: new Predictor(WORDS_CS) };
 
@@ -498,6 +500,25 @@ clearButton.addEventListener('click', () => {
   output.textContent = '(draw from the center)';
   renderLog();
   renderSuggestions();
+});
+
+// The hint and all controls collapse behind the settings toggle so the
+// canvas keeps most of the phone screen. Toggling resizes the canvas;
+// the ResizeObserver re-centers the decoder, so this is safe between
+// gestures. State persists like the theme choice.
+const SETTINGS_KEY = 'phonekeeb.settingsOpen';
+
+function setSettingsOpen(open) {
+  settingsEl.hidden = !open;
+  settingsToggle.setAttribute('aria-expanded', String(open));
+}
+let settingsOpen = false;
+try { settingsOpen = localStorage.getItem(SETTINGS_KEY) === '1'; } catch {}
+setSettingsOpen(settingsOpen);
+settingsToggle.addEventListener('click', () => {
+  settingsOpen = !settingsOpen;
+  setSettingsOpen(settingsOpen);
+  try { localStorage.setItem(SETTINGS_KEY, settingsOpen ? '1' : '0'); } catch {}
 });
 
 themeEl.addEventListener('change', () => {

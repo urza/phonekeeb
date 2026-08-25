@@ -165,6 +165,13 @@ a short alphabet after hand edits.
 - The choice is saved in the browser (localStorage) and survives
   reloads.
 
+## Compact header
+
+- The top bar holds only the name, Clear, and a Settings toggle. The
+  hint text and all controls (layout, language, theme, dead zone) sit
+  inside the collapsed settings block, so the touch area keeps most of
+  a phone screen. The open state is remembered (localStorage).
+
 ## Debug and test surface
 
 - HUD line: state, sector, direction, crossing count, shift state, and

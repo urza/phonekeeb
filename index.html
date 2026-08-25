@@ -9,11 +9,21 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=5" />
+<link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
 <header>
-  <h1>Gesture Keyboard Prototype</h1>
+  <div class="topbar">
+    <h1>phonekeeb</h1>
+    <div class="topbar-actions">
+      <button id="clearText" type="button">Clear</button>
+      <button id="settingsToggle" type="button" aria-expanded="false" aria-controls="settings">&#9881; Settings</button>
+    </div>
+  </div>
+  <!-- Collapsed by default and remembered: on a phone this block costs
+       half the touch area, and typing happens far more often than
+       configuring. -->
+  <div id="settings" hidden>
   <p class="hint">Start in the center circle. Sweep across the lines and
   come back. The letter's distance from the center tells you how many lines
   to cross. Letters sit on the side where your sweep starts. Space: tap the
@@ -38,7 +48,7 @@
     <label>Dead zone
       <input type="range" id="deadZone" min="20" max="80" value="40" />
     </label>
-    <button id="clearText" type="button">Clear</button>
+  </div>
   </div>
 </header>
 
@@ -53,16 +63,16 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=5",
-    "./layout.js": "./layout.js?v=5",
-    "./layouts.js": "./layouts.js?v=5",
-    "./themes.js": "./themes.js?v=5",
-    "./prediction.js": "./prediction.js?v=5",
-    "./words-en.js": "./words-en.js?v=5",
-    "./words-cs.js": "./words-cs.js?v=5"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=6",
+    "./layout.js": "./layout.js?v=6",
+    "./layouts.js": "./layouts.js?v=6",
+    "./themes.js": "./themes.js?v=6",
+    "./prediction.js": "./prediction.js?v=6",
+    "./words-en.js": "./words-en.js?v=6",
+    "./words-cs.js": "./words-cs.js?v=6"
   }
 }
 </script>
-<script type="module" src="main.js?v=5"></script>
+<script type="module" src="main.js?v=6"></script>
 </body>
 </html>

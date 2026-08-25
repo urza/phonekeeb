@@ -25,6 +25,7 @@ const HEL = [
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 420, height: 800 } });
 await page.goto(URL);
+await page.click('#settingsToggle'); // controls sit in the collapsed settings block
 await page.selectOption('#layoutMode', 'frequency');
 
 async function drawStrokes(strokes) {

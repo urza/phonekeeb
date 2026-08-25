@@ -29,6 +29,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 await page.goto(URL);
 
+await page.click('#settingsToggle'); // controls sit in the collapsed settings block
 const optionCount = await page.locator('#theme option').count();
 check('dropdown mirrors the registry', optionCount === Object.keys(THEMES).length,
   `${optionCount} options for ${Object.keys(THEMES).length} themes`);

@@ -42,13 +42,34 @@ body {
 }
 
 header {
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--line);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.topbar button {
+  font-size: 13px;
+  padding: 4px 10px;
 }
 
 h1 {
   font-size: 15px;
-  margin: 0 0 4px;
+  margin: 0;
+}
+
+#settings {
+  padding-top: 6px;
 }
 
 .hint {
