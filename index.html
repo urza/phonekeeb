@@ -2,14 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<!-- viewport-fit=cover lets the page reach the screen edges in the
+     installed (standalone) app; style.css pads the bottom safe area so
+     the wheel clears the iOS home indicator. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Gesture Keyboard Prototype</title>
+<!-- Installable as a PWA (iOS: share menu, Add to Home Screen).
+     Deliberately NO service worker: freshness comes from the ?v=
+     pinning below, and a caching worker would fight it. iOS install
+     needs none. -->
+<link rel="manifest" href="manifest.webmanifest?v=11" />
+<!-- JS keeps this meta in sync with the active theme's --bg. -->
+<meta name="theme-color" content="#fafafa" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="phonekeeb" />
+<link rel="apple-touch-icon" href="icons/icon-180.png" />
 <!-- Cache safety. GitHub Pages caches assets for 10 minutes and phones
      have no hard refresh, so one page load could mix modules from two
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=10" />
+<link rel="stylesheet" href="style.css?v=11" />
 </head>
 <body>
 <header>
@@ -68,16 +82,16 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=10",
-    "./layout.js": "./layout.js?v=10",
-    "./layouts.js": "./layouts.js?v=10",
-    "./themes.js": "./themes.js?v=10",
-    "./prediction.js": "./prediction.js?v=10",
-    "./words-en.js": "./words-en.js?v=10",
-    "./words-cs.js": "./words-cs.js?v=10"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=11",
+    "./layout.js": "./layout.js?v=11",
+    "./layouts.js": "./layouts.js?v=11",
+    "./themes.js": "./themes.js?v=11",
+    "./prediction.js": "./prediction.js?v=11",
+    "./words-en.js": "./words-en.js?v=11",
+    "./words-cs.js": "./words-cs.js?v=11"
   }
 }
 </script>
-<script type="module" src="main.js?v=10"></script>
+<script type="module" src="main.js?v=11"></script>
 </body>
 </html>

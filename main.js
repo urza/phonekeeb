@@ -36,11 +36,20 @@ function readColors() {
   const style = getComputedStyle(document.documentElement);
   const v = (name) => style.getPropertyValue(name).trim();
   return {
-    line: v('--line'), letter: v('--fg'), muted: v('--muted'),
+    bg: v('--bg'), line: v('--line'), letter: v('--fg'), muted: v('--muted'),
     path: v('--trail'), pathCenter: v('--trail-center'), hud: v('--fg'),
   };
 }
 let colors = readColors();
+
+// The installed app's chrome (status bar, task switcher card) follows
+// the active theme through this meta, not the static manifest color.
+const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+
+function syncThemeColor() {
+  themeColorMeta.content = colors.bg;
+}
+syncThemeColor();
 
 const THEME_KEY = 'phonekeeb.theme';
 
@@ -56,6 +65,7 @@ function applyTheme(id) {
     root.style.colorScheme = def.scheme;
   }
   colors = readColors();
+  syncThemeColor();
   draw();
 }
 
@@ -700,6 +710,7 @@ themeEl.addEventListener('change', () => {
 
 darkQuery.addEventListener('change', () => {
   colors = readColors();
+  syncThemeColor();
   draw();
 });
 // ResizeObserver instead of window resize: the canvas box also changes

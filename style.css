@@ -37,6 +37,12 @@ body {
      fallback for older browsers and can overflow behind the toolbar */
   height: 100vh;
   height: 100dvh;
+  /* Installed (standalone) app with viewport-fit=cover: keep the
+     canvas, and so the wheel, above the iOS home indicator. Zero in a
+     normal browser tab. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* No pull-to-refresh or rubber-banding mid-gesture in standalone. */
+  overscroll-behavior: none;
   background: var(--bg);
   color: var(--fg);
 }
