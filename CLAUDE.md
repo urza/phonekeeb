@@ -55,6 +55,18 @@ Confirmed mechanics of the original:
 - Accented characters: long-press popup.
 - Gestures that start outside the center were user-definable macros for
   words or phrases (a personalization hook worth copying later).
+- The demo video (2:20-2:44) states a second placement rule beyond
+  frequency rings: frequent letter PAIRS are arranged so consecutive
+  letters flow "in the shape of an eight, or at least circular
+  motions" (the transcript mishears "an eight" as "a nate"). Decoded:
+  a letter's stroke ends by sweeping into the center from some sector;
+  when the next letter's entry sector is the opposite one, the finger
+  passes straight through the center, and when the rotation direction
+  also alternates, the two loops trace a figure eight, like cursive
+  handwriting. Verified in our transcription: he, in, er, ea (top
+  bigrams) are exact eights; th, an, on are not, matching the video's
+  "generally". This is a measurable objective (bigram-weighted flow
+  score) for a future flow-optimized layout.
 - Reported weaknesses: steep learning curve, slow until memorized, no
   haptic feedback for blind typing, the thumb hides part of the screen
   during a gesture.
