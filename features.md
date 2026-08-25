@@ -116,6 +116,16 @@ a short alphabet after hand edits.
   common letters need one crossing everywhere. The ranking is a
   hand-written approximation of published letter-frequency tables, not
   corpus-derived.
+- `qwerty-8pen`: original 8pen gesture costs, QWERTY directions. Every
+  glyph keeps its ring (crossing count) from `original-8pen`, and
+  within each ring the eight slots go to the glyphs whose direction
+  from the QWERTY keyboard center best matches the slot's on-screen
+  direction. Derived by `tools/generate-qwerty8pen.mjs` (exact
+  assignment per ring; punctuation weighted low). Result: e up-left, a
+  left, i and u upper-right, o l m right, n b down-right, z x c
+  bottom-left, q w top-left, p top-right. The worst compromises are d,
+  k, and g, letters near the keyboard center. A unit test locks the
+  ring invariant.
 - `original-8pen` (the default on load): transcribed from a screenshot
   of the original app (`8pen.png` in the repo root). The geometry now
   matches the original directly, X arms and all, so the transcription

@@ -43,4 +43,24 @@ check('original-8pen y innermost N CCW', letterAt(l8, 'N', 'CCW', 1) === 'y', le
 check('original-8pen period innermost W CW', letterAt(l8, 'W', 'CW', 1) === '.', letterAt(l8, 'W', 'CW', 1));
 check('original-8pen z outermost N CW', letterAt(l8, 'N', 'CW', 4) === 'z', letterAt(l8, 'N', 'CW', 4));
 
+// qwerty-8pen: fills all 32 slots, and every glyph keeps its ring
+// (crossing count) from original-8pen. That ring invariant is the
+// layout's defining promise: same gesture cost, QWERTY-like direction.
+const lq = buildLayout('qwerty-8pen', 'en');
+check('qwerty-8pen fills all 32 slots', validateLayout(lq).letterCount === 32, `got ${validateLayout(lq).letterCount}`);
+const ringOf = (layout, glyph) => {
+  for (const s of SECTORS) for (const d of DIRECTIONS) {
+    const i = layout[s][d].indexOf(glyph);
+    if (i !== -1) return i;
+  }
+  return -1;
+};
+const ringBreaks = [];
+for (const s of SECTORS) for (const d of DIRECTIONS) for (const glyph of l8[s][d]) {
+  if (ringOf(lq, glyph) !== ringOf(l8, glyph)) ringBreaks.push(glyph);
+}
+check('qwerty-8pen keeps every ring', ringBreaks.length === 0, `moved rings: ${ringBreaks.join(' ')}`);
+check('qwerty-8pen e innermost W CW', letterAt(lq, 'W', 'CW', 1) === 'e', letterAt(lq, 'W', 'CW', 1));
+check('qwerty-8pen i innermost E CCW', letterAt(lq, 'E', 'CCW', 1) === 'i', letterAt(lq, 'E', 'CCW', 1));
+
 process.exit(failures ? 1 : 0);
