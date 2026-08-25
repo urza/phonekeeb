@@ -5,8 +5,21 @@
 // orientation. The actual letter placements live in layouts.js as
 // data; this file only knows the shape.
 
+import { SECTOR_ORDER_CW } from './gesture-decoder.js';
+
 export const SECTORS = ['N', 'E', 'S', 'W'];
 export const DIRECTIONS = ['CW', 'CCW'];
+
+// The sector a letter's gesture returns to the center from: entry
+// shifted by the signed crossing count around the CW ring. The canvas
+// and the study cards color letters by this landing sector, not the
+// entry one, so the color answers "toward which region do I drag
+// before coming back".
+export function landingSector(entry, direction, crossings) {
+  const idx = SECTOR_ORDER_CW.indexOf(entry);
+  const d = direction === 'CW' ? crossings : -crossings;
+  return SECTOR_ORDER_CW[(((idx + d) % 4) + 4) % 4];
+}
 
 // The arm a gesture crosses first, per (sector, direction), as the
 // arm's screen angle in degrees (y grows downward, so 90 points down

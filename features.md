@@ -220,6 +220,35 @@ a short alphabet after hand edits.
   the language switch is a prototype experiment tool, and the final
   layout optimization runs on combined en+cs statistics.
 
+## Letter study cards
+
+- `cards.html` is a separate study page, linked from the settings
+  panel as "Letter cards". It draws one card per filled slot: the
+  wheel with only that card's letter on it, and the whole gesture as
+  one curve. One letter at a time is the point; the full 32-slot map
+  stays on the keyboard page.
+- The curve leaves the center circle at the start sector's middle
+  (marked with a dot), swells to the letter's ring over the first
+  eighth turn, crosses every arm at ring radius, and sinks back just
+  inside the center over the last eighth turn (marked with an
+  arrowhead). So the curve passes through the letter's map position
+  at its first crossing, and the arrowhead says "finish by touching
+  the center".
+- The result letter sits in the center, where the keyboard page shows
+  the live preview. The map letter keeps its true position (first arm,
+  nudged toward the start sector, radius = ring) and its landing-sector
+  hue, and the landing sector is tinted, matching the canvas learning
+  colors. The hues come from the same `SECTOR_COLORS` table in
+  `themes.js`, generated into CSS at load, so they cannot drift.
+- Cards sort alphabetically, punctuation last. The layout and language
+  dropdowns match the keyboard page and start from the same saved
+  localStorage choices (read-only: the cards page never writes them).
+  The page has no theme dropdown; it follows the device light or dark
+  setting with the Light and Dark theme palettes.
+- Card geometry mirrors the wheel proportions in a fixed 200 px
+  viewBox: arm 90, center circle 22, ring 1 at 35, ring step ~16.3,
+  letters 13 degrees off their arm.
+
 ## Color themes
 
 - A theme dropdown in the header. The default is Auto, which follows
@@ -315,7 +344,8 @@ storage failure (private browsing) never breaks the feature itself.
 - Tests in `tests/`: unit (decoder math, preview, space, cancel, taps,
   layout rules, theme and sector-color contrast) and Playwright
   end-to-end flows (hello in one stroke, prediction chips, function
-  taps, delete glide with undelete, double-tap period, caret glide).
+  taps, delete glide with undelete, double-tap period, caret glide,
+  letter-cards smoke).
 
 ## Porting notes (Swift)
 

@@ -1,5 +1,5 @@
-import { GestureDecoder, angleToSector, SECTOR_ORDER_CW } from './gesture-decoder.js';
-import { letterAt, validateLayout, SECTORS, DIRECTIONS, FIRST_ARM } from './layout.js';
+import { GestureDecoder, angleToSector } from './gesture-decoder.js';
+import { letterAt, validateLayout, SECTORS, DIRECTIONS, FIRST_ARM, landingSector } from './layout.js';
 import { LAYOUTS, buildLayout, DEFAULT_LAYOUT } from './layouts.js';
 import { THEMES, THEME_VARS, DEFAULT_THEME, SECTOR_COLORS } from './themes.js';
 import { Predictor } from './prediction.js';
@@ -326,16 +326,6 @@ function letterOf(commit) {
 }
 
 const SECTOR_MID = { E: 0, S: 90, W: 180, N: 270 };
-
-// The sector a letter's gesture returns to the center from: entry
-// shifted by the signed crossing count around the CW ring. Letters are
-// colored by this landing sector, not the entry one, so the color
-// answers "toward which region do I drag before coming back".
-function landingSector(entry, direction, crossings) {
-  const idx = SECTOR_ORDER_CW.indexOf(entry);
-  const d = direction === 'CW' ? crossings : -crossings;
-  return SECTOR_ORDER_CW[(((idx + d) % 4) + 4) % 4];
-}
 
 function draw() {
   const rect = canvas.getBoundingClientRect();
