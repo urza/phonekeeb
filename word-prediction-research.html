@@ -329,9 +329,33 @@
     <li><b>Two-word chips:</b> chain the rank-1 successor of a top candidate and show it as an extra chip ("are you" next to "are"). A wrong chain costs a strip slot, never a wrong insert.</li>
     <li><b>Personal model:</b> count the user's committed bigrams in localStorage with per-session decay, promote candidates past a threshold.</li>
     <li><b>Eval harness</b> (<span class="mono">tools/eval-prediction.mjs</span>): hit@1 / hit@3 on a held-out subtitle slice, run before and after each model change.</li>
-    <li><b>Trigram layer</b> when wanted: same script, contexts with count ≥ 20, lazy-loaded after first paint.</li>
+    <li><b>Trigram layer</b> when wanted: same script, contexts with count ≥ 20, lazy-loaded after first paint. <em>Superseded 2026-08-25: a words-only table cannot rerank prefix completions. The trigram layer ships with counts, as step 3 of the scored design below.</em></li>
   </ol>
   <p>Two UX notes. A gesture letter costs more than a tap, so an accepted chip saves more time here than on a normal keyboard, and the after-space moment is currently blank. And the next-word distribution predicts likely first letters, which can later feed the planned glide-target preview weighting.</p>
+
+  <h2>Scored prediction design</h2>
+  <p>Added 2026-08-25, from live use. Text "you are ", typed prefix <span class="mono">am</span>. The shipped bigram layer offers plain frequency order: am, american, america, amazing, among. SwiftKey offers amazing, am, an. A corpus probe (<span class="mono">tools/probe-context-scoring.py</span>, on an 80&nbsp;MB range download of the dump) confirms the design below reproduces that quality:</p>
+  <div class="strip-card">
+    <div class="strip">
+      <p class="strip-typed">you are am<span class="cursor"></span></p>
+      <div class="chips">
+        <span class="chip hot">amazing</span>
+        <span class="chip">among</span>
+        <span class="chip">an</span>
+        <span class="chip">and</span>
+        <span class="chip">am</span>
+      </div>
+    </div>
+    <p class="caption">Scored order from the probe, measured on the EN OpenSubtitles sample. "an" enters as a typo hypothesis; its count after "you are" beats the edit penalty.</p>
+  </div>
+  <p>Three mechanisms, one score:</p>
+  <ol class="plan">
+    <li><b>Context reranking.</b> "amazing" is successor rank 141 of "you are" (count 34 of 32,089), so any pruned top-K list misses it. Flip the lookup direction: collect candidates from the typed prefix (a ~3000-word vocabulary scan), then score each by stored counts. Tables therefore need counts and full successor lists, not top 5.</li>
+    <li><b>Verbatim guarantee.</b> The literal typed word stays reachable: if no exact-prefix word makes the strip on score, the best one takes the last slot. Corrections stay visible and tappable, never silent.</li>
+    <li><b>Typo hypotheses.</b> Candidates also include words whose beginning is within edit distance 1 of the prefix ("an" for "am"). Each edit multiplies the score by a penalty.</li>
+  </ol>
+  <p>The score is stupid backoff (Brants 2007): trigram count over context count when seen, else 0.4 × the bigram probability, else 0.16 × the unigram probability, times 0.05 per edit. All three constants get tuned by the eval harness, then recorded in <span class="mono">features.md</span>. Cost: "you are" alone has 978 successors with count ≥ 3, so tables grow well past today's 37&nbsp;KB. The levers are a per-context count floor, a successor cap, and 1-byte log-quantized counts; expected order is a few hundred KB gzipped for bigrams and 1 to 2&nbsp;MB for the lazy trigram layer, far under the iOS memory cap.</p>
+  <p>Agreed order, each step measurable: the eval harness first (constants get tuned, so measurement comes first, with a typo-simulation eval next to hit@3), then bigrams with counts plus the scoring predictor, then the trigram layer with counts behind a flag. Later refinement: gesture-aware edit costs, because this keyboard's typos are crossing-count slips and sector misses, not QWERTY neighbor taps.</p>
 
   <h2>iOS port notes</h2>
   <p><span class="mono">documentContextBeforeInput</span> hands a keyboard extension the text before the cursor (about 300 characters in practice), enough for trigram context. The tables sit far under the 48 to 60 MB extension memory ceiling. The Foundation Models route deserves one prototype spike later; the jKey keyboard already ships it, and the model's memory is system-managed, outside the extension's budget.</p>
