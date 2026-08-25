@@ -236,6 +236,10 @@ a short alphabet after hand edits.
   newest line kept in view. The suggestion row height is fixed too.
   Nothing above the canvas changes size mid-gesture, so the decoder
   center stays under the finger.
+- The wheel anchors to the bottom-right corner of the canvas, 12 px
+  margin, so the center circle sits under a right thumb instead of
+  floating mid-screen. Arm length is 0.44 x the smaller canvas
+  dimension. A left-hand anchor option is future work.
 
 ## Persisted settings
 
@@ -257,6 +261,9 @@ storage failure (private browsing) never breaks the feature itself.
   the loaded build number (`bN`, from the `?v=` asset pinning in
   `index.html`). A stale phone cache is visible as an old `bN`.
 - Dead zone radius slider.
+- The canvas exposes the wheel center as a `data-center="x,y"`
+  attribute (canvas coordinates), so Playwright tests gesture around
+  the anchored wheel without duplicating the anchor math.
 - Tests in `tests/`: unit (decoder math, preview, space, cancel, taps,
   layout rules, theme and sector-color contrast) and Playwright
   end-to-end flows (hello in one stroke, prediction chips, function
@@ -288,11 +295,13 @@ Tuned constants, one place to read them all:
 | Dead zone radius | 40 px default, 20 to 80 |
 | Center exit hysteresis | leave at 1.15 x dead zone radius, return at 1.0 x |
 | Tap vs glide threshold | 18 px from press point |
-| Glide step | 14 px per character |
+| Glide step | 14 px per character (user-validated on phone, 2026-08-25) |
 | Double-tap window | 350 ms |
 | Trail fade | 700 ms |
 | Capital loop | crossings 5 to 8 map to 1 to 4, uppercase |
 | Suggestions | at most 5 chips |
+| Arm length | 0.44 x min canvas dimension |
+| Wheel anchor | bottom-right, 12 px margin |
 
 Pixel values were tuned on a ~390 px wide phone viewport; on iOS
 they should scale in points, not pixels.

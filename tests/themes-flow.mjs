@@ -47,8 +47,11 @@ for (const [id, def] of Object.entries(THEMES)) {
 for (const id of SAMPLES) {
   await page.selectOption('#theme', id);
   const box = await page.locator('#stage').boundingBox();
-  const cx = box.x + box.width / 2;
-  const cy = box.y + box.height / 2;
+  // The wheel anchors bottom-right in the canvas; main.js exposes its
+  // center on the element so tests never duplicate the anchor math.
+  const [wx, wy] = (await page.locator('#stage').getAttribute('data-center')).split(',').map(Number);
+  const cx = box.x + wx;
+  const cy = box.y + wy;
   await page.mouse.move(cx, cy);
   await page.mouse.down();
   await page.mouse.move(cx, cy + box.height * 0.28, { steps: 6 });

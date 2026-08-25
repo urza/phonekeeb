@@ -128,14 +128,30 @@ function scheduleTrailFade() {
 const FUNCTION_KEYS = { E: 'backspace', S: 'enter', N: null, W: null };
 const FUNCTION_GLYPHS = { E: '⌫', S: '⏎', N: '↔' };
 
+// The wheel anchors to the bottom-right canvas corner instead of
+// centering: the canvas runs to the bottom of a tall phone screen and
+// a centered wheel floats out of thumb reach (user request
+// 2026-08-25, right thumb). The margin keeps the outermost letters
+// inside the canvas.
+const WHEEL_MARGIN = 12;
+let armLength = 0;
+
 function resize() {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
   canvas.width = rect.width * dpr;
   canvas.height = rect.height * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  center = { x: rect.width / 2, y: rect.height / 2 };
+  armLength = Math.min(rect.width, rect.height) * 0.44;
+  center = {
+    x: rect.width - armLength - WHEEL_MARGIN,
+    y: rect.height - armLength - WHEEL_MARGIN,
+  };
   decoder.center = center;
+  // The wheel center in canvas coordinates, for the Playwright flow
+  // tests: they must gesture around the anchored wheel, not the
+  // canvas middle, and duplicating the anchor math there would drift.
+  canvas.dataset.center = `${center.x},${center.y}`;
   draw();
 }
 
@@ -290,7 +306,6 @@ function draw() {
   const rect = canvas.getBoundingClientRect();
   ctx.clearRect(0, 0, rect.width, rect.height);
 
-  const armLength = Math.min(rect.width, rect.height) * 0.44;
   const pv = currentSnapshot.preview;
 
   // Sector learning colors: the auto theme has no scheme of its own,

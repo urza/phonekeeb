@@ -30,8 +30,11 @@ await page.selectOption('#layoutMode', 'frequency');
 
 async function drawStrokes(strokes) {
   const box = await page.locator('#stage').boundingBox();
-  const cx = box.x + box.width / 2;
-  const cy = box.y + box.height / 2;
+  // The wheel anchors bottom-right in the canvas; main.js exposes its
+  // center on the element so tests never duplicate the anchor math.
+  const [wx, wy] = (await page.locator('#stage').getAttribute('data-center')).split(',').map(Number);
+  const cx = box.x + wx;
+  const cy = box.y + wy;
   const R = Math.min(box.width, box.height) * 0.3;
   const pt = (deg) => [cx + R * Math.cos((deg * Math.PI) / 180), cy + R * Math.sin((deg * Math.PI) / 180)];
   await page.mouse.move(cx, cy);
