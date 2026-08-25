@@ -5,6 +5,8 @@ import { THEMES, THEME_VARS, DEFAULT_THEME, SECTOR_COLORS } from './themes.js';
 import { Predictor } from './prediction.js';
 import { WORDS as WORDS_EN } from './words-en.js';
 import { WORDS as WORDS_CS } from './words-cs.js';
+import { BIGRAMS as BIGRAMS_EN } from './bigrams-en.js';
+import { BIGRAMS as BIGRAMS_CS } from './bigrams-cs.js';
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
@@ -19,7 +21,10 @@ const clearButton = document.getElementById('clearText');
 const settingsEl = document.getElementById('settings');
 const settingsToggle = document.getElementById('settingsToggle');
 
-const predictors = { en: new Predictor(WORDS_EN), cs: new Predictor(WORDS_CS) };
+const predictors = {
+  en: new Predictor(WORDS_EN, BIGRAMS_EN),
+  cs: new Predictor(WORDS_CS, BIGRAMS_CS),
+};
 
 // The build number this script was loaded under, taken from the ?v=
 // query that index.html pins on every asset. Shown in the HUD so a
@@ -251,7 +256,12 @@ function applyFunction(sector) {
 }
 
 function renderSuggestions() {
-  const words = predictors[languageEl.value].predict(currentWord, 5);
+  // Next-word context: the completed word before the current prefix.
+  // Only spaces may separate them; punctuation or a newline ends the
+  // flow and the strip falls back to plain frequency order.
+  const before = typedText.slice(0, caret - currentWord.length);
+  const prevWord = before.match(/([\p{L}'’]+) *$/u)?.[1] ?? '';
+  const words = predictors[languageEl.value].predict(currentWord, 5, prevWord);
   suggestionsEl.innerHTML = words
     .map((w) => `<button type="button" data-word="${w}">${w}</button>`)
     .join('');
@@ -731,3 +741,4 @@ themeEl.value = THEMES[savedTheme] ? savedTheme : DEFAULT_THEME;
 applyTheme(themeEl.value);
 rebuildLayout(); // also validates the initial layout
 renderOutput();
+renderSuggestions(); // the strip has content even before typing now

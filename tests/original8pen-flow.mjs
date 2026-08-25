@@ -55,9 +55,13 @@ for (const { from, to } of STROKES) {
 await page.mouse.up();
 
 await expectOutput('gestures type et.', 'et.');
-const chips = await page.locator('#suggestions button').count();
-console.log(chips === 0 ? 'PASS' : 'FAIL', 'punctuation ends prediction word', chips === 0 ? '' : `${chips} chips`);
-if (chips !== 0) failures++;
+// Punctuation ends the prediction word AND drops next-word context:
+// the strip falls back to plain frequency order ("you" leads the EN
+// unigram list), instead of completing a word containing the period.
+const chips = await page.locator('#suggestions button').allTextContents();
+const ok = chips[0] === 'you';
+console.log(ok ? 'PASS' : 'FAIL', 'punctuation resets prediction', ok ? '' : JSON.stringify(chips));
+if (!ok) failures++;
 
 await page.screenshot({ path: process.env.SHOT ?? '/tmp/original8pen-flow.png' });
 await browser.close();

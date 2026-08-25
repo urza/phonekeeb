@@ -185,11 +185,16 @@ Both word lists were generated with a minimum word length of 2.
    dump, lowercase, keep pairs where both words are in the vocabulary,
    prune to the top 5 successors per head, emit `bigrams-en.js` /
    `bigrams-cs.js` as `{head: [w1..w5]}` in rank order.
+   *Done 2026-08-25, from an 80 MB sample of each dump; pairs need
+   count >= 3 and clause punctuation breaks adjacency.*
 3. Extend the predictor to `predict(prefix, prevWords, limit)`. Ranking:
    walk trigram list (when present), then bigram list, then unigram
    list; drop duplicates; filter by prefix. Empty prefix now returns
    next-word chips instead of nothing. The call site passes the last
    words parsed from `typedText`.
+   *Done 2026-08-25 as `predict(prefix, limit, prevWord)`: the old
+   argument order kept for existing callers. Unigram backoff always
+   fills the strip, so even an empty text shows the top words.*
 4. Two-word chips: for the top one or two candidates, chain the rank-1
    successor and render it as an extra chip ("are you" next to "are").
    A tap inserts both words. A wrong chain costs one strip slot, never a
