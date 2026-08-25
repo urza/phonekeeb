@@ -9,7 +9,6 @@ import { WORDS as WORDS_CS } from './words-cs.js';
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
 const output = document.getElementById('output');
-const logEl = document.getElementById('log');
 const suggestionsEl = document.getElementById('suggestions');
 const layoutModeEl = document.getElementById('layoutMode');
 const languageEl = document.getElementById('language');
@@ -85,7 +84,6 @@ let typedText = '';
 let currentWord = ''; // letters since the last space or accepted suggestion
 let shiftNext = false; // one-shot shift armed by a NW function tap
 let currentSnapshot = decoder.snapshot();
-const history = [];
 
 // The finger trail is a visual, not decoder state (the decoder is the
 // Swift-bound piece and knows nothing about it). Points carry their
@@ -147,7 +145,6 @@ function commitGesture(commit) {
   if (commit.type === 'space') {
     typedText += ' ';
     currentWord = '';
-    history.unshift(commit);
   } else if (commit.type === 'function') {
     applyFunction(commit.sector);
   } else {
@@ -164,10 +161,7 @@ function commitGesture(commit) {
       typedText += letter;
       currentWord = isLetter ? currentWord + letter : '';
     }
-    history.unshift({ ...commit, letter });
   }
-  history.length = Math.min(history.length, 15);
-  renderLog();
   renderSuggestions();
 }
 
@@ -183,10 +177,7 @@ function applyFunction(sector) {
     currentWord = '';
   } else if (fn === 'shift') {
     shiftNext = !shiftNext;
-  } else {
-    return; // unassigned sector, no history entry
   }
-  history.unshift({ type: 'function', fn });
 }
 
 function renderSuggestions() {
@@ -196,6 +187,13 @@ function renderSuggestions() {
     .join('');
 }
 
+// The output box has a fixed height (see #output in style.css), so long
+// text scrolls. Keep the newest line in view after every change.
+function renderOutput() {
+  output.textContent = typedText || '(draw from the center)';
+  output.scrollTop = output.scrollHeight;
+}
+
 suggestionsEl.addEventListener('click', (e) => {
   const word = e.target.dataset?.word;
   if (!word) return;
@@ -203,20 +201,8 @@ suggestionsEl.addEventListener('click', (e) => {
   typedText = typedText.slice(0, typedText.length - currentWord.length) + word + ' ';
   currentWord = '';
   renderSuggestions();
-  output.textContent = typedText;
+  renderOutput();
 });
-
-function renderLog() {
-  logEl.innerHTML = history
-    .map((h) => {
-      if (h.type === 'space') return `<div class="log-row"><b>&middot;</b> <span>space (${h.via})</span></div>`;
-      if (h.type === 'function') return `<div class="log-row"><b>&#9670;</b> <span>${h.fn} (tap)</span></div>`;
-      const letter = h.letter ?? '?';
-      const cap = h.capital ? ' capital' : '';
-      return `<div class="log-row"><b>${letter}</b> <span>${h.sector} ${h.direction} lines:${h.crossings}${cap}</span></div>`;
-    })
-    .join('');
-}
 
 // Display string a commit would type, with its real case: lowercase
 // normally, uppercase when the capital loop is in effect. The static map
@@ -453,7 +439,7 @@ function handleResult(result, point) {
   currentSnapshot = result;
   if (point) pushTrail(point.x, point.y);
   if (result.committed) commitGesture(result.committed);
-  output.textContent = typedText || '(draw from the center)';
+  renderOutput();
   draw();
 }
 
@@ -476,7 +462,7 @@ canvas.addEventListener('pointerup', (e) => {
   const result = decoder.pointerUp(x, y);
   if (result.committed) commitGesture(result.committed);
   currentSnapshot = decoder.snapshot();
-  output.textContent = typedText || '(draw from the center)';
+  renderOutput();
   draw();
 });
 
@@ -496,9 +482,7 @@ clearButton.addEventListener('click', () => {
   typedText = '';
   currentWord = '';
   shiftNext = false;
-  history.length = 0;
-  output.textContent = '(draw from the center)';
-  renderLog();
+  renderOutput();
   renderSuggestions();
 });
 
@@ -541,4 +525,4 @@ try { savedTheme = localStorage.getItem(THEME_KEY); } catch {}
 themeEl.value = THEMES[savedTheme] ? savedTheme : DEFAULT_THEME;
 applyTheme(themeEl.value);
 rebuildLayout(); // also validates the initial layout
-output.textContent = '(draw from the center)';
+renderOutput();

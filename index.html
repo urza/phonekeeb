@@ -9,7 +9,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=6" />
+<link rel="stylesheet" href="style.css?v=7" />
 </head>
 <body>
 <header>
@@ -52,27 +52,27 @@
   </div>
 </header>
 
+<!-- Phone-keyboard order: typed text on top, suggestion row under it,
+     canvas at the bottom of the screen where a phone keyboard sits. -->
 <main>
-  <canvas id="stage"></canvas>
-  <div id="suggestions"></div>
   <div id="output" aria-live="polite"></div>
+  <div id="suggestions"></div>
+  <canvas id="stage"></canvas>
 </main>
-
-<aside id="log"></aside>
 
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=6",
-    "./layout.js": "./layout.js?v=6",
-    "./layouts.js": "./layouts.js?v=6",
-    "./themes.js": "./themes.js?v=6",
-    "./prediction.js": "./prediction.js?v=6",
-    "./words-en.js": "./words-en.js?v=6",
-    "./words-cs.js": "./words-cs.js?v=6"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=7",
+    "./layout.js": "./layout.js?v=7",
+    "./layouts.js": "./layouts.js?v=7",
+    "./themes.js": "./themes.js?v=7",
+    "./prediction.js": "./prediction.js?v=7",
+    "./words-en.js": "./words-en.js?v=7",
+    "./words-cs.js": "./words-cs.js?v=7"
   }
 }
 </script>
-<script type="module" src="main.js?v=6"></script>
+<script type="module" src="main.js?v=7"></script>
 </body>
 </html>
