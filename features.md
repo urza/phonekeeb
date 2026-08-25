@@ -1,14 +1,23 @@
 # Features
 
-The living reference of what the prototype does. Update this file when
-behavior changes. The concept, prior art, and research live in
-`gesture-keyboard-handoff.md`; sources are listed in `CLAUDE.md`.
+The living reference of what the prototype does, and the explicit
+feature spec for the future Swift rewrite. Every behavior, rule, and
+tuned constant must be stated here in words, not only in code: when
+the port happens, this file is the contract. Update it in the same
+change set as any behavior change. The concept, prior art, and
+research live in `gesture-keyboard-handoff.md`; sources are listed in
+`CLAUDE.md`.
 
 ## Gesture alphabet
 
 - The screen is a center circle with four boundary lines (arms) on the
   diagonals, forming an X exactly like the original 8pen. The sectors
   between them are up (N), right (E), down (S), and left (W).
+- Geometry, in screen angles (y axis points down, angles grow
+  clockwise): arms at 45, 135, 225, 315 degrees; sector midlines E=0,
+  S=90, W=180, N=270. The clockwise sector ring is E, S, W, N. The
+  center circle radius (the "dead zone") defaults to 40 px, slider
+  range 20 to 80.
 - A letter is (entry sector, rotation direction, crossings). Crossings
   is how many arms the finger crosses before returning to the center,
   from 1 to 4. That gives 4 x 2 x 4 = 32 letter slots.
@@ -54,7 +63,10 @@ behavior changes. The concept, prior art, and research live in
 
 ## Function taps
 
-A stationary press-and-release out in a sector:
+A stationary press-and-release out in a sector. "Stationary" means the
+lift point is less than 18 px from the press point; at 18 px or more
+the press becomes a hold-glide (next section) or, in an unassigned
+sector, silence:
 
 - Right (E): backspace.
 - Bottom (S): enter.
@@ -68,16 +80,21 @@ original 8pen had no function taps.
 
 The decoder reserves moving outside-start presses; two now have a
 meaning, implemented in main.js so the decoder stays a pure
-gesture-to-letter machine:
+gesture-to-letter machine. A glide activates once total movement from
+the press point reaches 18 px (the same threshold that ends tap
+eligibility). The acting sector is the one under the press point, and
+both glides measure horizontal travel only, one character per 14 px:
 
-- Right (E), Typewise-style delete: drag toward the center to delete
-  one character per 14 px step. Drag back to restore from the glide's
-  own buffer, while the finger is still down. Lifting keeps the result
-  and drops the buffer.
+- Right (E), Typewise-style delete: drag toward the center (leftward)
+  to delete the character before the caret, step by step. Drag back
+  to restore from the glide's own buffer, while the finger is still
+  down. The count follows the live drag distance in both directions.
+  Lifting keeps the result and drops the buffer; only characters
+  deleted during the current glide are restorable.
 - Top (N), caret move: drag right or left to walk the caret through
-  the text, one character per step. The caret is a blinking bar in the
-  output box, and letters, spaces, deletes, and suggestions all apply
-  at the caret.
+  the text, relative to its position at press time, clamped to the
+  text ends. The caret is a blinking bar in the output box, and
+  letters, spaces, deletes, and suggestions all apply at the caret.
 - Bottom (S) and left (W) drags stay silent and reserved.
 
 ## Live glide preview
@@ -113,7 +130,9 @@ weight to the glide targets the language model expects next.
 
 - Up to five suggestion chips, centered, between the output and the
   canvas while a word is in progress. Tapping a chip replaces the
-  partial word before the caret and adds a space.
+  prediction prefix before the caret with the suggested word plus a
+  space; text after the caret is untouched and the caret lands after
+  the new space.
 - The prediction prefix is the run of letters and in-word apostrophes
   just before the caret, derived from the text on every change. So
   punctuation ends the word, an apostrophe continues it ("don'" keeps
@@ -193,7 +212,9 @@ a short alphabet after hand edits.
 - Sector learning colors: each quadrant carries a light tint of its
   own hue (N blue, E orange, S green, W purple), and every letter is
   drawn in the hue of its landing sector, the quadrant the glide
-  returns to the center from. The color answers "drag toward this
+  returns to the center from. Landing sector = entry sector shifted by
+  the crossing count along the clockwise ring E, S, W, N (backward for
+  CCW). The color answers "drag toward this
   region, then come back". During a stroke the quadrant the finger
   would commit from brightens, the others fade, and each big preview
   letter takes the hue of the quadrant it sits in (which is its
@@ -216,12 +237,62 @@ a short alphabet after hand edits.
   Nothing above the canvas changes size mid-gesture, so the decoder
   center stays under the finger.
 
+## Persisted settings
+
+Saved in the browser (localStorage) and restored on load; the iOS
+equivalent is UserDefaults. Key, values, default:
+
+- `phonekeeb.theme`: theme id, default `auto`.
+- `phonekeeb.layout`: layout id, default `qwerty-8pen`.
+- `phonekeeb.language`: `en` or `cs`, default `en`.
+- `phonekeeb.settingsOpen`: `1`/`0`, default closed.
+- `phonekeeb.sectorColors`: `1`/`0`, default on.
+
+Typed text and the caret are not persisted. Every save is wrapped so a
+storage failure (private browsing) never breaks the feature itself.
+
 ## Debug and test surface
 
 - HUD line: state, sector, direction, crossing count, and
   the loaded build number (`bN`, from the `?v=` asset pinning in
   `index.html`). A stale phone cache is visible as an old `bN`.
 - Dead zone radius slider.
-- Tests in `tests/`: unit (decoder math, preview, space, cancel, taps)
-  and Playwright end-to-end flows (hello in one stroke, prediction
-  chips, function taps).
+- Tests in `tests/`: unit (decoder math, preview, space, cancel, taps,
+  layout rules, theme and sector-color contrast) and Playwright
+  end-to-end flows (hello in one stroke, prediction chips, function
+  taps, delete glide with undelete, double-tap period, caret glide).
+
+## Porting notes (Swift)
+
+- `gesture-decoder.js` is the port target: a pure state machine with
+  no DOM, canvas, or timer dependency. Inputs are pointer down, move,
+  and up in local coordinates plus a center point and dead zone
+  radius; outputs are commits (letter, space, function) and a
+  snapshot with a live preview. Port it first and reuse its unit
+  tests.
+- The text-editing layer in `main.js` is also portable logic: caret
+  insert and delete, the two hold-glides, the double-tap period rule,
+  and the prediction-prefix derivation (trailing run of letters and
+  apostrophes before the caret).
+- Layouts (`layouts.js`), themes (`themes.js`), and the word lists
+  are plain data.
+- Web-only, do not port: the `?v=` cache pinning, localStorage (use
+  UserDefaults), canvas drawing code, and the DOM caret span.
+- iOS keyboard constraints are researched in
+  `ios-deployment-research.md` (memory cap, Full Access, rule 4.4.1).
+
+Tuned constants, one place to read them all:
+
+| Constant | Value |
+|---|---|
+| Dead zone radius | 40 px default, 20 to 80 |
+| Center exit hysteresis | leave at 1.15 x dead zone radius, return at 1.0 x |
+| Tap vs glide threshold | 18 px from press point |
+| Glide step | 14 px per character |
+| Double-tap window | 350 ms |
+| Trail fade | 700 ms |
+| Capital loop | crossings 5 to 8 map to 1 to 4, uppercase |
+| Suggestions | at most 5 chips |
+
+Pixel values were tuned on a ~390 px wide phone viewport; on iOS
+they should scale in points, not pixels.

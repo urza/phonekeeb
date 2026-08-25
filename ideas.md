@@ -6,7 +6,7 @@ are Claude's.
 
 ## Gestures
 
-### Typewise-style hold-to-delete
+### Typewise-style hold-to-delete (implemented 2026-08-25)
 > delete like Typewise - right segment, hold down (glide) to center -
 > then keep deleting or (while still touching down) more right to
 > undelete - Typewise speed and animation is very satisfying
@@ -17,19 +17,29 @@ deletes, and moving gestures that start outside the center are exactly
 the input space we reserved when we enforced center-start. An undelete
 buffer is cheap.*
 
-### Cursor movement
+*Shipped: E-sector hold-glide, 14 px per character, drag back to
+undelete. Spec in features.md "Hold-glides".*
+
+### Cursor movement (implemented 2026-08-25)
 > move cursor.. how? - similar to Typewise delete but start from
 > different segment?
 
 *Note: same reserved gesture space. A hold in another sector plus
 glide could move the caret by character, with distance as speed.*
 
-### Double space
+*Shipped: N-sector hold-glide moves a real caret; all edits apply at
+the caret. Distance maps to position, not speed. The N tap (shift)
+was removed to free the sector.*
+
+### Double space (implemented 2026-08-25)
 > double space gesture.. for what? to write dot?
 
 *Note: double-space-for-period is the standard phone convention, so it
 matches user reflexes. It also fits the new direction: qwerty-8pen has
 no punctuation in the letter slots, so punctuation needs gestures.*
+
+*Shipped: two center taps within 350 ms turn "word " into "word. ".
+Dip-spaces never arm it.*
 
 ### Long press in a segment
 > long press segment gestures.. for?
@@ -57,7 +67,7 @@ feedback the 8pen reviews complained about.*
 
 ## Layout real estate
 
-### Drop the shift segment
+### Drop the shift segment (implemented 2026-08-25, in part)
 > no shift as main segment, instead smart capitalize option and use
 > this estate for something else
 
@@ -66,7 +76,10 @@ capital loop already exists for manual capitals. That frees the whole
 top-sector tap for something better, for example delete-last-word or
 cursor mode.*
 
-### Colored segments and letters
+*Shipped: the shift tap is gone and the N sector went to cursor mode.
+Smart auto-capitalize is still open; capitals are capital-loop only.*
+
+### Colored segments and letters (implemented 2026-08-25, in part)
 > colored segments + letters in its segment color to indicate where it
 > belongs (to which color i will need to drag this).. and optionally
 > let me set color for each letter manually.. fg/bg/circle around
@@ -74,6 +87,11 @@ cursor mode.*
 *Note: color would encode the entry sector at a glance, a learning
 aid the glide preview does not give. The theme system already carries
 per-role CSS variables and contrast tests, so this slots in cleanly.*
+
+*Shipped: quadrant tints plus letters colored by LANDING sector (the
+user's call: the color says where to drag to, matching "to which
+color i will need to drag this"). Manual per-letter colors are still
+open. Toggle in settings.*
 
 ### KALQ
 > what is kalq letter placement

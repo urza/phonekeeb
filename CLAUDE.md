@@ -8,10 +8,17 @@ that file before design work.
 
 - Repo root is the web prototype and is served by GitHub Pages
   (https://urza.github.io/phonekeeb/, `.nojekyll` present).
-- `features.md` is the living reference of what the prototype does.
-  Update it in the same change set as any behavior change.
+- `features.md` is the living reference of what the prototype does and
+  the explicit spec for the future Swift rewrite: every behavior and
+  tuned constant belongs there in words, not only in code (constants
+  table at the end). Update it in the same change set as any behavior
+  change.
 - `gesture-decoder.js` is the core state machine. Keep it free of DOM
-  dependencies. It is the piece that later ports to Swift.
+  dependencies. It is the piece that later ports to Swift. The
+  text-editing layer (caret, hold-glides, double-tap period) lives in
+  `main.js` on purpose: it edits text, it does not decode gestures.
+- `ideas.md` is the user's raw idea dump. When an idea ships, mark it
+  implemented in place with the date; do not delete it.
 - `layouts.js` and `themes.js` are data registries. Each is the single
   file to edit for its concern; dropdowns, validation, and tests read
   from them. Contrast floors for themes live in `tests/themes-unit.mjs`.
