@@ -11,7 +11,7 @@
      Deliberately NO service worker: freshness comes from the ?v=
      pinning below, and a caching worker would fight it. iOS install
      needs none. -->
-<link rel="manifest" href="manifest.webmanifest?v=15" />
+<link rel="manifest" href="manifest.webmanifest?v=16" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +23,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=15" />
+<link rel="stylesheet" href="style.css?v=16" />
 </head>
 <body>
 <header>
@@ -83,18 +83,18 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=15",
-    "./layout.js": "./layout.js?v=15",
-    "./layouts.js": "./layouts.js?v=15",
-    "./themes.js": "./themes.js?v=15",
-    "./prediction.js": "./prediction.js?v=15",
-    "./words-en.js": "./words-en.js?v=15",
-    "./words-cs.js": "./words-cs.js?v=15",
-    "./bigrams-en.js": "./bigrams-en.js?v=15",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=15"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=16",
+    "./layout.js": "./layout.js?v=16",
+    "./layouts.js": "./layouts.js?v=16",
+    "./themes.js": "./themes.js?v=16",
+    "./prediction.js": "./prediction.js?v=16",
+    "./words-en.js": "./words-en.js?v=16",
+    "./words-cs.js": "./words-cs.js?v=16",
+    "./bigrams-en.js": "./bigrams-en.js?v=16",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=16"
   }
 }
 </script>
-<script type="module" src="main.js?v=15"></script>
+<script type="module" src="main.js?v=16"></script>
 </body>
 </html>

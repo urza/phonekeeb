@@ -33,6 +33,36 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, 
 
 const ease = (t) => t * t * (3 - 2 * t); // smoothstep: zero slope at both ends
 
+// One-crossing letters are drawn as a true little circle, not the wide
+// petal (user request 2026-08-25: that is how the thumb really moves).
+// The circle centers on the arm the letter crosses and overlaps the
+// center circle, so the visible stroke leaves the rim near the line,
+// loops around past the letter, and comes back near the line on the
+// other side.
+const LOOP_D = 29; // circle center, along the arm from the wheel center
+const LOOP_R = 12; // circle radius; reach = LOOP_D + LOOP_R = 41, just past ring 1
+const LOOP_EXTRA = 16; // degrees past the rim, so the arrow dips into the center
+
+function loopPoints(sector, direction) {
+  const a = FIRST_ARM[sector][direction];
+  const sign = direction === 'CW' ? 1 : -1;
+  const sx = C + LOOP_D * Math.cos(rad(a));
+  const sy = C + LOOP_D * Math.sin(rad(a));
+  // Angle at the loop center between the inward direction and the two
+  // rim intersections (triangle wheel center / loop center / rim
+  // crossing). The visible arc runs from one intersection the long way
+  // around, through the outer point on the arm, to the other.
+  const phi = (Math.acos((LOOP_D ** 2 + LOOP_R ** 2 - DEAD ** 2) / (2 * LOOP_D * LOOP_R)) * 180) / Math.PI;
+  const sweep = 360 - 2 * phi + LOOP_EXTRA;
+  const n = Math.ceil(sweep / 6);
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const psi = rad(a + 180 + sign * (phi + (sweep * i) / n));
+    pts.push([sx + LOOP_R * Math.cos(psi), sy + LOOP_R * Math.sin(psi)]);
+  }
+  return pts;
+}
+
 // The stroke as sampled points: leave the center circle at the start
 // sector's middle, swell to the letter's ring over the first 45 deg,
 // hold the ring across every arm crossing, then sink back into the
@@ -42,6 +72,7 @@ const ease = (t) => t * t * (3 - 2 * t); // smoothstep: zero slope at both ends
 // pieces join with zero radial slope (smoothstep ends flat), so the
 // sampled polyline reads as one smooth curve.
 function strokePoints(sector, direction, crossings) {
+  if (crossings === 1) return loopPoints(sector, direction);
   const ring = ringRadius(crossings);
   const sign = direction === 'CW' ? 1 : -1;
   const span = crossings * 90;
@@ -103,10 +134,12 @@ function cardSvg({ letter, sector, direction, crossings }) {
     arms +
     `<circle class="dead" cx="${C}" cy="${C}" r="${DEAD}" />` +
     `<text class="preview" x="${C}" y="${C}" dy=".36em">${esc(letter)}</text>` +
-    `<text class="maplet hue-${landing}" x="${px(lx)}" y="${px(ly)}" dy=".36em">${esc(letter.toUpperCase())}</text>` +
     `<path class="stroke hue-${landing}" d="${curve}" />` +
     `<circle class="start hue-${landing}" cx="${px(sx)}" cy="${px(sy)}" r="4.5" />` +
     `<path class="head hue-${landing}" d="${arrowPath(pts)}" />` +
+    // Painted last, with a panel-colored halo (cards.html), because the
+    // one-crossing loop runs right past the letter's position.
+    `<text class="maplet hue-${landing}" x="${px(lx)}" y="${px(ly)}" dy=".36em">${esc(letter.toUpperCase())}</text>` +
     `</svg>`;
 }
 

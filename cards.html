@@ -37,7 +37,10 @@ figcaption span { font-size: 11px; color: var(--muted); }
 .arm, .dead { stroke: var(--line); stroke-width: 1.5; fill: none; }
 .wedge { fill: currentColor; opacity: 0.09; }
 .preview { fill: var(--muted); font-size: 19px; text-anchor: middle; }
-.maplet { fill: currentColor; font-size: 15px; font-weight: 600; text-anchor: middle; }
+/* The halo keeps the letter readable where the stroke runs past it,
+   which the one-crossing loop always does. */
+.maplet { fill: currentColor; font-size: 15px; font-weight: 600; text-anchor: middle;
+  stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; }
 .stroke { stroke: currentColor; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .start, .head { fill: currentColor; }
 </style>
@@ -68,13 +71,13 @@ the color name the region the stroke comes back from.</p>
 <script type="importmap">
 {
   "imports": {
-    "./layout.js": "./layout.js?v=15",
-    "./layouts.js": "./layouts.js?v=15",
-    "./themes.js": "./themes.js?v=15",
-    "./gesture-decoder.js": "./gesture-decoder.js?v=15"
+    "./layout.js": "./layout.js?v=16",
+    "./layouts.js": "./layouts.js?v=16",
+    "./themes.js": "./themes.js?v=16",
+    "./gesture-decoder.js": "./gesture-decoder.js?v=16"
   }
 }
 </script>
-<script type="module" src="cards.js?v=15"></script>
+<script type="module" src="cards.js?v=16"></script>
 </body>
 </html>

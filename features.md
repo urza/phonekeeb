@@ -227,13 +227,22 @@ a short alphabet after hand edits.
   wheel with only that card's letter on it, and the whole gesture as
   one curve. One letter at a time is the point; the full 32-slot map
   stays on the keyboard page.
-- The curve leaves the center circle at the start sector's middle
-  (marked with a dot), swells to the letter's ring over the first
-  eighth turn, crosses every arm at ring radius, and sinks back just
-  inside the center over the last eighth turn (marked with an
-  arrowhead). So the curve passes through the letter's map position
-  at its first crossing, and the arrowhead says "finish by touching
-  the center".
+- For 2 to 4 crossings, the curve leaves the center circle at the
+  start sector's middle (marked with a dot), swells to the letter's
+  ring over the first eighth turn, crosses every arm at ring radius,
+  and sinks back just inside the center over the last eighth turn
+  (marked with an arrowhead). So the curve passes through the letter's
+  map position at its first crossing, and the arrowhead says "finish
+  by touching the center".
+- One-crossing letters are drawn as a true little circle instead,
+  because that is how the thumb really moves (user request
+  2026-08-25). The circle centers on the arm the letter crosses
+  (center at 29, radius 12, reach 41, just past ring 1) and overlaps
+  the center circle, so the stroke leaves the rim about 22 degrees
+  before the line, loops around past the letter, and returns about
+  22 degrees after it, dipping inside for the arrowhead. The letter
+  glyph paints last with a thin panel-colored halo, so the loop never
+  obscures it.
 - The result letter sits in the center, where the keyboard page shows
   the live preview. The map letter keeps its true position (first arm,
   nudged toward the start sector, radius = ring) and its landing-sector
