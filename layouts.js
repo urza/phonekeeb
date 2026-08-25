@@ -115,8 +115,10 @@ export const LAYOUTS = {
   },
 };
 
-// What the page starts on. The dropdown still lists everything.
-export const DEFAULT_LAYOUT = 'original-8pen';
+// What the page starts on when no saved choice exists (main.js
+// remembers the dropdown in localStorage). The dropdown still lists
+// everything.
+export const DEFAULT_LAYOUT = 'qwerty-8pen';
 
 export function buildLayout(id, language) {
   const def = LAYOUTS[id];

@@ -145,3 +145,15 @@ export const THEMES = {
 };
 
 export const DEFAULT_THEME = 'auto';
+
+// Sector learning colors: one hue per entry sector (N blue, E orange,
+// S green, W purple). The canvas tints each quadrant and draws its
+// letters in the same hue, so a learner sees at a glance which region
+// a letter's glide starts from. Two variants instead of per-theme
+// entries: themes only vary in panel brightness, so one palette per
+// scheme keeps 13 themes maintainable. tests/themes-unit.mjs enforces
+// >= 4.5 contrast against every same-scheme --panel.
+export const SECTOR_COLORS = {
+  light: { N: '#1d4ed8', E: '#9a3f00', S: '#046c4e', W: '#8626e0' },
+  dark: { N: '#93c5fd', E: '#fdba74', S: '#86efac', W: '#e9b8ff' },
+};

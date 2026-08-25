@@ -9,7 +9,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=7" />
+<link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
 <header>
@@ -26,10 +26,12 @@
   <div id="settings" hidden>
   <p class="hint">Start in the center circle. Sweep across the lines and
   come back. The letter's distance from the center tells you how many lines
-  to cross. Letters sit on the side where your sweep starts. Space: tap the
-  center, or dip out and back without crossing a line. One extra full loop
-  makes a capital. Tap an area: right deletes, bottom is enter, top is
-  shift.</p>
+  to cross. Letters sit on the side where your sweep starts, in the color of
+  that region. Space: tap the center, or dip out and back without crossing a
+  line. Double-tap the center for a period. One extra full loop makes a
+  capital. Tap an area: right deletes, bottom is enter. Hold right and drag
+  toward the center to delete more; drag back to restore. Hold top and drag
+  sideways to move the caret.</p>
   <div class="controls">
     <label>Layout
       <!-- options are generated from the LAYOUTS registry in layouts.js -->
@@ -48,6 +50,9 @@
     <label>Dead zone
       <input type="range" id="deadZone" min="20" max="80" value="40" />
     </label>
+    <label>Sector colors
+      <input type="checkbox" id="sectorColors" checked />
+    </label>
   </div>
   </div>
 </header>
@@ -63,16 +68,16 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=7",
-    "./layout.js": "./layout.js?v=7",
-    "./layouts.js": "./layouts.js?v=7",
-    "./themes.js": "./themes.js?v=7",
-    "./prediction.js": "./prediction.js?v=7",
-    "./words-en.js": "./words-en.js?v=7",
-    "./words-cs.js": "./words-cs.js?v=7"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=8",
+    "./layout.js": "./layout.js?v=8",
+    "./layouts.js": "./layouts.js?v=8",
+    "./themes.js": "./themes.js?v=8",
+    "./prediction.js": "./prediction.js?v=8",
+    "./words-en.js": "./words-en.js?v=8",
+    "./words-cs.js": "./words-cs.js?v=8"
   }
 }
 </script>
-<script type="module" src="main.js?v=7"></script>
+<script type="module" src="main.js?v=8"></script>
 </body>
 </html>

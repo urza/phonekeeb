@@ -3,7 +3,7 @@
 // against the canvas. The floors are the promise made in themes.js.
 // Run: node tests/themes-unit.mjs
 
-import { THEMES, THEME_VARS, DEFAULT_THEME } from '../themes.js';
+import { THEMES, THEME_VARS, DEFAULT_THEME, SECTOR_COLORS } from '../themes.js';
 
 let failures = 0;
 function check(name, ok, detail) {
@@ -46,6 +46,22 @@ for (const [id, def] of Object.entries(THEMES)) {
   for (const [fg, bg, floor] of FLOORS) {
     const ratio = contrast(def.vars[fg], def.vars[bg]);
     check(`${id} ${fg} on ${bg} >= ${floor}`, ratio >= floor, `ratio ${ratio.toFixed(2)}`);
+  }
+}
+
+// Sector learning colors: letters are drawn in these hues, so each hue
+// must keep letter-grade contrast on every panel of its scheme. The
+// auto theme reuses the light/dark palettes above, so it is covered.
+for (const [scheme, palette] of Object.entries(SECTOR_COLORS)) {
+  check(`sector palette ${scheme} covers N E S W`,
+    ['N', 'E', 'S', 'W'].every((s) => s in palette), Object.keys(palette).join(' '));
+  for (const [sector, color] of Object.entries(palette)) {
+    check(`sector ${scheme} ${sector} is #rrggbb`, /^#[0-9a-f]{6}$/.test(color), color);
+    for (const [id, def] of Object.entries(THEMES)) {
+      if (!def.vars || def.scheme !== scheme) continue;
+      const ratio = contrast(color, def.vars['--panel']);
+      check(`sector ${scheme} ${sector} on ${id} panel >= 4.5`, ratio >= 4.5, `ratio ${ratio.toFixed(2)}`);
+    }
   }
 }
 

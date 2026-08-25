@@ -1,7 +1,7 @@
-import { GestureDecoder } from './gesture-decoder.js';
+import { GestureDecoder, angleToSector } from './gesture-decoder.js';
 import { letterAt, validateLayout, SECTORS, DIRECTIONS, FIRST_ARM } from './layout.js';
 import { LAYOUTS, buildLayout, DEFAULT_LAYOUT } from './layouts.js';
-import { THEMES, THEME_VARS, DEFAULT_THEME } from './themes.js';
+import { THEMES, THEME_VARS, DEFAULT_THEME, SECTOR_COLORS } from './themes.js';
 import { Predictor } from './prediction.js';
 import { WORDS as WORDS_EN } from './words-en.js';
 import { WORDS as WORDS_CS } from './words-cs.js';
@@ -14,6 +14,7 @@ const layoutModeEl = document.getElementById('layoutMode');
 const languageEl = document.getElementById('language');
 const deadZoneEl = document.getElementById('deadZone');
 const themeEl = document.getElementById('theme');
+const sectorColorsEl = document.getElementById('sectorColors');
 const clearButton = document.getElementById('clearText');
 const settingsEl = document.getElementById('settings');
 const settingsToggle = document.getElementById('settingsToggle');
@@ -59,14 +60,23 @@ function applyTheme(id) {
 }
 
 // The layout dropdown is generated from the registry, so adding a
-// layout means editing layouts.js only.
+// layout means editing layouts.js only. Layout and language choices
+// persist like the theme, so a phone reload keeps the experiment
+// settings.
+const LAYOUT_KEY = 'phonekeeb.layout';
+const LANG_KEY = 'phonekeeb.language';
 for (const [id, def] of Object.entries(LAYOUTS)) {
   const option = document.createElement('option');
   option.value = id;
   option.textContent = def.label;
   layoutModeEl.appendChild(option);
 }
-layoutModeEl.value = DEFAULT_LAYOUT;
+let savedLayout = null;
+try { savedLayout = localStorage.getItem(LAYOUT_KEY); } catch {}
+layoutModeEl.value = LAYOUTS[savedLayout] ? savedLayout : DEFAULT_LAYOUT;
+let savedLanguage = null;
+try { savedLanguage = localStorage.getItem(LANG_KEY); } catch {}
+if (savedLanguage === 'en' || savedLanguage === 'cs') languageEl.value = savedLanguage;
 
 // Same pattern for themes: the dropdown mirrors the THEMES registry.
 for (const [id, def] of Object.entries(THEMES)) {
@@ -81,8 +91,8 @@ let deadZoneRadius = Number(deadZoneEl.value);
 let layout = buildLayout(layoutModeEl.value, languageEl.value);
 let decoder = new GestureDecoder({ center, deadZoneRadius });
 let typedText = '';
-let currentWord = ''; // letters since the last space or accepted suggestion
-let shiftNext = false; // one-shot shift armed by a NW function tap
+let caret = 0; // insertion point in typedText, moved by the N hold-glide
+let currentWord = ''; // word-character run just before the caret
 let currentSnapshot = decoder.snapshot();
 
 // The finger trail is a visual, not decoder state (the decoder is the
@@ -109,12 +119,14 @@ function scheduleTrailFade() {
   });
 }
 
-// Function taps: a stationary press-and-release in a sector. Same
-// assignment as the 8VIM successor project: right deletes, bottom is
-// enter, top arms a one-shot shift (the capital loop still works too),
-// left is reserved for a future number/symbol layer.
-const FUNCTION_KEYS = { E: 'backspace', S: 'enter', N: 'shift', W: null };
-const FUNCTION_GLYPHS = { E: '⌫', S: '⏎', N: '⇧' };
+// Function taps: a stationary press-and-release in a sector. Right
+// deletes and bottom is enter, as in the 8VIM successor project. The
+// top tap used to be shift; it was dropped (the capital loop covers
+// capitals) and the N sector now hosts the caret hold-glide instead.
+// Left is reserved for a future number/symbol layer. The N glyph hints
+// the glide, not a tap.
+const FUNCTION_KEYS = { E: 'backspace', S: 'enter', N: null, W: null };
+const FUNCTION_GLYPHS = { E: '⌫', S: '⏎', N: '↔' };
 
 function resize() {
   const dpr = window.devicePixelRatio || 1;
@@ -140,44 +152,76 @@ function toLocalPoint(event) {
   return { x: event.clientX - rect.left, y: event.clientY - rect.top };
 }
 
+function insertAtCaret(s) {
+  typedText = typedText.slice(0, caret) + s + typedText.slice(caret);
+  caret += s.length;
+}
+
+// Removes up to n characters before the caret and returns them, so the
+// Typewise-style delete glide can restore them while the finger is
+// still down.
+function deleteBeforeCaret(n) {
+  const cut = Math.min(n, caret);
+  const removed = typedText.slice(caret - cut, caret);
+  typedText = typedText.slice(0, caret - cut) + typedText.slice(caret);
+  caret -= cut;
+  return removed;
+}
+
+// The prediction prefix is derived from the text, not accumulated:
+// deletes, caret moves, and glide edits would all have to maintain an
+// accumulator. Letters and in-word apostrophes only, so punctuation
+// still ends the word (the word lists keep real apostrophes; see
+// word-prediction-research.md).
+function syncCurrentWord() {
+  currentWord = typedText.slice(0, caret).match(/[\p{L}'’]*$/u)[0];
+}
+
+// Double-tap-the-center writes a period, the standard phone
+// double-space convention. Armed only by tap-spaces, never dip-spaces:
+// a dip is part of a flowing stroke, not a deliberate double tap.
+const DOUBLE_TAP_MS = 350;
+let lastSpaceTapAt = 0;
+
 function commitGesture(commit) {
   if (!commit) return;
   if (commit.type === 'space') {
-    typedText += ' ';
-    currentWord = '';
+    const now = performance.now();
+    const afterWordChar = /[\p{L}\p{N}]/u.test(typedText[caret - 2] ?? '');
+    if (
+      commit.via === 'tap' &&
+      now - lastSpaceTapAt < DOUBLE_TAP_MS &&
+      typedText[caret - 1] === ' ' &&
+      afterWordChar
+    ) {
+      // Second quick tap: "word " becomes "word. ".
+      deleteBeforeCaret(1);
+      insertAtCaret('. ');
+      lastSpaceTapAt = 0;
+    } else {
+      insertAtCaret(' ');
+      lastSpaceTapAt = commit.via === 'tap' ? now : 0;
+    }
   } else if (commit.type === 'function') {
     applyFunction(commit.sector);
+    lastSpaceTapAt = 0;
   } else {
     let letter = letterAt(layout, commit.sector, commit.direction, commit.crossings);
-    // Slots can hold punctuation (the original 8pen layout does). A
-    // punctuation mark ends the word for prediction, and an armed shift
-    // waits for an actual letter instead of being wasted on it.
+    // Slots can hold punctuation (the original 8pen layout does); the
+    // capital loop only uppercases actual letters.
     const isLetter = letter ? /\p{L}/u.test(letter) : false;
-    if (isLetter && (commit.capital || shiftNext)) {
-      letter = letter.toUpperCase();
-      shiftNext = false;
-    }
-    if (letter) {
-      typedText += letter;
-      currentWord = isLetter ? currentWord + letter : '';
-    }
+    if (isLetter && commit.capital) letter = letter.toUpperCase();
+    if (letter) insertAtCaret(letter);
+    lastSpaceTapAt = 0;
   }
+  syncCurrentWord();
   renderSuggestions();
 }
 
 function applyFunction(sector) {
   const fn = FUNCTION_KEYS[sector];
-  if (fn === 'backspace') {
-    typedText = typedText.slice(0, -1);
-    // The word being typed may have shrunk, or a deleted space may have
-    // rejoined us to the previous word.
-    currentWord = typedText.match(/[^\s]*$/)[0];
-  } else if (fn === 'enter') {
-    typedText += '\n';
-    currentWord = '';
-  } else if (fn === 'shift') {
-    shiftNext = !shiftNext;
-  }
+  if (fn === 'backspace') deleteBeforeCaret(1);
+  else if (fn === 'enter') insertAtCaret('\n');
 }
 
 function renderSuggestions() {
@@ -187,19 +231,35 @@ function renderSuggestions() {
     .join('');
 }
 
+// Our own caret element: #output is a div, so there is no browser
+// caret to reuse. Rebuilt on every render; the empty span adds nothing
+// to textContent, so tests keep reading the plain text.
+const caretEl = document.createElement('span');
+caretEl.className = 'caret';
+
 // The output box has a fixed height (see #output in style.css), so long
-// text scrolls. Keep the newest line in view after every change.
+// text scrolls. Keep the caret in view after every change.
 function renderOutput() {
-  output.textContent = typedText || '(draw from the center)';
-  output.scrollTop = output.scrollHeight;
+  if (!typedText) {
+    output.textContent = '(draw from the center)';
+    return;
+  }
+  output.replaceChildren(
+    document.createTextNode(typedText.slice(0, caret)),
+    caretEl,
+    document.createTextNode(typedText.slice(caret)),
+  );
+  caretEl.scrollIntoView({ block: 'nearest' });
 }
 
 suggestionsEl.addEventListener('click', (e) => {
   const word = e.target.dataset?.word;
   if (!word) return;
-  // Replace the partial word with the suggestion, then a space.
-  typedText = typedText.slice(0, typedText.length - currentWord.length) + word + ' ';
-  currentWord = '';
+  // Replace the partial word before the caret with the suggestion,
+  // then a space. Text after the caret stays put.
+  typedText = typedText.slice(0, caret - currentWord.length) + word + ' ' + typedText.slice(caret);
+  caret += word.length + 1 - currentWord.length;
+  syncCurrentWord();
   renderSuggestions();
   renderOutput();
 });
@@ -211,7 +271,7 @@ function letterOf(commit) {
   if (!commit) return null;
   const l = letterAt(layout, commit.sector, commit.direction, commit.crossings);
   if (!l) return null;
-  return commit.capital || shiftNext ? l.toUpperCase() : l;
+  return commit.capital ? l.toUpperCase() : l;
 }
 
 const SECTOR_MID = { E: 0, S: 90, W: 180, N: 270 };
@@ -222,6 +282,30 @@ function draw() {
 
   const armLength = Math.min(rect.width, rect.height) * 0.44;
   const pv = currentSnapshot.preview;
+
+  // Sector learning colors: the auto theme has no scheme of its own,
+  // so it follows the device light/dark setting like its palette does.
+  const scheme = THEMES[themeEl.value]?.scheme ?? (darkQuery.matches ? 'dark' : 'light');
+  const sectorHue = sectorColorsEl.checked ? SECTOR_COLORS[scheme] : null;
+
+  // Quadrant tints, one hue per entry sector: the learning aid that
+  // says "this letter's glide starts in the same-colored region".
+  // During a stroke the entry sector's wedge brightens and the rest
+  // fade, mirroring the letter dimming below.
+  if (sectorHue) {
+    for (const sector of SECTORS) {
+      const a0 = ((SECTOR_MID[sector] - 45) * Math.PI) / 180;
+      const a1 = ((SECTOR_MID[sector] + 45) * Math.PI) / 180;
+      ctx.globalAlpha = !pv ? 0.08 : sector === currentSnapshot.sector ? 0.14 : 0.04;
+      ctx.fillStyle = sectorHue[sector];
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, armLength, a0, a1);
+      ctx.arc(center.x, center.y, deadZoneRadius, a1, a0, true);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
 
   // The four boundary arms on the diagonals (the original 8pen's X
   // orientation), drawn from the dead zone edge outward.
@@ -250,12 +334,11 @@ function draw() {
       // rotation direction, then only the matching one); the rest dims
       // hard so the big preview letters stand out. This keeps "which
       // letters can I still reach" visible at their true map positions.
+      let baseAlpha = 1;
       if (pv) {
         const reachable = sector === currentSnapshot.sector &&
           (!currentSnapshot.direction || direction === currentSnapshot.direction);
-        ctx.globalAlpha = reachable ? 0.6 : 0.22;
-      } else {
-        ctx.globalAlpha = 1;
+        baseAlpha = reachable ? 0.6 : 0.22;
       }
       const armAngle = FIRST_ARM[sector][direction];
       // Nudge letters off the line toward the start sector. For a CW
@@ -266,9 +349,18 @@ function draw() {
       layout[sector][direction].forEach((letter, i) => {
         if (!letter) return;
         const r = rInner + i * rStep;
-        // Emphasize cheap letters: biggest at 1 crossing.
+        // Emphasize cheap letters: biggest at 1 crossing. With sector
+        // colors on, one hue per sector carries the grouping and the
+        // outer rings de-emphasize through alpha instead of the muted
+        // color.
         ctx.font = `${20 - i * 2}px sans-serif`;
-        ctx.fillStyle = i === 0 ? colors.letter : colors.muted;
+        if (sectorHue) {
+          ctx.fillStyle = sectorHue[sector];
+          ctx.globalAlpha = i === 0 ? baseAlpha : baseAlpha * 0.65;
+        } else {
+          ctx.fillStyle = i === 0 ? colors.letter : colors.muted;
+          ctx.globalAlpha = baseAlpha;
+        }
         ctx.fillText(letter.toUpperCase(), center.x + r * Math.cos(rad), center.y + r * Math.sin(rad));
       });
     }
@@ -285,13 +377,12 @@ function draw() {
     ctx.fillText(sector, center.x + cornerR * Math.cos(rad), center.y + cornerR * Math.sin(rad));
   }
 
-  // Function tap hints: a stationary tap in a sector triggers these.
+  // Function hints: tap glyphs for E and S, the caret-glide glyph for N.
   ctx.font = '15px sans-serif';
+  ctx.fillStyle = colors.muted;
   const fnR = armLength * 0.78;
   for (const [sector, glyph] of Object.entries(FUNCTION_GLYPHS)) {
     const rad = (SECTOR_MID[sector] * Math.PI) / 180;
-    // Only the shift glyph brightens while armed; the rest stay muted.
-    ctx.fillStyle = sector === 'N' && shiftNext ? colors.letter : colors.muted;
     ctx.fillText(glyph, center.x + fnR * Math.cos(rad), center.y + fnR * Math.sin(rad));
   }
   ctx.globalAlpha = 1;
@@ -325,7 +416,11 @@ function draw() {
   if (trail.length) scheduleTrailFade();
 
   // Live glide preview: big letters in the segment middles showing what
-  // gliding there (then returning to center) would type.
+  // gliding there (then returning to center) would type. All preview
+  // letters belong to the entry sector, so they carry its color too.
+  const previewColor = sectorHue && currentSnapshot.sector
+    ? sectorHue[currentSnapshot.sector]
+    : colors.letter;
   if (pv) {
     const bigR = armLength * 0.6;
     const posOf = (sector) => {
@@ -343,7 +438,7 @@ function draw() {
         ctx.fillText('×', x, y);
       } else if (letter) {
         ctx.font = 'bold 38px sans-serif';
-        ctx.fillStyle = colors.letter;
+        ctx.fillStyle = previewColor;
         ctx.fillText(letter, x, y);
       }
       // commit without a letter = unassigned slot: draw nothing.
@@ -356,7 +451,7 @@ function draw() {
       if (letter) {
         const [ox, oy] = posOf(opp.sector);
         ctx.font = 'bold 38px sans-serif';
-        ctx.fillStyle = colors.letter;
+        ctx.fillStyle = previewColor;
         ctx.fillText(letter, ox, oy);
       }
     } else {
@@ -389,12 +484,12 @@ function draw() {
         ctx.restore();
       };
       ctx.font = 'bold 30px sans-serif';
-      ctx.fillStyle = colors.letter;
+      ctx.fillStyle = previewColor;
       if (cwLetter) {
         ctx.fillText(cwLetter, ...posAt(oppMid - 22));
         flowArrow(oppMid - 38, 1);
         ctx.font = 'bold 30px sans-serif';
-        ctx.fillStyle = colors.letter;
+        ctx.fillStyle = previewColor;
       }
       if (ccwLetter) {
         ctx.fillText(ccwLetter, ...posAt(oppMid + 22));
@@ -413,7 +508,7 @@ function draw() {
   const commitNowLetter = pv ? letterOf(pv.commitNow) : null;
   if (commitNowLetter) {
     ctx.font = 'bold 26px sans-serif';
-    ctx.fillStyle = colors.letter;
+    ctx.fillStyle = previewColor;
     ctx.fillText(commitNowLetter, center.x, center.y);
   } else if (pv) {
     // No letter pending: returning now is either a dip-space (fresh
@@ -431,7 +526,7 @@ function draw() {
   ctx.fillStyle = colors.hud;
   ctx.font = '13px sans-serif';
   ctx.textAlign = 'left';
-  const hud = `state:${currentSnapshot.state}  sector:${currentSnapshot.sector ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}${shiftNext ? '  SHIFT' : ''}  b${BUILD}`;
+  const hud = `state:${currentSnapshot.state}  sector:${currentSnapshot.sector ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}  b${BUILD}`;
   ctx.fillText(hud, 10, 16);
 }
 
@@ -445,22 +540,74 @@ function handleResult(result, point) {
 
 canvas.style.touchAction = 'none';
 
+// Hold-glides: a press that lands out in a sector and then drags. The
+// decoder keeps such presses in its 'outside' state and commits nothing
+// once they move past the tap threshold; main.js gives two of them a
+// text-editing meaning (the decoder stays pure gesture-to-letter):
+//   E: Typewise-style delete. Dragging toward the center deletes one
+//      character per step; dragging back restores from this glide's
+//      buffer. Lifting keeps the result.
+//   N: caret move. Dragging right/left walks the caret through the
+//      text, one character per step.
+const GLIDE_TAP_PX = 18; // keep in sync with the tap threshold in gesture-decoder.js pointerUp
+const GLIDE_STEP_PX = 14;
+let glide = null; // { sector, x0, y0, active, deleted, caret0 }
+
+function updateGlide(x, y) {
+  if (!glide.active) {
+    if (Math.hypot(x - glide.x0, y - glide.y0) < GLIDE_TAP_PX) return;
+    if (glide.sector !== 'E' && glide.sector !== 'N') {
+      glide = null; // S and W drags stay reserved, silent
+      return;
+    }
+    glide.active = true;
+  }
+  if (glide.sector === 'E') {
+    // Toward the center is leftward from the E sector.
+    const want = Math.max(0, Math.floor((glide.x0 - x) / GLIDE_STEP_PX));
+    while (glide.deleted.length < want && caret > 0) {
+      glide.deleted = deleteBeforeCaret(1) + glide.deleted;
+    }
+    while (glide.deleted.length > want) {
+      insertAtCaret(glide.deleted[0]);
+      glide.deleted = glide.deleted.slice(1);
+    }
+  } else {
+    const steps = Math.round((x - glide.x0) / GLIDE_STEP_PX);
+    caret = Math.max(0, Math.min(typedText.length, glide.caret0 + steps));
+  }
+  syncCurrentWord();
+  renderSuggestions();
+  renderOutput();
+}
+
 canvas.addEventListener('pointerdown', (e) => {
   canvas.setPointerCapture(e.pointerId);
   const { x, y } = toLocalPoint(e);
-  handleResult(decoder.pointerDown(x, y), { x, y });
+  const result = decoder.pointerDown(x, y);
+  if (result.state === 'outside') {
+    const angle = (Math.atan2(y - center.y, x - center.x) * 180) / Math.PI;
+    glide = { sector: angleToSector(angle), x0: x, y0: y, active: false, deleted: '', caret0: caret };
+  }
+  handleResult(result, { x, y });
 });
 
 canvas.addEventListener('pointermove', (e) => {
   if (!canvas.hasPointerCapture(e.pointerId)) return;
   const { x, y } = toLocalPoint(e);
+  if (glide) updateGlide(x, y);
   handleResult(decoder.pointerMove(x, y), { x, y });
 });
 
 canvas.addEventListener('pointerup', (e) => {
   const { x, y } = toLocalPoint(e);
   const result = decoder.pointerUp(x, y);
-  if (result.committed) commitGesture(result.committed);
+  // A wiggle can end within the decoder's tap threshold even after the
+  // glide activated; the glide already edited the text, so the tap must
+  // not fire a second edit on top.
+  const suppressTap = glide?.active && result.committed?.type === 'function';
+  glide = null;
+  if (result.committed && !suppressTap) commitGesture(result.committed);
   currentSnapshot = decoder.snapshot();
   renderOutput();
   draw();
@@ -472,16 +619,29 @@ deadZoneEl.addEventListener('input', () => {
   draw();
 });
 
-layoutModeEl.addEventListener('change', rebuildLayout);
+layoutModeEl.addEventListener('change', () => {
+  rebuildLayout();
+  try { localStorage.setItem(LAYOUT_KEY, layoutModeEl.value); } catch {}
+});
 languageEl.addEventListener('change', () => {
   rebuildLayout();
   renderSuggestions();
+  try { localStorage.setItem(LANG_KEY, languageEl.value); } catch {}
+});
+
+// Sector colors default to on: they are a learning aid and the page is
+// in the learning phase. The off state is for testing the plain look.
+const SECTOR_COLORS_KEY = 'phonekeeb.sectorColors';
+try { sectorColorsEl.checked = localStorage.getItem(SECTOR_COLORS_KEY) !== '0'; } catch {}
+sectorColorsEl.addEventListener('change', () => {
+  try { localStorage.setItem(SECTOR_COLORS_KEY, sectorColorsEl.checked ? '1' : '0'); } catch {}
+  draw();
 });
 
 clearButton.addEventListener('click', () => {
   typedText = '';
+  caret = 0;
   currentWord = '';
-  shiftNext = false;
   renderOutput();
   renderSuggestions();
 });

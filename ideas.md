@@ -6,7 +6,7 @@ are Claude's.
 
 ## Gestures
 
-### Typewriter-style hold-to-delete
+### Typewise-style hold-to-delete
 > delete like Typewise - right segment, hold down (glide) to center -
 > then keep deleting or (while still touching down) more right to
 > undelete - Typewise speed and animation is very satisfying
