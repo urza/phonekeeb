@@ -64,6 +64,39 @@ await page.locator('#suggestions button', { hasText: /^hello$/ }).click();
 const text = await page.locator('#output').textContent();
 check('tap completes word', text === 'hello ', JSON.stringify(text));
 
+// N-sector hold-glide: moves the caret one step per 14 px of drag.
+// Anchored to the wheel center from data-center, like drawStrokes.
+async function caretGlide(dx) {
+  const box = await page.locator('#stage').boundingBox();
+  const [wx, wy] = (await page.locator('#stage').getAttribute('data-center')).split(',').map(Number);
+  const x = box.x + wx;
+  const y = box.y + wy - Math.min(box.width, box.height) * 0.35;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + dx, y, { steps: 4 });
+  await page.mouse.up();
+}
+
+// Mid-word correction: with the caret inside "hel" ("he|l"), a chip
+// tap must replace the whole word, not only the "he" prefix.
+await drawStrokes(HEL); // "hello hel"
+await caretGlide(-20); // one step left: "hello he|l"
+await page.locator('#suggestions button', { hasText: /^here$/ }).click();
+let got = await page.locator('#output').textContent();
+check('mid-word tap eats the tail', got === 'hello here ', JSON.stringify(got));
+
+// Mid-text correction: the space already after the word is kept (no
+// double space) and the caret lands right after it.
+await caretGlide(-112); // eight steps left: "hel|lo here "
+await page.locator('#suggestions button', { hasText: /^help$/ }).click();
+got = await page.locator('#output').textContent();
+check('mid-text tap keeps one space', got === 'help here ', JSON.stringify(got));
+// The caret span splits the text nodes; the first node ends at the caret.
+const caretPos = await page.evaluate(
+  () => document.getElementById('output').firstChild.textContent.length,
+);
+check('caret after the kept space', caretPos === 5, String(caretPos));
+
 // Czech: predictor must match stripped keys. Check in-page directly so
 // the test does not depend on Czech letter positions in the layout.
 const csChips = await page.evaluate(async () => {

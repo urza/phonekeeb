@@ -281,10 +281,17 @@ function renderOutput() {
 suggestionsEl.addEventListener('click', (e) => {
   const word = e.target.dataset?.word;
   if (!word) return;
-  // Replace the partial word before the caret with the suggestion,
-  // then a space. Text after the caret stays put.
-  typedText = typedText.slice(0, caret - currentWord.length) + word + ' ' + typedText.slice(caret);
-  caret += word.length + 1 - currentWord.length;
+  // Replace the whole word around the caret, not only the prefix the
+  // prediction matched on: correcting "wh|ot" via "what" must not
+  // leave "ot" behind. Same character class as syncCurrentWord.
+  const tail = typedText.slice(caret).match(/^[\p{L}'’]*/u)[0];
+  const start = caret - currentWord.length;
+  const rest = typedText.slice(caret + tail.length);
+  // A space follows the word only at the end of the text; mid-text the
+  // existing separator stays (no double space, no space before ",").
+  const addSpace = rest === '';
+  typedText = typedText.slice(0, start) + word + (addSpace ? ' ' : '') + rest;
+  caret = start + word.length + (addSpace || rest.startsWith(' ') ? 1 : 0);
   syncCurrentWord();
   renderSuggestions();
   renderOutput();

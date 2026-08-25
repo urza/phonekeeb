@@ -129,10 +129,15 @@ weight to the glide targets the language model expects next.
 ## Word prediction
 
 - Up to five suggestion chips, centered, between the output and the
-  canvas while a word is in progress. Tapping a chip replaces the
-  prediction prefix before the caret with the suggested word plus a
-  space; text after the caret is untouched and the caret lands after
-  the new space.
+  canvas while a word is in progress. Tapping a chip replaces the whole
+  word around the caret with the suggested word: the prediction prefix
+  before the caret plus the letter/apostrophe run after the caret. So
+  correcting "wh|ot" with the "what" chip yields "what", never
+  "what ot". A trailing space is added only when the word ends the
+  text; mid-text the existing following space is kept (no double
+  space), and no space is inserted before punctuation or a newline.
+  The caret lands after that following space when there is one, else
+  right after the word. Prediction still matches on the prefix only.
 - The prediction prefix is the run of letters and in-word apostrophes
   just before the caret, derived from the text on every change. So
   punctuation ends the word, an apostrophe continues it ("don'" keeps
