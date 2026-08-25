@@ -158,7 +158,12 @@ Verified download URLs (mono corpus, one-pass local count is cheap):
 A partial download (first 80 MB of each) already produced the tables and
 numbers above, so the full corpus is optional for a first version.
 
-## Vocabulary bug (fix before any LM work)
+## Vocabulary bug (fixed 2026-08-25)
+
+Status: fixed. `tools/build-wordlists.py` now generates both lists from
+the OPUS OpenSubtitles mono dump with the rules below. The committed
+lists come from an 80 MB corpus sample; a full-dump rerun is still
+open and only shifts tail ranks.
 
 Both word lists were generated with a minimum word length of 2.
 

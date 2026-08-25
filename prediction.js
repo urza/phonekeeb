@@ -12,12 +12,19 @@ export function stripDiacritics(word) {
   return word.normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
+// The gesture alphabet has no apostrophe either, so typing "dont" must
+// find "don't": match keys drop apostrophes on top of the diacritics
+// strip. The display keeps the real spelling.
+export function matchKey(word) {
+  return stripDiacritics(word).replace(/'/g, '');
+}
+
 export class Predictor {
   // words: array of [word, count], sorted by count descending.
   constructor(words) {
     this.entries = words.map(([word, count]) => ({
       word,
-      key: stripDiacritics(word),
+      key: matchKey(word),
       count,
     }));
   }
