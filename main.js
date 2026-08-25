@@ -146,6 +146,14 @@ const FUNCTION_GLYPHS = { E: '⌫', S: '⏎', N: '↔' };
 const WHEEL_MARGIN = 12;
 let armLength = 0;
 
+// Touch screens get the bottom-RIGHT anchor (thumb reach); a mouse has
+// no reach problem, so desktop testing centers the wheel horizontally
+// at the bottom instead (user request 2026-08-25). The primary-pointer
+// media query is the device signal; a change (DevTools device
+// emulation) re-anchors immediately.
+const coarsePointer = window.matchMedia('(pointer: coarse)');
+coarsePointer.addEventListener('change', () => resize());
+
 function resize() {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
@@ -154,7 +162,7 @@ function resize() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   armLength = Math.min(rect.width, rect.height) * 0.44;
   center = {
-    x: rect.width - armLength - WHEEL_MARGIN,
+    x: coarsePointer.matches ? rect.width - armLength - WHEEL_MARGIN : rect.width / 2,
     y: rect.height - armLength - WHEEL_MARGIN,
   };
   decoder.center = center;

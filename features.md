@@ -241,10 +241,11 @@ a short alphabet after hand edits.
   newest line kept in view. The suggestion row height is fixed too.
   Nothing above the canvas changes size mid-gesture, so the decoder
   center stays under the finger.
-- The wheel anchors to the bottom-right corner of the canvas, 12 px
-  margin, so the center circle sits under a right thumb instead of
-  floating mid-screen. Arm length is 0.44 x the smaller canvas
-  dimension. A left-hand anchor option is future work.
+- The wheel anchors to the bottom of the canvas, 12 px margin. On a
+  touch screen (primary pointer coarse) it also hugs the right edge,
+  under a right thumb; with a mouse (desktop testing) it centers
+  horizontally. Arm length is 0.44 x the smaller canvas dimension. A
+  left-hand anchor option is future work.
 
 ## Installable app (PWA)
 
@@ -328,7 +329,7 @@ Tuned constants, one place to read them all:
 | Capital loop | crossings 5 to 8 map to 1 to 4, uppercase |
 | Suggestions | at most 5 chips |
 | Arm length | 0.44 x min canvas dimension |
-| Wheel anchor | bottom-right, 12 px margin |
+| Wheel anchor | bottom, 12 px margin; right on touch, x-centered with a mouse |
 
 Pixel values were tuned on a ~390 px wide phone viewport; on iOS
 they should scale in points, not pixels.
