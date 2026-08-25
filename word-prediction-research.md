@@ -194,9 +194,9 @@ Both word lists were generated with a minimum word length of 2.
    successor and render it as an extra chip ("are you" next to "are").
    A tap inserts both words. A wrong chain costs one strip slot, never a
    wrong insert.
-5. Personal model (handoff step 4): count the user's committed bigrams
-   in localStorage, decay per session, and promote a candidate when its
-   personal count clears a threshold.
+5. Personal model (handoff step 4): seed it from the user's own chat
+   exports, then learn from committed words. The full design lives in
+   the "Personalization plan" section below.
 6. Eval harness `tools/eval-prediction.mjs`: hit@1 / hit@3 on a held-out
    subtitle slice, run before and after each model change. This mirrors
    the industry metric and keeps changes honest.
@@ -216,6 +216,86 @@ UX notes specific to this keyboard:
   tables are far under the 48 to 60 MB extension memory band. The
   Foundation Models route is worth one prototype spike, phrase-level
   only.
+
+## Personalization plan (added 2026-08-25)
+
+Goal: rank suggestions by how this user actually writes. Two
+components, one model. A script seeds the model from exported chats
+(component B), and the keyboard then updates the same model while
+typing (component A). One blending rule serves both.
+
+### The personal model
+
+- One store holds unigram counts and bigram counts over the user's own
+  messages, plus a `<s>` start-of-message token. The `<s>` bigrams
+  predict the first word of a message, where the strip is blank today.
+- Language-agnostic: one combined store, mixed Czech and English like
+  the real messages. This matches the one-layout constraint in the
+  research notes (no per-language switching in the end state).
+- Personal vocabulary extends the static 3000: names and slang become
+  suggestable, displayed with their real spelling.
+- Storage: localStorage in the browser, roughly 200 to 400 KB of JSON.
+  Never in the repo, never on GitHub Pages; the repo is public. A file
+  import seeds the store; typing updates it; a button clears it.
+- Blending at prediction time, per candidate:
+  score = λ · P_personal + (1 − λ) · P_static, with λ near 0.25 and
+  tuned on held-out personal data (see the eval below).
+
+### Component B: the corpus script (tools/build-personal.py)
+
+- Input: a local folder of raw exports plus `--me "Display Name"`
+  (repeatable, names differ across apps). Output: one
+  `personal-ngrams.json` with aggregate counts only, no raw text.
+- Formats, auto-detected per file:
+  - WhatsApp `.txt` (Android and iOS line variants, localized dates)
+  - Telegram Desktop `result.json`
+  - Facebook Messenger `message_*.json`, with the known latin-1
+    mojibake fix applied
+  - fallback: plain `.txt`, one message per line
+- Only messages authored by `--me` count. System lines ("Media
+  omitted"), URLs, and forwarded content are skipped. The script warns
+  when a source matched suspiciously few own messages (wrong name).
+- Tokenization: exactly the rules of tools/build-wordlists.py, moved
+  into a shared tools/textnorm.py. The one-letter whitelist is the
+  union of the en and cs sets.
+- Pruning: unigrams with count >= 2, capped near 2000 new-word
+  entries; bigrams with count >= 2, capped near 20k pairs.
+- Built-in eval: split the user's messages 90/10 by time, then report
+  next-word hit@3 for static-only against the blend, over
+  λ in {0.1 .. 0.5}. The personalization gain is measured before any
+  app work starts.
+- Safety rails first: add `personal/` and `personal-ngrams.json` to
+  `.gitignore` before the script exists, so an accidental
+  `git add -A` can never publish personal data.
+
+### Component A: learning while typing
+
+- On each committed word, increment the word and the (previous, word)
+  pair. Accepted chips count the same way.
+- Decay by halving: when the personal token total passes about 50k,
+  halve every count. Integers stay small, old habits fade, and the
+  store stays bounded.
+- Page controls: a "Learn from my typing" toggle (default on), an
+  "Import personal data" file input, and a "Forget personal data"
+  button. Import merges into the store; forget clears it.
+- Persistence: write-behind to localStorage every ~20 commits. The
+  store is per device; the same import file re-seeds another device.
+
+### Order and dependencies
+
+1. Extract tools/textnorm.py, add the gitignore rails, build
+   tools/build-personal.py. Standalone: no app changes, testable on
+   synthetic fixtures, then validated on the real exports.
+2. The predictor context API with the static bigram tables (build
+   order steps 2 and 3 above). Personal blending enters through the
+   same predict(prefix, prevWords, limit) call.
+3. App side: import UI, blend, online counting, the three controls.
+4. The eval harness reports static against blended on both corpora
+   after each change, so every step stays measurable.
+
+Privacy summary: raw exports never leave the machine. The repo stores
+no personal file. The JSON holds only word and word-pair counts. The
+phone keeps them in browser storage, and "Forget" deletes them.
 
 ## Demo: measured top successors (OpenSubtitles tables)
 
