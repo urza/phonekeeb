@@ -91,6 +91,42 @@ Route details:
   free. Build with code signing disabled, zip `Payload/` into an IPA, and
   let Sideloadly sign at install time with the free Apple ID.
 
+### The 7-day route without a Mac, explicitly
+
+Setup assumed here: a Windows PC and an iPhone, no Mac, no paid account.
+The route always splits into two jobs, and different tools do each job.
+
+**Job 1: compile an `.ipa`.** Windows cannot do this natively. Options:
+
+- GitHub Actions compiles in the cloud, free for a public repo.
+- xtool under WSL compiles locally (keyboard extension unproven).
+- A rented cloud Mac (~3 EUR/day) compiles in Xcode when the others fail.
+
+**Job 2: sign with the free Apple ID, install, and repeat within every
+7 days.** Three tools do this from Windows:
+
+| | Sideloadly | AltServer + AltStore | SideStore |
+|---|---|---|---|
+| Weekly refresh | manual, ~2 min, USB or Wi-Fi | automatic when phone and PC share Wi-Fi | on the phone itself, no PC |
+| Setup effort | lowest | medium | highest (pairing file, nightly builds) |
+| Free slots used | 2 of 3 (app + keyboard) | 3 of 3 (AltStore counts too) | 3 of 3 (SideStore counts too) |
+| Trip longer than 7 days | keyboard dies until you return | keyboard dies until you return | keeps working |
+
+Facts that hold for all three:
+
+- Unlimited re-signs. The 7-day clock resets each time. App data and
+  settings survive every refresh.
+- A missed deadline only drops typing back to the stock iOS keyboard.
+  One refresh brings the keyboard back, nothing is lost.
+- Expiry counts from the moment of signing, not from days of use.
+- Each tool logs into Apple's servers with an Apple ID and password
+  (2FA supported). A spare free Apple ID keeps the main password out
+  of third-party tools.
+
+Suggested order: Sideloadly for the first-ever install (fewest moving
+parts). Then AltServer if the PC is on at home most days, or SideStore
+for a phone that refreshes itself.
+
 ### Keyboard-extension facts that shape phase 1
 
 - The extension is a native `UIInputViewController`. A WKWebView does load

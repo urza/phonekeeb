@@ -252,6 +252,25 @@
   <p>TrollStore only covers iOS 14.0-16.6.1 and 17.0, so it is dead on current iOS 26.x. EU alternative marketplaces and web distribution demand 1M installs or a $1M letter of credit. Neither fits a solo developer.</p>
 </div>
 
+<h3>The 7-day route without a Mac, explicitly</h3>
+<p>Setup assumed here: a Windows PC and an iPhone, no Mac, no paid account. The route always splits into two jobs, and different tools do each job.</p>
+<p><strong>Job 1: compile an <code>.ipa</code>.</strong> Windows cannot do this natively. GitHub Actions compiles in the cloud (free, public repo), xtool under WSL compiles locally (keyboard extension unproven), or a rented cloud Mac (~3 EUR/day) compiles in Xcode.</p>
+<p><strong>Job 2: sign with the free Apple ID, install, repeat within every 7 days.</strong> Three tools do this from Windows:</p>
+<div class="tablewrap"><table>
+  <tr><th></th><th>Sideloadly</th><th>AltServer + AltStore</th><th>SideStore</th></tr>
+  <tr><td>Weekly refresh</td><td>manual, ~2 min, USB or Wi-Fi</td><td>automatic when phone and PC share Wi-Fi</td><td>on the phone itself, no PC</td></tr>
+  <tr><td>Setup effort</td><td>lowest</td><td>medium</td><td>highest (pairing file, nightlies)</td></tr>
+  <tr><td>Free slots used</td><td>2 of 3 (app + keyboard)</td><td>3 of 3 (AltStore counts too)</td><td>3 of 3 (SideStore counts too)</td></tr>
+  <tr><td>Trip &gt; 7 days</td><td>keyboard dies until return</td><td>keyboard dies until return</td><td>keeps working</td></tr>
+</table></div>
+<ul>
+  <li>Unlimited re-signs. The 7-day clock resets each time. App data and settings survive every refresh.</li>
+  <li>A missed deadline only drops typing back to the stock iOS keyboard. One refresh brings the keyboard back, nothing is lost.</li>
+  <li>Expiry counts from the moment of signing, not from days of use.</li>
+  <li>Each tool logs into Apple's servers with an Apple ID and password (2FA supported). A spare free Apple ID keeps the main password out of third-party tools.</li>
+</ul>
+<div class="note"><strong>Suggested order.</strong> Sideloadly for the first-ever install (fewest moving parts). Then AltServer if the PC is on at home most days, or SideStore for a phone that refreshes itself.</div>
+
 <h3>Keyboard facts that shape phase 1</h3>
 <ul>
   <li>The extension is a native <code>UIInputViewController</code>. A WKWebView loads inside a keyboard, but JavaScript stalls or renders blank without Full Access, and web content eats the memory budget. Porting <code>gesture-decoder.js</code> to Swift stays the right plan. Flutter and React Native are not practical here either.</li>
