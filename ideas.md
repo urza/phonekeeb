@@ -7,18 +7,18 @@ are Claude's.
 ## Gestures
 
 ### Typewriter-style hold-to-delete
-> delete like typewright - right segment, hold down (glide) to center -
+> delete like Typewise - right segment, hold down (glide) to center -
 > then keep deleting or (while still touching down) more right to
-> undelete - typewright speed and animation is very satisfying
+> undelete - Typewise speed and animation is very satisfying
 
-*Note: probably the Typewise keyboard's signature delete. This fits
+*Note: the Typewise keyboard's signature delete. This fits
 the prototype unusually well. A tap in the right sector already
 deletes, and moving gestures that start outside the center are exactly
 the input space we reserved when we enforced center-start. An undelete
 buffer is cheap.*
 
 ### Cursor movement
-> move cursor.. how? - similar to typewright delete but start from
+> move cursor.. how? - similar to Typewise delete but start from
 > different segment?
 
 *Note: same reserved gesture space. A hold in another sector plus
