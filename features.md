@@ -192,12 +192,15 @@ a short alphabet after hand edits.
   reloads.
 - Sector learning colors: each quadrant carries a light tint of its
   own hue (N blue, E orange, S green, W purple), and every letter is
-  drawn in the hue of the sector its glide starts from. During a
-  stroke the entry sector's tint brightens, the others fade, and the
-  big preview letters take the entry sector's hue. One palette per
-  scheme (light and dark) in `themes.js`; the unit test enforces 4.5:1
-  contrast against every same-scheme panel. A settings checkbox turns
-  the colors off, and the choice persists.
+  drawn in the hue of its landing sector, the quadrant the glide
+  returns to the center from. The color answers "drag toward this
+  region, then come back". During a stroke the quadrant the finger
+  would commit from brightens, the others fade, and each big preview
+  letter takes the hue of the quadrant it sits in (which is its
+  landing sector). One palette per scheme (light and dark) in
+  `themes.js`; the unit test enforces 4.5:1 contrast against every
+  same-scheme panel. A settings checkbox turns the colors off, and the
+  choice persists.
 
 ## Phone-keyboard page layout
 

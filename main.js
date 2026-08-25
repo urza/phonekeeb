@@ -1,4 +1,4 @@
-import { GestureDecoder, angleToSector } from './gesture-decoder.js';
+import { GestureDecoder, angleToSector, SECTOR_ORDER_CW } from './gesture-decoder.js';
 import { letterAt, validateLayout, SECTORS, DIRECTIONS, FIRST_ARM } from './layout.js';
 import { LAYOUTS, buildLayout, DEFAULT_LAYOUT } from './layouts.js';
 import { THEMES, THEME_VARS, DEFAULT_THEME, SECTOR_COLORS } from './themes.js';
@@ -276,6 +276,16 @@ function letterOf(commit) {
 
 const SECTOR_MID = { E: 0, S: 90, W: 180, N: 270 };
 
+// The sector a letter's gesture returns to the center from: entry
+// shifted by the signed crossing count around the CW ring. Letters are
+// colored by this landing sector, not the entry one, so the color
+// answers "toward which region do I drag before coming back".
+function landingSector(entry, direction, crossings) {
+  const idx = SECTOR_ORDER_CW.indexOf(entry);
+  const d = direction === 'CW' ? crossings : -crossings;
+  return SECTOR_ORDER_CW[(((idx + d) % 4) + 4) % 4];
+}
+
 function draw() {
   const rect = canvas.getBoundingClientRect();
   ctx.clearRect(0, 0, rect.width, rect.height);
@@ -288,15 +298,16 @@ function draw() {
   const scheme = THEMES[themeEl.value]?.scheme ?? (darkQuery.matches ? 'dark' : 'light');
   const sectorHue = sectorColorsEl.checked ? SECTOR_COLORS[scheme] : null;
 
-  // Quadrant tints, one hue per entry sector: the learning aid that
-  // says "this letter's glide starts in the same-colored region".
-  // During a stroke the entry sector's wedge brightens and the rest
-  // fade, mirroring the letter dimming below.
+  // Quadrant tints, one hue per sector: the learning aid that says
+  // "a letter in this color commits by returning to the center from
+  // the same-colored region" (see landingSector). During a stroke the
+  // wedge the finger would commit from right now brightens and the
+  // rest fade.
   if (sectorHue) {
     for (const sector of SECTORS) {
       const a0 = ((SECTOR_MID[sector] - 45) * Math.PI) / 180;
       const a1 = ((SECTOR_MID[sector] + 45) * Math.PI) / 180;
-      ctx.globalAlpha = !pv ? 0.08 : sector === currentSnapshot.sector ? 0.14 : 0.04;
+      ctx.globalAlpha = !pv ? 0.08 : sector === pv.current ? 0.14 : 0.04;
       ctx.fillStyle = sectorHue[sector];
       ctx.beginPath();
       ctx.arc(center.x, center.y, armLength, a0, a1);
@@ -350,12 +361,12 @@ function draw() {
         if (!letter) return;
         const r = rInner + i * rStep;
         // Emphasize cheap letters: biggest at 1 crossing. With sector
-        // colors on, one hue per sector carries the grouping and the
-        // outer rings de-emphasize through alpha instead of the muted
-        // color.
+        // colors on, the hue encodes the LANDING sector (crossings =
+        // i + 1), and the outer rings de-emphasize through alpha
+        // instead of the muted color.
         ctx.font = `${20 - i * 2}px sans-serif`;
         if (sectorHue) {
-          ctx.fillStyle = sectorHue[sector];
+          ctx.fillStyle = sectorHue[landingSector(sector, direction, i + 1)];
           ctx.globalAlpha = i === 0 ? baseAlpha : baseAlpha * 0.65;
         } else {
           ctx.fillStyle = i === 0 ? colors.letter : colors.muted;
@@ -416,11 +427,10 @@ function draw() {
   if (trail.length) scheduleTrailFade();
 
   // Live glide preview: big letters in the segment middles showing what
-  // gliding there (then returning to center) would type. All preview
-  // letters belong to the entry sector, so they carry its color too.
-  const previewColor = sectorHue && currentSnapshot.sector
-    ? sectorHue[currentSnapshot.sector]
-    : colors.letter;
+  // gliding there (then returning to center) would type. Each preview
+  // letter sits in its own landing sector, so it takes that sector's
+  // hue, matching the static map's landing-color rule.
+  const hueAt = (sector) => (sectorHue ? sectorHue[sector] : colors.letter);
   if (pv) {
     const bigR = armLength * 0.6;
     const posOf = (sector) => {
@@ -438,7 +448,7 @@ function draw() {
         ctx.fillText('×', x, y);
       } else if (letter) {
         ctx.font = 'bold 38px sans-serif';
-        ctx.fillStyle = previewColor;
+        ctx.fillStyle = hueAt(sector);
         ctx.fillText(letter, x, y);
       }
       // commit without a letter = unassigned slot: draw nothing.
@@ -451,7 +461,7 @@ function draw() {
       if (letter) {
         const [ox, oy] = posOf(opp.sector);
         ctx.font = 'bold 38px sans-serif';
-        ctx.fillStyle = previewColor;
+        ctx.fillStyle = hueAt(opp.sector);
         ctx.fillText(letter, ox, oy);
       }
     } else {
@@ -484,12 +494,12 @@ function draw() {
         ctx.restore();
       };
       ctx.font = 'bold 30px sans-serif';
-      ctx.fillStyle = previewColor;
+      ctx.fillStyle = hueAt(opp.sector);
       if (cwLetter) {
         ctx.fillText(cwLetter, ...posAt(oppMid - 22));
         flowArrow(oppMid - 38, 1);
         ctx.font = 'bold 30px sans-serif';
-        ctx.fillStyle = previewColor;
+        ctx.fillStyle = hueAt(opp.sector);
       }
       if (ccwLetter) {
         ctx.fillText(ccwLetter, ...posAt(oppMid + 22));
@@ -507,8 +517,10 @@ function draw() {
   ctx.stroke();
   const commitNowLetter = pv ? letterOf(pv.commitNow) : null;
   if (commitNowLetter) {
+    // Returning right now commits from the current sector, so the
+    // pending letter carries that sector's hue.
     ctx.font = 'bold 26px sans-serif';
-    ctx.fillStyle = previewColor;
+    ctx.fillStyle = hueAt(pv.current);
     ctx.fillText(commitNowLetter, center.x, center.y);
   } else if (pv) {
     // No letter pending: returning now is either a dip-space (fresh
