@@ -19,6 +19,12 @@ that file before design work.
   `~/pw`, not in the repo, because this filesystem rejects npm's symlinks.
   Serve the root with `python3 -m http.server 8080`, then run
   `node tests/hello-flow.mjs`.
+- `ios-deployment-research.md` (phone twin: `ios-deployment-research.html`)
+  documents the path from web prototype to a real iPhone: sideloading
+  without the App Store (free Apple ID, 7-day builds), TestFlight, App
+  Store rules for keyboards (4.4.1, Full Access, ~40-60 MB memory cap),
+  and costs. Researched and hand-verified 2026-08-25. Read it before any
+  native iOS work.
 
 ## Working mode
 

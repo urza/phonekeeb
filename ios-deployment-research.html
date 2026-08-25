@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Phonekeeb on a Real iPhone</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #1a212c;
+    --muted: #576273;
+    --line: #dfe4eb;
+    --accent: #2b5fe3;
+    --link: #2154cf;
+    --chip-bg: #eef1f6;
+    --good-ink: #1e6b3a;
+    --good-bg: #e6f4ea;
+    --good-line: #bfe0c9;
+    --warn-ink: #815409;
+    --warn-bg: #faf1df;
+    --warn-line: #e8d5a8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a;
+      --card: #181d24;
+      --ink: #e7eaf0;
+      --muted: #98a2b1;
+      --line: #2a313b;
+      --accent: #5c86f5;
+      --link: #93b0ff;
+      --chip-bg: #232a33;
+      --good-ink: #7ecf9a;
+      --good-bg: #14251a;
+      --good-line: #2b4a35;
+      --warn-ink: #e3b76c;
+      --warn-bg: #251e0f;
+      --warn-line: #4a3d1e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a;
+    --card: #181d24;
+    --ink: #e7eaf0;
+    --muted: #98a2b1;
+    --line: #2a313b;
+    --accent: #5c86f5;
+    --link: #93b0ff;
+    --chip-bg: #232a33;
+    --good-ink: #7ecf9a;
+    --good-bg: #14251a;
+    --good-line: #2b4a35;
+    --warn-ink: #e3b76c;
+    --warn-bg: #251e0f;
+    --warn-line: #4a3d1e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.03rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .wrap { max-width: 42.5rem; margin: 0 auto; padding: 2.2rem 1.15rem 3.5rem; }
+  .eyebrow {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(1.9rem, 6vw, 2.5rem); font-weight: 700;
+    letter-spacing: -.015em; line-height: 1.08; text-wrap: balance; margin: 0 0 .7rem;
+  }
+  .dek { font-size: 1.11rem; color: var(--muted); max-width: 34em; margin: 0 0 1.4rem; }
+  h2 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.42rem; font-weight: 700; letter-spacing: -.01em;
+    line-height: 1.15; margin: 2.4rem 0 .8rem;
+  }
+  h3 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.08rem; font-weight: 700; margin: 1.6rem 0 .5rem;
+  }
+  p { margin: .55rem 0 .9rem; }
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  ul, ol { padding-left: 1.25rem; margin: .5rem 0 1rem; }
+  li { margin: .3rem 0; }
+  code {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .88em; background: var(--chip-bg);
+    padding: .08em .35em; border-radius: .35em;
+  }
+  .toc { display: flex; flex-wrap: wrap; gap: .45rem; margin: 0 0 1.2rem; padding: 0; list-style: none; }
+  .toc a {
+    display: inline-block; background: var(--chip-bg); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: .28rem .75rem; font-size: .85rem; text-decoration: none;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: .8rem; padding: .95rem 1.05rem; margin: .9rem 0;
+  }
+  .note, .warn, .good {
+    border-radius: .8rem; padding: .8rem 1rem; margin: .9rem 0; font-size: .97rem;
+  }
+  .warn { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); }
+  .good { background: var(--good-bg); border: 1px solid var(--good-line); color: var(--good-ink); }
+  .note { background: var(--chip-bg); border: 1px solid var(--line); color: var(--ink); }
+  .warn strong, .good strong { color: inherit; }
+  .tag {
+    display: inline-block; font-family: "Spline Sans Mono", monospace;
+    font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--chip-bg); border: 1px solid var(--line);
+    border-radius: .4rem; padding: .1rem .45rem; margin-left: .35rem;
+    color: var(--muted); vertical-align: middle;
+  }
+  .tag.v { color: var(--good-ink); background: var(--good-bg); border-color: var(--good-line); }
+  .tablewrap { overflow-x: auto; margin: .9rem 0; border: 1px solid var(--line); border-radius: .8rem; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; min-width: 26rem; font-size: .95rem; }
+  th, td { text-align: left; padding: .55rem .8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-family: "Spline Sans Mono", monospace; font-weight: 500;
+    font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  }
+  tr:last-child td { border-bottom: none; }
+  .route { margin: .8rem 0; }
+  .route h4 {
+    font-family: "Schibsted Grotesk", sans-serif; font-size: 1rem;
+    margin: 0 0 .25rem;
+  }
+  .route .meta { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .4rem; }
+  .route .meta span {
+    font-size: .78rem; background: var(--chip-bg); border: 1px solid var(--line);
+    border-radius: 999px; padding: .12rem .6rem; color: var(--muted);
+  }
+  .route p { margin: .2rem 0 0; font-size: .97rem; }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: step; position: relative;
+    padding: .1rem 0 .1rem 2.4rem; margin: .8rem 0;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: .1rem;
+    width: 1.7rem; height: 1.7rem; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-family: "Schibsted Grotesk", sans-serif; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; font-size: .95rem;
+  }
+  .srcs { font-size: .92rem; }
+  .srcs li { margin: .25rem 0; overflow-wrap: anywhere; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">Phonekeeb research &middot; 2026-08-25</p>
+<h1>From web prototype to a real iPhone</h1>
+<p class="dek">What it takes to run phonekeeb as a native iOS keyboard: on your own phone first, then TestFlight, then the App Store. Facts marked <span class="tag v">verified</span> were checked by hand against live Apple pages.</p>
+
+<ul class="toc">
+  <li><a href="#tldr">TL;DR</a></li>
+  <li><a href="#phase1">1&middot; Own iPhone</a></li>
+  <li><a href="#phase2">2&middot; TestFlight</a></li>
+  <li><a href="#phase3">3&middot; App Store</a></li>
+  <li><a href="#costs">Costs</a></li>
+  <li><a href="#plan">Recommended path</a></li>
+  <li><a href="#sources">Sources</a></li>
+</ul>
+
+<h2 id="tldr">TL;DR</h2>
+<div class="card">
+<ul>
+  <li>iOS has no APK-style install. Every path ends in an Apple signature plus a profile that lists your device.</li>
+  <li>The closest analog to Android sideloading is free Apple ID signing. The build runs for 7 days, then needs a re-sign.</li>
+  <li>Phase 1 costs $0 and no longer strictly needs a Mac. The no-Mac routes work, but each adds friction.</li>
+  <li>TestFlight and the App Store both need the Apple Developer Program, $99 per year.</li>
+  <li>Guideline 4.4.1 demands a keyboard that works fully without network and without Full Access. Our on-device design already matches this.</li>
+</ul>
+</div>
+
+<h2 id="phase1">Phase 1 &middot; Your own iPhone, no App Store</h2>
+
+<h3>Why there is no APK equivalent</h3>
+<p>iOS runs only signed code. The signature must chain to an Apple certificate. For dev installs, the provisioning profile must also list your device UDID. You cannot open an <code>.ipa</code> on the phone and install it. Xcode, Sideloadly, AltStore, and TestFlight all end at the same Apple signing service.</p>
+<p>One extra gate exists since iOS 16. The phone must have Developer Mode on: Settings &gt; Privacy &amp; Security &gt; Developer Mode, one restart.</p>
+
+<h3>Free Apple ID limits <span class="tag v">verified</span></h3>
+<div class="tablewrap"><table>
+  <tr><th>Limit</th><th>Value</th></tr>
+  <tr><td>Build validity</td><td>7 days, then re-sign and reinstall</td></tr>
+  <tr><td>App IDs</td><td>10 per rolling 7 days</td></tr>
+  <tr><td>Test devices</td><td>3 per platform</td></tr>
+  <tr><td>Sideloaded apps at once</td><td>3</td></tr>
+  <tr><td>TestFlight, App Store, ad&nbsp;hoc</td><td>not available</td></tr>
+  <tr><td>Push notifications</td><td>not available</td></tr>
+  <tr><td>App Groups</td><td><strong>available</strong> (see below)</td></tr>
+</table></div>
+
+<div class="good"><strong>App Groups work on free accounts.</strong> Two research passes claimed the opposite. The raw HTML of Apple's capability table shows the free-tier checkmark on the "App groups" row, while control rows (App Attest, Push) lack it. Old failure threads are mostly from macOS. Confirm in Xcode on day one anyway. The container app and the keyboard share settings through this.</div>
+
+<div class="warn"><strong>Slot math.</strong> The keyboard extension counts as its own App ID and its own sideload slot. Container plus keyboard take 2 of the 3 free slots.</div>
+
+<h3>Install routes, cheapest first</h3>
+
+<div class="card route">
+  <h4>Xcode on a Mac</h4>
+  <div class="meta"><span>any Mac + free Apple ID</span><span>loop: seconds</span><span>debugger + Instruments</span></div>
+  <p>The reference path. Cable or Wi-Fi install straight from Xcode.</p>
+</div>
+
+<div class="card route">
+  <h4>xtool on Linux / WSL</h4>
+  <div class="meta"><span>Windows PC + WSL</span><span>free Apple ID</span><span>loop: minutes</span><span>no debugger</span></div>
+  <p>Open-source toolchain (v1.17, active) that builds, signs, and installs from Linux or WSL. Needs Swift 6.3, a downloaded <code>Xcode.xip</code> for the SDK, <code>usbmuxd</code>, and USBIPD passthrough on Windows. App extensions supported since v1.14 via <code>xtool.yml</code>. A keyboard extension should fit, but no published example exists. Budget a weekend for the experiment.</p>
+</div>
+
+<div class="card route">
+  <h4>CI build + Sideloadly</h4>
+  <div class="meta"><span>GitHub Actions (free, public repo)</span><span>Windows</span><span>loop: 10-25 min</span><span>blind, no debugger</span></div>
+  <p>Build with signing disabled on a free macOS runner, zip <code>Payload/</code> into an IPA, and let Sideloadly sign at install time with the free Apple ID. Sideloadly needs the standalone iTunes and iCloud installers. Keep its "remove app extensions (PlugIns)" option off. It would delete the keyboard.</p>
+</div>
+
+<div class="card route">
+  <h4>AltStore / SideStore</h4>
+  <div class="meta"><span>Windows for setup</span><span>free Apple ID</span><span>auto re-sign</span></div>
+  <p>Install prebuilt IPAs and auto-refresh the 7-day signature. AltServer refreshes over Wi-Fi. SideStore needs one pairing file, then refreshes on the phone through a local VPN trick.</p>
+</div>
+
+<div class="card route">
+  <h4>Cloud Mac burst</h4>
+  <div class="meta"><span>~3 EUR per day</span><span>Scaleway M1, 24 h min</span><span>MacinCloud $1/h</span></div>
+  <p>Rent Xcode for a day when it is unavoidable. A used M1 Mac mini (~$450-500) breaks even after roughly 6 months of that.</p>
+</div>
+
+<div class="card route">
+  <h4>Paid developer account, $99/yr</h4>
+  <div class="meta"><span>1-year profiles</span><span>100 devices</span><span>no 7-day churn</span></div>
+  <p>Same install routes, but signatures last a year. Also the ticket to phases 2 and 3.</p>
+</div>
+
+<div class="card route">
+  <h4>Dead ends</h4>
+  <div class="meta"><span>TrollStore</span><span>EU DMA marketplaces</span></div>
+  <p>TrollStore only covers iOS 14.0-16.6.1 and 17.0, so it is dead on current iOS 26.x. EU alternative marketplaces and web distribution demand 1M installs or a $1M letter of credit. Neither fits a solo developer.</p>
+</div>
+
+<h3>Keyboard facts that shape phase 1</h3>
+<ul>
+  <li>The extension is a native <code>UIInputViewController</code>. A WKWebView loads inside a keyboard, but JavaScript stalls or renders blank without Full Access, and web content eats the memory budget. Porting <code>gesture-decoder.js</code> to Swift stays the right plan. Flutter and React Native are not practical here either.</li>
+  <li><strong>Memory ceiling ~40-60 MB.</strong> iOS kills the extension silently (jetsam). No dialog, and iOS 17+ leaves no crash log on the device. The system swaps back to the previous keyboard.</li>
+  <li>Full Access gates network, the pasteboard, and writes to the shared App Group container. The keyboard must stay fully usable with Full Access off. Settings inside the keyboard (our gear toggle) reduce the need.</li>
+  <li>Enable by hand after install: Settings &gt; General &gt; Keyboard &gt; Keyboards &gt; Add New Keyboard. Sometimes it appears only after the container app ran once, or after a restart.</li>
+  <li>Debugging without Xcode: <code>os_log</code> plus <code>pymobiledevice3 syslog live</code> from Windows or Linux. A jetsam kill shows as the log stream stopping.</li>
+</ul>
+
+<h2 id="phase2">Phase 2 &middot; TestFlight</h2>
+<p>TestFlight needs the paid Apple Developer Program, $99 per year. An individual enrolls with an Apple ID, two-factor auth, and a credit card. No D-U-N-S number. Your personal legal name becomes the visible seller name. Apple promises confirmation within 24 hours; real reports say 1 to 4 weeks.</p>
+
+<div class="tablewrap"><table>
+  <tr><th></th><th>Internal</th><th>External</th></tr>
+  <tr><td>Who</td><td>your App Store Connect team</td><td>anyone via email invite or public link</td></tr>
+  <tr><td>Max testers <span class="tag v">verified</span></td><td>100</td><td>10,000</td></tr>
+  <tr><td>Review</td><td>none</td><td>Beta App Review, first build of each version</td></tr>
+  <tr><td>Wait</td><td>right after processing (5-30 min typical)</td><td>~10 h queue + ~1 h review (2026-08)</td></tr>
+</table></div>
+
+<p>Other limits: builds expire after 90 days. Up to 100 builds shared, 30 devices per tester, and at most 6 builds per 24 hours into beta review. Testers install through the TestFlight app, read per-build "What to Test" notes, and send screenshots plus up to 4,000 characters of feedback. Crashes report automatically.</p>
+
+<div class="note"><strong>Keyboard notes.</strong> Beta review applies guideline 4.4.1, so the keyboard must already work without Full Access. Put the enable-the-keyboard steps into "What to Test", because the extension stays inert until the tester adds it in Settings. TestFlight-only distribution does not trigger the EU DSA trader requirements.</div>
+
+<h2 id="phase3">Phase 3 &middot; App Store</h2>
+
+<h3>Submission checklist</h3>
+<ul>
+  <li>App record: name (30 chars), subtitle (30), keywords (100), description (4,000), promo text (170), category, age rating (tiers 4+, 9+, 13+, 16+, 18+).</li>
+  <li>Screenshots: one 6.9-inch iPhone set (1260x2736, 1290x2796, or 1320x2868). Ship iPhone-only to skip the iPad set.</li>
+  <li>App icon 1024x1024, no transparency.</li>
+  <li>Privacy policy URL, also reachable from inside the app.</li>
+  <li>App Privacy labels: Apple counts only data that leaves the device. A fully on-device keyboard can declare <strong>"Data Not Collected"</strong>, a real selling point.</li>
+  <li>Privacy manifest (<code>PrivacyInfo.xcprivacy</code>); active-keyboard list reads need reason <code>3EC4.1</code>.</li>
+  <li>Export compliance: <code>ITSAppUsesNonExemptEncryption = false</code> for an HTTPS-only app.</li>
+  <li>EU DSA trader declaration. A trader gets name, address, phone, and email published on EU product pages. A free app with no revenue can normally declare non-trader.</li>
+</ul>
+
+<h3>Keyboard rules, guideline 4.4.1</h3>
+<div class="card">
+<p><strong>Must:</strong> provide typing; offer a way to the next keyboard (globe key, honor <code>needsInputModeSwitchKey</code>); stay fully functional without network and without Full Access; collect typing data only to improve the keyboard, on device.</p>
+<p><strong>Must not:</strong> launch other apps (Settings excepted); repurpose keys for unrelated actions; show ads or purchases inside the extension.</p>
+<p>The containing app must do something useful on its own (tutorial, settings, practice area), or it fails minimum functionality (4.2). Number and decimal layouts are no longer named in the text, but reviewers reportedly still check them. Build them anyway.</p>
+</div>
+<div class="warn"><strong>Precedent.</strong> Apple rejected the FlickType keyboard repeatedly over "does not work without Full Access", and the developer gave up. Design for the no-permissions state first.</div>
+
+<h3>Review and updates</h3>
+<p>Apple reports over 90% of reviews finish within 24 hours. First submissions realistically take 2 to 5 days and fail more often. The top rejection is guideline 2.1, app completeness (crashes, placeholders, broken links). Privacy-label mismatches follow. Every binary update goes through review again. Phased release rolls out over 7 days (1% to 100%) and can pause up to 30 days.</p>
+
+<h2 id="costs">Costs</h2>
+<div class="tablewrap"><table>
+  <tr><th>Item</th><th>Cost</th></tr>
+  <tr><td>Phase 1, free route</td><td>$0, plus 7-day re-signs</td></tr>
+  <tr><td>Cloud Mac burst</td><td>~3 EUR/day (Scaleway M1) or $1/h (MacinCloud)</td></tr>
+  <tr><td>Used M1 Mac mini</td><td>~$450-500 one time</td></tr>
+  <tr><td>Apple Developer Program</td><td>$99 per year (phases 2 and 3)</td></tr>
+  <tr><td>Commission on a free app</td><td>none</td></tr>
+</table></div>
+
+<h2 id="plan">Recommended path for phonekeeb</h2>
+<ol class="steps">
+  <li>Stay on the web prototype until the layout and decoder stabilize. It iterates in seconds and costs nothing.</li>
+  <li>First native spike with a free Apple ID. With any reachable Mac (borrowed, or a ~3 EUR cloud-Mac day), use Xcode. Without one, try xtool under WSL, with CI + Sideloadly as the fallback. Spike goals: gesture feel at real touch latency, and the decoder's memory footprint.</li>
+  <li>Buy the $99 membership when native becomes the main track. It ends the 7-day churn, and phases 2 and 3 need it anyway. Reconsider a used M1 mini then; Instruments is the only good tool against the 60 MB ceiling.</li>
+  <li>TestFlight with friends: internal group first, then a public link. Put the keyboard-enable steps into the test notes.</li>
+  <li>Submit once the 4.4.1 self-check passes. Aim for the "Data Not Collected" privacy label. It fits the on-device design and it is rare among keyboards.</li>
+</ol>
+
+<h2 id="sources">Sources</h2>
+<p>Hand-checked on 2026-08-25:</p>
+<ul class="srcs">
+  <li><a href="https://developer.apple.com/support/compare-memberships/">Apple: membership comparison (free limits)</a></li>
+  <li><a href="https://developer.apple.com/help/account/reference/supported-capabilities-ios">Apple: capabilities per membership (App Groups row)</a></li>
+  <li><a href="https://developer.apple.com/testflight/">Apple: TestFlight overview</a></li>
+</ul>
+<p>Via research agents:</p>
+<ul class="srcs">
+  <li><a href="https://developer.apple.com/app-store/review/guidelines/">App Review Guidelines (4.4.1, 4.2, 2.1)</a></li>
+  <li><a href="https://developer.apple.com/library/archive/documentation/General/Conceptual/ExtensibilityPG/CustomKeyboard.html">Apple: custom keyboard guide</a></li>
+  <li><a href="https://developer.apple.com/documentation/uikit/configuring-open-access-for-a-custom-keyboard">Apple: configuring open access</a></li>
+  <li><a href="https://developer.apple.com/app-store/app-privacy-details/">Apple: app privacy details ("collect" = leaves device)</a></li>
+  <li><a href="https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications">Apple: screenshot specifications</a></li>
+  <li><a href="https://developer.apple.com/help/app-store-connect/manage-compliance-information/manage-european-union-digital-services-act-trader-requirements/">Apple: EU DSA trader status</a></li>
+  <li><a href="https://developer.apple.com/support/apps-in-the-eu/">Apple: apps in the EU (marketplace eligibility)</a></li>
+  <li><a href="https://developer.apple.com/help/app-store-connect/update-your-app/release-a-version-update-in-phases">Apple: phased release</a></li>
+  <li><a href="https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/">Apple: TestFlight in App Store Connect</a></li>
+  <li><a href="https://sideloadly.io/faq.html">Sideloadly FAQ (free ID limits, PlugIns option)</a></li>
+  <li><a href="https://faq.altstore.io/">AltStore FAQ</a></li>
+  <li><a href="https://docs.sidestore.io/docs/faq">SideStore FAQ</a></li>
+  <li><a href="https://github.com/xtool-org/xtool">xtool (Linux/Windows iOS toolchain)</a></li>
+  <li><a href="https://theapplewiki.com/wiki/TrollStore">TrollStore support matrix</a></li>
+  <li><a href="https://www.runway.team/appreviewtimes">Runway review time tracker</a></li>
+  <li><a href="https://dev.to/tbds_2dadf2b626f315902eae/the-three-hard-constraints-of-an-ios-keyboard-extension-46af">Keyboard memory ceiling measurement</a></li>
+  <li><a href="https://github.com/facebook/react-native/issues/31910">React Native keyboard memory issue</a></li>
+  <li><a href="https://9to5mac.com/2021/08/16/flicktype-discontinuing-iphone-keyboard-app-due-to-app-store-hurdles/">FlickType rejection case</a></li>
+  <li><a href="https://docs.github.com/en/billing/concepts/product-billing/github-actions">GitHub Actions billing (macOS multiplier)</a></li>
+  <li><a href="https://www.scaleway.com/en/pricing/apple-silicon/">Scaleway Apple silicon pricing</a></li>
+</ul>
+
+<footer>
+Researched 2026-08-25 with four parallel research agents; load-bearing facts hand-verified against live Apple pages the same day. Markdown twin: <a href="https://github.com/urza/phonekeeb/blob/main/ios-deployment-research.md">ios-deployment-research.md</a>.
+</footer>
+
+</div>
+</body>
+</html>
