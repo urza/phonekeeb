@@ -207,6 +207,9 @@ Both word lists were generated with a minimum word length of 2.
    the industry metric and keeps changes honest.
 7. Trigram layer when wanted: same build script, contexts with count
    >= 20, lazy-loaded after first paint, behind a flag.
+   *Superseded 2026-08-25 by the scored-prediction design below: a
+   words-only trigram table cannot rerank prefix completions. The
+   trigram layer ships with counts, as that design's step 3.*
 
 UX notes specific to this keyboard:
 
@@ -221,6 +224,58 @@ UX notes specific to this keyboard:
   tables are far under the 48 to 60 MB extension memory band. The
   Foundation Models route is worth one prototype spike, phrase-level
   only.
+
+## Scored prediction design (added 2026-08-25, user-approved)
+
+Motivating case, from live use: text "you are ", typed prefix "am".
+The shipped bigram layer offers plain frequency order (am, american,
+america, amazing, among). SwiftKey offers "amazing, am, an". The user
+wants that quality. A probe against the EN sample
+(tools/probe-context-scoring.py, on an 80 MB range download of the
+dump) confirmed the design below reproduces it: scored order
+amazing, among, an, and, am.
+
+Three mechanisms, one score:
+
+1. Context reranking. "amazing" is successor rank 141 of "you are"
+   (count 34 of 32,089), so any pruned top-K successor list misses
+   it. Flip the lookup direction: collect candidate words from the
+   typed prefix (vocabulary scan, ~3000 words), then score each
+   candidate by stored counts. Tables therefore need counts and full
+   successor lists per context, not top 5.
+2. Verbatim guarantee. The literal typed word stays reachable: if no
+   exact-prefix word makes the strip on score, the best one takes the
+   last slot. Matches the autocorrect-policy idea (visible, tappable
+   corrections, never silent).
+3. Typo hypotheses. Candidate generation also admits words whose
+   beginning is within edit distance 1 of the prefix ("an" for "am").
+   Each edit multiplies the score by a penalty. "an" after "you are"
+   has count 236 (rank 16) and beats the penalty.
+
+Score: stupid backoff (sources list, Brants 2007). P = trigram count
+over context count when seen, else 0.4 x bigram P, else 0.16 x
+unigram P; times 0.05 per edit. Both constants are tunable and must
+be tuned by the eval harness, then recorded in features.md.
+
+Costs, measured so far: "you are" alone has 978 successors with
+count >= 3, so tables grow well past today's 37 KB gzipped. Levers:
+per-context count floor, successor cap, 1-byte log-quantized counts
+(five-chip ranking needs no precision). Real sizes measured at build
+time; expected order: a few hundred KB gzipped for bigrams, 1 to 2 MB
+for the lazy trigram layer. All far under the iOS memory cap.
+
+Agreed build order, each step measurable:
+
+1. Eval harness (build order step 6) first: hit@3 on held-out
+   subtitles plus a typo-simulation eval, run before and after every
+   model change. Mandatory now, because constants get tuned.
+2. Bigrams with counts + the scoring predictor (candidate scan,
+   backoff, edit-1 hypotheses, verbatim slot).
+3. Trigram layer with counts, contexts count >= 20, lazy-loaded
+   behind a flag.
+4. Later refinement: gesture-aware edit costs (our typos are
+   crossing-count slips and sector misses, not QWERTY neighbor taps);
+   the personal model blends into the same score (plan below).
 
 ## Personalization plan (added 2026-08-25)
 
