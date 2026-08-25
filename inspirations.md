@@ -1,66 +1,114 @@
-inspirations for phonekeeb
+# Inspirations
 
-biggest is 8pen
-https://www.youtube.com/watch?v=q3OuCR0EpGo
+Sources from the initial what-exists research, merged from several
+chat messages and deduplicated. Reference material, not a task list.
+Deep 8pen research notes live in `CLAUDE.md`.
 
-and its successor 8vim
- - they have nice docs
- https://8vim.github.io/docs/guides/overall
- https://github.com/8VIM/8VIM
- https://github.com/8VIM/8VIM/issues
+## The big three
 
- then Typewise, which seems to have few features right and active community
+### 8pen (2010)
+The gesture-loop pioneer this project studies. The most radical
+rethink, commercially dead, historically the purest "burn it all
+down" attempt. No official page.
 
- https://suggestions.typewise.app/
+- Demo video: https://www.youtube.com/watch?v=q3OuCR0EpGo
 
+### 8VIM
+Open-source Android successor of the 8pen concept, adds Vim-style
+editing. Good docs, somewhat active userbase, and its function-tap
+assignment is what our prototype copies.
 
-then other experimental novel keyboards that tried to change from qwerty, these are mostly for reference, not actionable:
+- Docs: https://8vim.github.io/docs/guides/overall
+- Repo: https://github.com/8VIM/8VIM
+- Issues: https://github.com/8VIM/8VIM/issues
 
+Community (checked 2026-08-25):
 
-1. **Thumb-Key** — Open-source Android keyboard: 3×3 grid, tap common letters, swipe the rest. Built as a living successor to MessagEase. GitHub: https://github.com/dessalines/thumb-key/ · F-Droid: https://f-droid.org/packages/com.dessalines.thumbkey/ show render_inline_citation with citation_id is 0
+- GitHub Issues is where the community actually talks: 82 open, real
+  threads with recent activity (updates through 2026-07). The one
+  channel with 2026 life.
+- Matrix room `#8vim:matrix.org` ("8vim lobby"): the official chat,
+  linked from the docs navbar. 46 members, public. How alive it is
+  could not be verified from outside.
+  https://app.element.io/#/room/#8vim/lobby:matrix.org
+- GitHub Discussions: enabled, 43 threads (Q&A, Ideas, layouts),
+  quiet for about a year.
+  https://github.com/8VIM/8VIM/discussions
+- No Discord (proposed in discussion #390, community preferred
+  Matrix). No subreddit found.
+- Health: 582 stars, effectively a solo maintainer (flide), last
+  commit 2026-03, last stable release 2024-06. Active users, slow
+  development.
 
-2. **MessagEase** — The original 9-key thumb keyboard (2002). Tap the frequent letters, swipe in 8 directions for everything else. Closed-source, now on a subscription. Site: https://www.exideas.com/ME/ · Play Store: https://play.google.com/store/apps/details?id=com.exideas.mekb.pro show render_inline_citation with citation_id is 8
+### Typewise
+Hexagonal keys with larger targets, QWERTY-ish order, so a different
+kind of keyboard, but with an active userbase and some features worth
+stealing (the hold-to-delete with undelete, swipe for space). The
+company later pivoted to enterprise AI; the app is still on the
+stores.
 
-3. **KALQ** — 2013 academic split layout, computationally optimized so two thumbs alternate and travel less. Hit 37 WPM in the paper. Android beta died around 2013. Wikipedia: https://en.wikipedia.org/wiki/KALQ_keyboard · MPI writeup: https://www.mpi-inf.mpg.de/news/press-release-articles/2013/new-keyboard-for-touchscreens show render_inline_citation with citation_id is 21
+- Site: https://www.typewise.app/
+- Feature suggestions forum, kept for inspiration:
+  https://suggestions.typewise.app/
+- Android: https://play.google.com/store/apps/details?id=ch.icoaching.typewise
+- iOS: https://apps.apple.com/us/app/typewise-custom-keyboard/id1470215025
 
-4. **Unexpected Keyboard** — Lightweight Android keyboard. Each key is a hub: tap the letter, swipe a corner for the symbol sitting there. Built for Termux / coding on a phone. GitHub: https://github.com/Julow/Unexpected-Keyboard/ · F-Droid: https://f-droid.org/packages/juloo.keyboard2/ show render_inline_citation with citation_id is 24
+## Thumb-native grids and flicks
 
-5. **Typewise** — Hexagonal keys, bigger targets, swipe-right for space / swipe-left to delete. Company later pivoted to AI customer service; the keyboard app is still up. Site: https://www.typewise.app/ · Android: https://play.google.com/store/apps/details?id=ch.icoaching.typewise show render_inline_citation with citation_id is 35
+- **MessagEase** (2002): the original 9-key thumb keyboard. Tap the
+  nine most common letters, slide in 8 directions for the rest.
+  Closed-source, moved to a subscription, barely maintained, which is
+  why Thumb-Key exists. https://www.exideas.com/ME/
+- **Thumb-Key**: open-source Android living successor of MessagEase,
+  3x3 grid, tap plus drag. https://github.com/dessalines/thumb-key ·
+  https://f-droid.org/packages/com.dessalines.thumbkey/
+- **Wurstfinger**: open-source iOS take on the same idea.
+  https://github.com/cl445/wurstfinger
+- **Unexpected Keyboard**: each key is a hub, tap the letter, swipe a
+  corner for the symbol there. Built for Termux and coding on a phone.
+  https://github.com/Julow/Unexpected-Keyboard/ ·
+  https://f-droid.org/packages/juloo.keyboard2/
+- **Japanese flick input**: 12-key pad, flick in four directions. The
+  one thumb-native system that shipped at national scale.
+  https://en.wikipedia.org/wiki/Japanese_input_method
 
-6. **Minuum** — Crushed QWERTY into one fuzzy row and let prediction do the work. Dead product, site still parked. Site: https://minuum.com/ show render_inline_citation with citation_id is 40
+## Optimized and research layouts
 
-7. **FUTO Keyboard** — Privacy-first Android keyboard (offline swipe, voice, autocorrect). Not a new letter layout by default, but people run Thumb-Key layouts and Japanese flick on it. Site: https://keyboard.futo.org/ show render_inline_citation with citation_id is 45
+- **KALQ** (2013): split layout computed by optimizing thumb travel
+  and left/right alternation, about 37 WPM in the paper. The Android
+  beta died around 2013.
+  https://en.wikipedia.org/wiki/KALQ_keyboard ·
+  https://dl.acm.org/doi/10.1145/2470654.2481383 ·
+  https://www.mpi-inf.mpg.de/news/press-release-articles/2013/new-keyboard-for-touchscreens
+- **Dvorak / Colemak mobile ports**: gains mostly evaporate on glass,
+  because the phone bottleneck is alternation and error correction,
+  not finger travel.
 
-8. **Japanese flick input** — 12-key pad, flick in four directions. The one thumb-native system that actually shipped at national scale (Japan). Not a single app; FUTO and others implement it.
+## Gesture-typing lineage
 
-9. **Original iPhone software keyboard (Ken Kocienda)** — Kept the QWERTY picture, secretly resized hitboxes after each tap, then invented autocorrect so tiny glass keys were usable. This is the cheat that won. Not a downloadable project; the story is in *Creative Selection*. 9to5Mac excerpt: https://9to5mac.com/2018/08/08/excerpt-iphone-software-keyboard-design/ show render_inline_citation with citation_id is 53
+- **ShapeWriter**: the original gesture-typing startup (Per Ola
+  Kristensson, who later co-authored KALQ), commercialized 2007,
+  acquired by Nuance 2010. The ancestor of all swipe typing.
+- **Swype**: made trace-a-path typing famous. Dead as a product, but
+  the idea won and lives in every mainstream keyboard.
+- **Gboard / SwiftKey**: the mainstream heirs. Not radical redesigns,
+  but the reason most people never feel the layout problem.
+- **Fleksy**: kept QWERTY, made autocorrect so aggressive that tap
+  precision barely mattered. Later sold and open-sourced.
 
-- **Thumb-Key**: open-source Android keyboard, 3x3 grid, tap plus drag. https://github.com/dessalines/thumb-key
-- **MessagEase**: the original 9-key tap-and-drag keyboard, unmaintained. https://www.exideas.com/ME/
-- **Wurstfinger**: open-source iOS take on the Thumb-Key and MessagEase idea. https://github.com/cl445/wurstfinger
-- **8VIM**: open-source gesture-loop keyboard with Vim-style editing. https://github.com/8VIM/8VIM
-- **8pen**: the 2010 gesture-loop pioneer, discontinued, no official page.
-- **Typewise Keyboard**: hexagonal layout, still on the stores, company focus moved to enterprise AI.
-  Android: https://play.google.com/store/apps/details?id=ch.icoaching.typewise
-  iOS: https://apps.apple.com/us/app/typewise-custom-keyboard/id1470215025
-- **KALQ**: research split layout from St Andrews, prototype only, no project site. https://www.ibtimes.co.uk/kalq-android-keyboard-faster-qwerty-layout-claims-461431
-- **Dasher**: zooming text entry driven by a language model, browser demo on the site. https://dasher.at
-- **Japanese flick input**: 12-key flick layout, built into stock Japanese keyboards. https://en.wikipedia.org/wiki/Japanese_input_method
+## Other rethinks
 
-
-1. **KALQ** — The first-principles one: a split layout computed by optimizing thumb travel and left/right alternation; ~34% faster than split QWERTY after training, released as a free Android app in 2013.^1^ ^2^ ^3^ Links: https://www.mpg.de/7104427/kalq_keyboard (Max Planck overview), https://dl.acm.org/doi/10.1145/2470654.2481383 (the CHI research paper), https://techcrunch.com/2013/04/24/kalq/ (launch coverage).
-2. **Swype** — The original swipe/gesture keyboard: trace a path through letters instead of tapping. Acquired by Nuance; effectively dead as a standalone product, but its idea won — it's now built into every mainstream keyboard.
-3. **ShapeWriter** — The original gesture-typing startup (co-founded by Per Ola Kristensson, who later worked on KALQ), commercialized in 2007 and acquired by Nuance in 2010.^1^ Historical, but it's the ancestor of all swipe typing.
-4. **Gboard / SwiftKey** — Google's and Microsoft's mainstream keyboards; the modern incarnation of gesture typing plus aggressive prediction. Not radical redesigns, but the reason most people never feel the layout problem.
-5. **Fleksy** — Kept QWERTY but made autocorrect so aggressive that tap precision barely mattered. Later sold and open-sourced; search "Fleksy keyboard GitHub."
-6. **MessageEase** — A 3×3 grid: nine most common letters are taps, everything else is a directional slide. Tiny footprint, works on smartwatches, genuinely thumb-native. Still actively maintained.
-7. **8pen** — The most radical: letters arranged around a circle, typed with circular gestures. Commercially dead, but historically interesting as the purest "burn it all down" attempt.
-8. **CharaChorder** — Chorded input: press key combinations instead of sequences, 200+ wpm ceiling. Physical devices rather than a phone keyboard, aimed at enthusiasts.
-9. **Typewise** — Hexagonal keys with larger touch targets, still QWERTY-ish ordering. An incremental fix, not a rethink — included as the contrast case.
-10. **Dvorak / Colemak (mobile ports)** — Alternative layouts transplanted to phones; gains mostly evaporate on glass since the bottleneck is alternation and error correction, not finger travel.
-
-
-
-
-
-
+- **Minuum**: QWERTY crushed into one fuzzy row, prediction does the
+  work. Dead product, site still parked. https://minuum.com/
+- **Dasher**: zooming text entry driven by a language model, browser
+  demo on the site. https://dasher.at
+- **CharaChorder**: chorded input, press combinations instead of
+  sequences, 200+ WPM ceiling. Hardware for enthusiasts, not a phone
+  keyboard.
+- **FUTO Keyboard**: privacy-first Android keyboard (offline swipe,
+  voice, autocorrect). Standard layout by default, but people run
+  Thumb-Key layouts and Japanese flick on it. https://keyboard.futo.org/
+- **Original iPhone keyboard** (Ken Kocienda): kept the QWERTY
+  picture, secretly resized hitboxes after each tap, invented
+  autocorrect. The cheat that won. Story in *Creative Selection*.
+  https://9to5mac.com/2018/08/08/excerpt-iphone-software-keyboard-design/
