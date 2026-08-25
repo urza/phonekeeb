@@ -11,7 +11,7 @@
      Deliberately NO service worker: freshness comes from the ?v=
      pinning below, and a caching worker would fight it. iOS install
      needs none. -->
-<link rel="manifest" href="manifest.webmanifest?v=13" />
+<link rel="manifest" href="manifest.webmanifest?v=14" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +23,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=13" />
+<link rel="stylesheet" href="style.css?v=14" />
 </head>
 <body>
 <header>
@@ -82,16 +82,18 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=13",
-    "./layout.js": "./layout.js?v=13",
-    "./layouts.js": "./layouts.js?v=13",
-    "./themes.js": "./themes.js?v=13",
-    "./prediction.js": "./prediction.js?v=13",
-    "./words-en.js": "./words-en.js?v=13",
-    "./words-cs.js": "./words-cs.js?v=13"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=14",
+    "./layout.js": "./layout.js?v=14",
+    "./layouts.js": "./layouts.js?v=14",
+    "./themes.js": "./themes.js?v=14",
+    "./prediction.js": "./prediction.js?v=14",
+    "./words-en.js": "./words-en.js?v=14",
+    "./words-cs.js": "./words-cs.js?v=14",
+    "./bigrams-en.js": "./bigrams-en.js?v=14",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=14"
   }
 }
 </script>
-<script type="module" src="main.js?v=13"></script>
+<script type="module" src="main.js?v=14"></script>
 </body>
 </html>

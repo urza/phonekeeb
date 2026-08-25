@@ -1,7 +1,8 @@
 // End-to-end check of word prediction: gesture "hel", expect a "hello"
 // suggestion chip, tap it, expect the completed word in the output.
-// Also checks Czech diacritics matching: gesture-typing plain letters
-// must surface accented suggestions.
+// Also: next-word chips (empty prefix, bigram context), mid-word and
+// mid-text corrections, and Czech diacritics matching (gesture-typing
+// plain letters must surface accented suggestions).
 //
 // Run like tests/hello-flow.mjs (server on :8080, Playwright in ~/pw).
 
@@ -56,6 +57,11 @@ function check(name, ok, detail) {
   if (!ok) failures++;
 }
 
+// Before any typing the strip shows the most frequent words, so the
+// first word of a message is one tap away.
+const freshChips = await page.locator('#suggestions button').allTextContents();
+check('fresh strip shows top words', freshChips[0] === 'you', JSON.stringify(freshChips));
+
 await drawStrokes(HEL);
 const chips = await page.locator('#suggestions button').allTextContents();
 check('hel suggests hello', chips.includes('hello'), JSON.stringify(chips));
@@ -63,6 +69,11 @@ check('hel suggests hello', chips.includes('hello'), JSON.stringify(chips));
 await page.locator('#suggestions button', { hasText: /^hello$/ }).click();
 const text = await page.locator('#output').textContent();
 check('tap completes word', text === 'hello ', JSON.stringify(text));
+
+// After the space the prefix is empty; the strip must show bigram
+// successors of "hello" instead of going blank.
+const nextChips = await page.locator('#suggestions button').allTextContents();
+check('next-word chips after hello', nextChips.includes('there'), JSON.stringify(nextChips));
 
 // N-sector hold-glide: moves the caret one step per 14 px of drag.
 // Anchored to the wheel center from data-center, like drawStrokes.
@@ -96,6 +107,14 @@ const caretPos = await page.evaluate(
   () => document.getElementById('output').firstChild.textContent.length,
 );
 check('caret after the kept space', caretPos === 5, String(caretPos));
+
+// At "help |here " the prefix is empty, so the strip shows successors
+// of "help"; tapping one replaces the word after the caret.
+const midChips = await page.locator('#suggestions button').allTextContents();
+check('next-word chips mid-text', midChips.includes('me'), JSON.stringify(midChips));
+await page.locator('#suggestions button', { hasText: /^me$/ }).click();
+got = await page.locator('#output').textContent();
+check('next-word tap replaces following word', got === 'help me ', JSON.stringify(got));
 
 // Czech: predictor must match stripped keys. Check in-page directly so
 // the test does not depend on Czech letter positions in the layout.
