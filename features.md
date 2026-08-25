@@ -120,16 +120,18 @@ a short alphabet after hand edits.
   common letters need one crossing everywhere. The ranking is a
   hand-written approximation of published letter-frequency tables, not
   corpus-derived.
-- `qwerty-8pen`: original 8pen gesture costs, QWERTY directions. Every
-  glyph keeps its ring (crossing count) from `original-8pen`, and
-  within each ring the eight slots go to the glyphs whose direction
-  from the QWERTY keyboard center best matches the slot's on-screen
-  direction. Derived by `tools/generate-qwerty8pen.mjs` (exact
-  assignment per ring; punctuation weighted low). Result: e up-left, a
-  left, i and u upper-right, o l m right, n b down-right, z x c
-  bottom-left, q w top-left, p top-right. The worst compromises are d,
-  k, and g, letters near the keyboard center. A unit test locks the
-  ring invariant.
+- `qwerty-8pen`: letters only, original 8pen gesture costs, QWERTY
+  directions. Punctuation is deliberately absent; it will get its own
+  gesture mechanism. The freed slots backfill by frequency promotion:
+  n and s rise to ring 1, c and m to ring 2, v and j to ring 3, so six
+  common letters are cheaper than in the original and every other
+  letter keeps its crossing count. Ring 4 keeps only q and z (far left,
+  matching QWERTY) plus six empty reserved slots. Within each ring,
+  slots go to the letters whose direction from the QWERTY keyboard
+  center best matches the slot direction, derived by
+  `tools/generate-qwerty8pen.mjs`. Worst compromises: a and o at
+  under 60 degrees off. A unit test locks the ring-or-promoted rule
+  and the letters-only rule.
 - `original-8pen` (the default on load): transcribed from a screenshot
   of the original app (`8pen.png` in the repo root). The geometry now
   matches the original directly, X arms and all, so the transcription
