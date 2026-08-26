@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Phonekeeb Layout Flow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #1a212c;
+    --muted: #576273;
+    --line: #dfe4eb;
+    --accent: #2b5fe3;      /* chart marks, validated on light surface */
+    --link: #2154cf;
+    --chip-bg: #eef1f6;
+    --warn-ink: #815409;
+    --warn-bg: #faf1df;
+    --warn-line: #e8d5a8;
+    --grid: #edf0f4;
+    --good: #1a7f4b;        /* eight marks, validated on light surface */
+    --arm: #c3cbd6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a; --card: #181d24; --ink: #e7eaf0; --muted: #98a2b1;
+      --line: #2a313b; --accent: #5c86f5; --link: #93b0ff; --chip-bg: #232a33;
+      --warn-ink: #e3b76c; --warn-bg: #251e0f; --warn-line: #4a3d1e;
+      --grid: #202630; --good: #52c98a; --arm: #39424e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a; --card: #181d24; --ink: #e7eaf0; --muted: #98a2b1;
+    --line: #2a313b; --accent: #5c86f5; --link: #93b0ff; --chip-bg: #232a33;
+    --warn-ink: #e3b76c; --warn-bg: #251e0f; --warn-line: #4a3d1e;
+    --grid: #202630; --good: #52c98a; --arm: #39424e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.03rem; line-height: 1.55; margin: 0;
+  }
+  .wrap { max-width: 42.5rem; margin: 0 auto; padding: 2.2rem 1.15rem 3.5rem; }
+  .eyebrow {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(1.9rem, 6vw, 2.5rem); font-weight: 700;
+    letter-spacing: -.015em; line-height: 1.08; text-wrap: balance; margin: 0 0 .7rem;
+  }
+  .dek { font-size: 1.11rem; color: var(--muted); max-width: 34em; margin: 0 0 1.8rem; }
+  h2 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.28rem; font-weight: 700; letter-spacing: -.01em;
+    text-wrap: balance; margin: 2.6rem 0 .8rem;
+  }
+  h3 { font-family: "Schibsted Grotesk", sans-serif; font-size: 1rem; margin: 1.6rem 0 .4rem; }
+  p { margin: .65rem 0; max-width: 65ch; }
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .mono { font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace; }
+
+  .tldr { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.05rem 1.25rem; margin: 1.6rem 0 0; }
+  .tldr ul { margin: 0; padding-left: 1.1rem; }
+  .tldr li { margin: .45rem 0; }
+  .tldr b { font-weight: 600; }
+
+  /* the four join shapes */
+  .shapes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin: 1.2rem 0 .4rem; }
+  @media (max-width: 540px) { .shapes { grid-template-columns: repeat(2, 1fr); } }
+  .shape { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .6rem .5rem .7rem; text-align: center; }
+  .shape.win { border-color: var(--good); }
+  .shape svg { width: 100%; height: auto; display: block; }
+  .shape .nm { font-family: "Spline Sans Mono", monospace; font-size: .74rem; margin-top: .35rem; color: var(--muted); }
+  .shape.win .nm { color: var(--good); font-weight: 500; }
+  .shape .ex { font-size: .78rem; color: var(--ink); }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .5rem .7rem; border-top: 1px solid var(--line); vertical-align: top; }
+  thead th { border-top: 0; font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-family: "Spline Sans Mono", monospace; font-size: .84rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td:first-child { font-weight: 600; }
+  td.g { color: var(--good); font-weight: 600; }
+  td.dim { color: var(--muted); }
+  .win { font-weight: 700; }
+
+  /* chart */
+  .chart { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.2rem 1.3rem; margin: 1.2rem 0; }
+  .chart-title { font-weight: 600; font-size: .98rem; margin: 0 0 .15rem; }
+  .chart-sub { font-size: .84rem; color: var(--muted); margin: 0 0 1.1rem; }
+  /* Room above the first bar for the reference tags. The three tags are
+     kept to one short word each: at 390px the full labels overlapped. */
+  .plot { position: relative; padding-top: 1.15rem; }
+  .refline { position: absolute; top: .95rem; bottom: 1.5rem; width: 0; border-left: 2px dashed var(--muted); opacity: .5; }
+  .reftag { position: absolute; top: 0; transform: translateX(-50%); font-family: "Spline Sans Mono", monospace; font-size: .68rem; color: var(--muted); white-space: nowrap; }
+  .row { position: relative; margin: 0 0 .8rem; }
+  /* Opaque backing so the dashed reference lines pass behind the text
+     instead of striking through it. inline-block keeps the backing the
+     width of the label, not the full row. */
+  .row-label {
+    font-size: .86rem; margin-bottom: .22rem;
+    position: relative; z-index: 2; display: inline-block;
+    background: var(--card); padding-right: .35rem;
+  }
+  .bar-track { position: relative; height: 18px; }
+  .bar { position: absolute; left: 0; top: 0; height: 18px; background: var(--accent); border-radius: 0 4px 4px 0; }
+  .bar.best { background: var(--good); }
+  .bar-val { position: absolute; top: -1px; font-family: "Spline Sans Mono", monospace; font-size: .8rem; font-variant-numeric: tabular-nums; }
+  .axis { position: relative; height: 1.2rem; margin-top: .3rem; }
+  .axis span { position: absolute; transform: translateX(-50%); font-family: "Spline Sans Mono", monospace; font-size: .72rem; color: var(--muted); }
+  .footnote { font-size: .82rem; color: var(--muted); margin: .6rem 0 0; }
+
+  .warncard { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: .9rem 1.1rem; margin: 1.2rem 0; }
+  .warncard .tag { font-family: "Spline Sans Mono", monospace; font-size: .72rem; letter-spacing: .12em; color: var(--warn-ink); font-weight: 500; }
+  .warncard p { font-size: .95rem; margin: .4rem 0 0; }
+
+  .words { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .85rem 1.05rem; margin: .7rem 0; }
+  .words h3 { margin: 0 0 .35rem; font-size: .95rem; }
+  .words p { font-size: .92rem; margin: 0; }
+  .w { font-family: "Spline Sans Mono", monospace; }
+  .w.hot { color: var(--good); font-weight: 500; }
+
+  ol.plan { padding-left: 1.25rem; margin: .8rem 0; }
+  ol.plan li { margin: .6rem 0; max-width: 62ch; }
+  ol.plan b { font-weight: 600; }
+
+  .sources { border-top: 1px solid var(--line); margin-top: 2.6rem; padding-top: 1.2rem; }
+  .sources h2 { margin-top: 0; font-size: 1.05rem; }
+  .sources ul { padding-left: 1.1rem; margin: .5rem 0 0; font-size: .84rem; }
+  .sources li { margin: .3rem 0; }
+  .repo-note { font-size: .88rem; color: var(--muted); margin-top: 1.3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">Phonekeeb · measured 2026-08-26</p>
+<h1>How often does the finger draw a figure eight?</h1>
+<p class="dek">The original keyboard is called 8pen because a good letter pair traces an eight. This measures how often that actually happens, per layout, in English and Czech.</p>
+
+<div class="tldr">
+  <ul>
+    <li><b>urza wins Czech clearly</b>, 16.1% of weighted bigram mass against 13.9% for its own baseline and 8.5% for the original 8pen.</li>
+    <li><b>The English gain is inside the noise.</b> urza is +0.3 points on subtitles and &minus;0.4 on Norvig, with the same 19 pairs either way.</li>
+    <li><b>Nothing here is optimized.</b> Every layout sits near the p95 of a random shuffle, and 2000 blind shuffles already found 26.6%.</li>
+    <li><b>urza types "this" as one unbroken serpentine</b>, three eights in a row, the most common word in either list that flows end to end.</li>
+  </ul>
+</div>
+
+<h2>What counts as an eight</h2>
+
+<p>A letter is one closed loop. The finger leaves the center into an <b>entry sector</b>, rotates one way across N arm crossings, and comes back from its <b>landing sector</b>. A bigram joins the landing sector of the first letter to the entry sector of the second. Two things describe that join, and an eight needs both.</p>
+
+<p><b>Shape</b> is <span class="mono">through</span> when the two sectors are opposite, <span class="mono">turn</span> when they are adjacent, <span class="mono">reverse</span> when they are the same. <b>Curl</b> is <span class="mono">counter</span> when the two rotations differ, <span class="mono">co</span> when they match. Only <span class="mono">through</span> plus <span class="mono">counter</span> reads as an eight.</p>
+
+<p>All four panels below start with the same first loop, the letter <span class="mono">i</span> on the urza layout: out into East, counter-clockwise, back in from North. Only the second loop changes.</p>
+
+<div class="shapes">
+  <div class="shape win">
+    <svg viewBox="0 0 120 120" role="img" aria-label="Figure eight: two loops on opposite sides crossing at the center">
+      <circle cx="60" cy="60" r="52" fill="none" stroke="var(--arm)" stroke-width="1" stroke-dasharray="3 4"/>
+      <g stroke="var(--arm)" stroke-width="1">
+        <line x1="60" y1="60" x2="97" y2="97"/><line x1="60" y1="60" x2="23" y2="97"/>
+        <line x1="60" y1="60" x2="23" y2="23"/><line x1="60" y1="60" x2="97" y2="23"/>
+      </g>
+      <path d="M60,60 C150,60 60,-30 60,60 C60,150 -30,60 60,60" fill="none" stroke="var(--good)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="60" cy="60" r="9" fill="var(--card)" stroke="var(--arm)" stroke-width="1"/>
+    </svg>
+    <div class="nm">through / counter</div>
+    <div class="ex">is</div>
+  </div>
+  <div class="shape">
+    <svg viewBox="0 0 120 120" role="img" aria-label="Through but same curl: both loops fall on the same side and retrace">
+      <circle cx="60" cy="60" r="52" fill="none" stroke="var(--arm)" stroke-width="1" stroke-dasharray="3 4"/>
+      <g stroke="var(--arm)" stroke-width="1">
+        <line x1="60" y1="60" x2="97" y2="97"/><line x1="60" y1="60" x2="23" y2="97"/>
+        <line x1="60" y1="60" x2="23" y2="23"/><line x1="60" y1="60" x2="97" y2="23"/>
+      </g>
+      <path d="M60,60 C150,60 60,-30 60,60 C60,150 150,60 60,60" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="60" cy="60" r="9" fill="var(--card)" stroke="var(--arm)" stroke-width="1"/>
+    </svg>
+    <div class="nm">through / co</div>
+    <div class="ex">circles back</div>
+  </div>
+  <div class="shape">
+    <svg viewBox="0 0 120 120" role="img" aria-label="Turn: a ninety degree corner at the center">
+      <circle cx="60" cy="60" r="52" fill="none" stroke="var(--arm)" stroke-width="1" stroke-dasharray="3 4"/>
+      <g stroke="var(--arm)" stroke-width="1">
+        <line x1="60" y1="60" x2="97" y2="97"/><line x1="60" y1="60" x2="23" y2="97"/>
+        <line x1="60" y1="60" x2="23" y2="23"/><line x1="60" y1="60" x2="97" y2="23"/>
+      </g>
+      <path d="M60,60 C150,60 60,-30 60,60 C-30,60 60,-30 60,60" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="60" cy="60" r="9" fill="var(--card)" stroke="var(--arm)" stroke-width="1"/>
+    </svg>
+    <div class="nm">turn</div>
+    <div class="ex">90&deg; corner</div>
+  </div>
+  <div class="shape">
+    <svg viewBox="0 0 120 120" role="img" aria-label="Reverse: the stroke doubles back over the loop it just drew">
+      <circle cx="60" cy="60" r="52" fill="none" stroke="var(--arm)" stroke-width="1" stroke-dasharray="3 4"/>
+      <g stroke="var(--arm)" stroke-width="1">
+        <line x1="60" y1="60" x2="97" y2="97"/><line x1="60" y1="60" x2="23" y2="97"/>
+        <line x1="60" y1="60" x2="23" y2="23"/><line x1="60" y1="60" x2="97" y2="23"/>
+      </g>
+      <!-- The return loop retraces the outbound one exactly, so drawn on
+           the same control points it hides underneath and the panel looks
+           half-empty. The control points are nudged ~8px to open a narrow
+           lens: two visible passes over one path, which is the point. -->
+      <path d="M60,60 C150,60 60,-30 60,60 C68,-22 142,68 60,60" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="60" cy="60" r="9" fill="var(--card)" stroke="var(--arm)" stroke-width="1"/>
+    </svg>
+    <div class="nm">reverse</div>
+    <div class="ex">doubles back</div>
+  </div>
+</div>
+<p class="footnote">The model is <span class="mono">flowJoin()</span> in <span class="mono">layout.js</span>. It reproduces all seven pairs hand-decoded from the 8pen demo video, and all five side effects hand-checked when <span class="mono">a</span> and <span class="mono">s</span> were swapped. <span class="mono">tests/flow-unit.mjs</span> locks both.</p>
+
+<h2>The headline</h2>
+
+<p>Count of the top 100 bigrams that draw an eight, and the share of weighted bigram mass those pairs carry.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Source</th><th class="num">Original 8pen</th><th class="num">QWERTY 8pen</th><th class="num">urza</th></tr></thead>
+  <tbody>
+    <tr><td>English (subtitles)</td><td class="num">13 / 19.3%</td><td class="num">19 / 20.7%</td><td class="num win">19 / 21.0%</td></tr>
+    <tr><td>English (Norvig/Books)</td><td class="num">13 / 17.6%</td><td class="num win">18 / 20.6%</td><td class="num">17 / 20.2%</td></tr>
+    <tr><td>Czech (subtitles)</td><td class="num">9 / 8.5%</td><td class="num">11 / 13.9%</td><td class="num win">14 / 16.1%</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="chart">
+  <p class="chart-title">Weighted eight share against a random baseline</p>
+  <p class="chart-sub">Every bar is the share of bigram mass that draws a figure eight.</p>
+  <div class="plot">
+    <div class="refline" style="left:41.7%"></div><div class="reftag" style="left:41.7%">chance</div>
+    <div class="refline" style="left:62.3%"></div><div class="reftag" style="left:62.3%">p95</div>
+    <div class="refline" style="left:88.7%"></div><div class="reftag" style="left:88.7%">best</div>
+
+    <div class="row"><div class="row-label">Original 8pen &middot; English</div>
+      <div class="bar-track"><div class="bar" style="width:64.3%"></div><div class="bar-val" style="left:calc(64.3% + 6px)">19.3%</div></div></div>
+    <div class="row"><div class="row-label">QWERTY 8pen &middot; English</div>
+      <div class="bar-track"><div class="bar" style="width:69.0%"></div><div class="bar-val" style="left:calc(69.0% + 6px)">20.7%</div></div></div>
+    <div class="row"><div class="row-label">urza &middot; English</div>
+      <div class="bar-track"><div class="bar best" style="width:70.0%"></div><div class="bar-val" style="left:calc(70.0% + 6px)">21.0%</div></div></div>
+    <div class="row"><div class="row-label">Original 8pen &middot; Czech</div>
+      <div class="bar-track"><div class="bar" style="width:28.3%"></div><div class="bar-val" style="left:calc(28.3% + 6px)">8.5%</div></div></div>
+    <div class="row"><div class="row-label">QWERTY 8pen &middot; Czech</div>
+      <div class="bar-track"><div class="bar" style="width:46.3%"></div><div class="bar-val" style="left:calc(46.3% + 6px)">13.9%</div></div></div>
+    <div class="row"><div class="row-label">urza &middot; Czech</div>
+      <div class="bar-track"><div class="bar best" style="width:53.7%"></div><div class="bar-val" style="left:calc(53.7% + 6px)">16.1%</div></div></div>
+
+    <div class="axis"><span style="left:0">0%</span><span style="left:33.3%">10%</span><span style="left:66.7%">20%</span><span style="left:100%">30%</span></div>
+  </div>
+  <p class="footnote">Dashed lines: <b>chance</b> 12.5%, <b>p95</b> of a random shuffle 18.7%, <b>best</b> of 2000 shuffles 26.6%. Baseline is 2000 seeded random letter placements over urza's slot shape. Chance is 12.5% because an eight needs opposite sectors (1 in 4) and different curls (1 in 2).</p>
+</div>
+
+<div class="warncard">
+  <span class="tag">THE REAL FINDING</span>
+  <p>All three layouts beat the average shuffle, so none is accidental. But urza's English 21.0% sits barely above the shuffle p95 of 18.7%, and 2000 blind tries already found 26.6%. No layout here is optimized for flow, and a real search has room to beat all of them.</p>
+</div>
+
+<h2>How each layout fails</h2>
+
+<p>The eight count hides the interesting part. Share of weighted mass per category, English on the left half, Czech on the right.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Category</th><th class="num">Orig en</th><th class="num">QW en</th><th class="num">urza en</th><th class="num">Orig cs</th><th class="num">QW cs</th><th class="num">urza cs</th></tr></thead>
+  <tbody>
+    <tr><td>through/counter</td><td class="num g">19.3%</td><td class="num g">20.7%</td><td class="num g">21.0%</td><td class="num g">8.5%</td><td class="num g">13.9%</td><td class="num g">16.1%</td></tr>
+    <tr><td>through/co</td><td class="num">9.4%</td><td class="num">17.6%</td><td class="num">20.8%</td><td class="num">10.5%</td><td class="num">15.3%</td><td class="num">15.8%</td></tr>
+    <tr><td>turn/counter</td><td class="num">27.0%</td><td class="num">21.7%</td><td class="num">13.6%</td><td class="num">28.3%</td><td class="num">29.3%</td><td class="num">19.9%</td></tr>
+    <tr><td>turn/co</td><td class="num">28.7%</td><td class="num">14.8%</td><td class="num">11.5%</td><td class="num">21.2%</td><td class="num">20.4%</td><td class="num">17.6%</td></tr>
+    <tr><td>reverse/counter</td><td class="num dim">9.0%</td><td class="num dim">14.5%</td><td class="num dim">17.5%</td><td class="num dim">17.0%</td><td class="num dim">14.5%</td><td class="num dim">15.2%</td></tr>
+    <tr><td>reverse/co</td><td class="num dim">6.6%</td><td class="num dim">10.7%</td><td class="num dim">15.5%</td><td class="num dim">14.6%</td><td class="num dim">6.6%</td><td class="num dim">15.4%</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The original 8pen is <b>turn-heavy</b>. 55.7% of English mass is a soft 90 degree corner and only 15.6% doubles back. It draws the fewest eights and is still the smoothest layout to type. urza is the opposite: most eights <em>and</em> most doubling back, 33.0% of English mass against the original's 15.6%. urza buys its eights partly with reversals.</p>
+
+<h2>Which pairs, top 20 English</h2>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Gram</th><th class="num">Share</th><th>Original 8pen</th><th>QWERTY 8pen</th><th>urza</th></tr></thead>
+  <tbody>
+    <tr><td class="w">th</td><td class="num">4.5%</td><td class="dim">turn</td><td class="g">EIGHT</td><td class="g">EIGHT</td></tr>
+    <tr><td class="w">he</td><td class="num">3.9%</td><td class="g">EIGHT</td><td class="dim">reverse</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">ou</td><td class="num">3.5%</td><td class="dim">turn</td><td class="dim">thru</td><td class="dim">thru</td></tr>
+    <tr><td class="w">in</td><td class="num">2.9%</td><td class="g">EIGHT</td><td class="dim">thru</td><td class="dim">thru</td></tr>
+    <tr><td class="w">er</td><td class="num">2.5%</td><td class="g">EIGHT</td><td class="dim">reverse</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">re</td><td class="num">2.5%</td><td class="dim">turn</td><td class="dim">turn</td><td class="dim">turn</td></tr>
+    <tr><td class="w">an</td><td class="num">2.4%</td><td class="dim">turn</td><td class="dim">turn</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">yo</td><td class="num">2.3%</td><td class="g">EIGHT</td><td class="dim">reverse</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">ha</td><td class="num">2.1%</td><td class="dim">turn</td><td class="dim">turn</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">on</td><td class="num">2.0%</td><td class="dim">turn</td><td class="dim">reverse</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">at</td><td class="num">2.0%</td><td class="dim">thru</td><td class="dim">turn</td><td class="dim">thru</td></tr>
+    <tr><td class="w">it</td><td class="num">1.7%</td><td class="dim">turn</td><td class="dim">reverse</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">ng</td><td class="num">1.6%</td><td class="dim">turn</td><td class="dim">thru</td><td class="dim">thru</td></tr>
+    <tr><td class="w">to</td><td class="num">1.6%</td><td class="dim">reverse</td><td class="g">EIGHT</td><td class="g">EIGHT</td></tr>
+    <tr><td class="w">me</td><td class="num">1.5%</td><td class="g">EIGHT</td><td class="dim">turn</td><td class="dim">turn</td></tr>
+    <tr><td class="w">ll</td><td class="num">1.5%</td><td class="dim">thru</td><td class="dim">thru</td><td class="dim">thru</td></tr>
+    <tr><td class="w">is</td><td class="num">1.4%</td><td class="dim">thru</td><td class="dim">turn</td><td class="g">EIGHT</td></tr>
+    <tr><td class="w">ve</td><td class="num">1.4%</td><td class="dim">turn</td><td class="dim">thru</td><td class="dim">thru</td></tr>
+    <tr><td class="w">hi</td><td class="num">1.4%</td><td class="dim">reverse</td><td class="g">EIGHT</td><td class="g">EIGHT</td></tr>
+    <tr><td class="w">or</td><td class="num">1.3%</td><td class="dim">turn</td><td class="g">EIGHT</td><td class="g">EIGHT</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The two families barely overlap. The original wins <span class="mono">he in er yo me</span>, the QWERTY-derived pair wins <span class="mono">th to hi or en nd</span>. Only <span class="mono">ur</span> and <span class="mono">bo</span> are eights in all three layouts.</p>
+
+<h3>Every eight, in frequency order</h3>
+<div class="words"><h3>Original 8pen</h3><p class="w">he 3.9%, in 2.9%, er 2.5%, yo 2.3%, me 1.5%, ea 1.2%, al 1.1%, wh 1.0%, ur 0.8%, ro 0.7%, ck 0.4%, im 0.4%, bo 0.4%</p></div>
+<div class="words"><h3>QWERTY 8pen</h3><p class="w">th 4.5%, to 1.6%, hi 1.4%, or 1.3%, en 1.3%, nd 1.3%, al 1.1%, ne 1.0%, ow 0.9%, we 0.9%, ur 0.8%, ut 0.8%, ot 0.8%, ma 0.7%, lo 0.6%, ic 0.4%, ry 0.4%, bo 0.4%, ai 0.4%</p></div>
+<div class="words"><h3>urza</h3><p class="w">th 4.5%, to 1.6%, <span class="hot">is 1.4%</span>, hi 1.4%, or 1.3%, en 1.3%, nd 1.3%, ne 1.0%, ow 0.9%, we 0.9%, ur 0.8%, ut 0.8%, ot 0.8%, lo 0.6%, ay 0.6%, si 0.5%, ic 0.4%, ry 0.4%, bo 0.4%</p></div>
+
+<h2>Which pairs, top 20 Czech</h2>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Gram</th><th class="num">Share</th><th>Original 8pen</th><th>QWERTY 8pen</th><th>urza</th></tr></thead>
+  <tbody>
+    <tr><td class="w">ne</td><td class="num">3.5%</td><td class="dim">turn</td><td class="g">EIGHT</td><td class="g">EIGHT</td></tr>
+    <tr><td class="w">te</td><td class="num">2.4%</td><td class="dim">turn</td><td class="dim">reverse</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">se</td><td class="num">2.3%</td><td class="dim">turn</td><td class="dim">turn</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">to</td><td class="num">2.2%</td><td class="dim">reverse</td><td class="g">EIGHT</td><td class="g">EIGHT</td></tr>
+    <tr><td class="w">st</td><td class="num">2.0%</td><td class="dim">turn</td><td class="dim">thru</td><td class="dim">turn</td></tr>
+    <tr><td class="w">je</td><td class="num">1.9%</td><td class="dim">turn</td><td class="dim">turn</td><td class="dim">turn</td></tr>
+    <tr><td class="w">na</td><td class="num">1.9%</td><td class="dim">reverse</td><td class="dim">turn</td><td class="dim">thru</td></tr>
+    <tr><td class="w">pr</td><td class="num">1.7%</td><td class="dim">reverse</td><td class="dim">turn</td><td class="dim">turn</td></tr>
+    <tr><td class="w">ta</td><td class="num">1.6%</td><td class="dim">reverse</td><td class="dim">turn</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">ra</td><td class="num">1.6%</td><td class="dim">thru</td><td class="dim">reverse</td><td class="dim">turn</td></tr>
+    <tr><td class="w">ni</td><td class="num">1.6%</td><td class="dim">turn</td><td class="dim">reverse</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">le</td><td class="num">1.6%</td><td class="dim">thru</td><td class="dim">reverse</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">ch</td><td class="num">1.5%</td><td class="dim">reverse</td><td class="dim">turn</td><td class="dim">turn</td></tr>
+    <tr><td class="w">em</td><td class="num">1.5%</td><td class="dim">reverse</td><td class="g">EIGHT</td><td class="g">EIGHT</td></tr>
+    <tr><td class="w">de</td><td class="num">1.5%</td><td class="dim">reverse</td><td class="dim">thru</td><td class="dim">thru</td></tr>
+    <tr><td class="w">en</td><td class="num">1.4%</td><td class="dim">reverse</td><td class="g">EIGHT</td><td class="g">EIGHT</td></tr>
+    <tr><td class="w">po</td><td class="num">1.4%</td><td class="dim">reverse</td><td class="dim">thru</td><td class="dim">thru</td></tr>
+    <tr><td class="w">me</td><td class="num">1.4%</td><td class="g">EIGHT</td><td class="dim">turn</td><td class="dim">turn</td></tr>
+    <tr><td class="w">la</td><td class="num">1.4%</td><td class="dim">turn</td><td class="dim">turn</td><td class="dim">reverse</td></tr>
+    <tr><td class="w">si</td><td class="num">1.4%</td><td class="dim">turn</td><td class="dim">turn</td><td class="g">EIGHT</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>The original 8pen misses every one of the four most common Czech pairs. It was tuned for English rings, and Czech pays for it.</p>
+
+<h3>Every eight, in frequency order</h3>
+<div class="words"><h3>Original 8pen</h3><p class="w">me 1.4%, al 1.3%, ro 1.2%, va 1.1%, im 0.9%, er 0.7%, in 0.6%, dy 0.6%, hl 0.5%</p></div>
+<div class="words"><h3>QWERTY 8pen</h3><p class="w">ne 3.5%, to 2.2%, em 1.5%, en 1.4%, al 1.3%, ma 0.9%, ic 0.7%, lo 0.7%, hl 0.5%, or 0.5%, ot 0.5%</p></div>
+<div class="words"><h3>urza</h3><p class="w">ne 3.5%, to 2.2%, em 1.5%, en 1.4%, si 1.4%, va 1.1%, ic 0.7%, lo 0.7%, is 0.7%, da 0.6%, sl 0.6%, hl 0.5%, or 0.5%, ot 0.5%</p></div>
+
+<h2>Trigrams</h2>
+
+<p>A trigram has two joins. Both eights means three loops in one unbroken serpentine.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Case</th><th class="num">Original 8pen</th><th class="num">QWERTY 8pen</th><th class="num">urza</th></tr></thead>
+  <tbody>
+    <tr><td>English, both joins</td><td class="num">2 / 3.3%</td><td class="num">2 / 2.9%</td><td class="num win">3 / 4.4%</td></tr>
+    <tr><td>English, one join</td><td class="num win">34 / 41.9%</td><td class="num">32 / 34.7%</td><td class="num">29 / 31.1%</td></tr>
+    <tr><td>English, neither</td><td class="num">64 / 54.8%</td><td class="num">66 / 62.4%</td><td class="num">68 / 64.5%</td></tr>
+    <tr><td>Czech, both joins</td><td class="num">1 / 0.7%</td><td class="num win">3 / 2.8%</td><td class="num win">3 / 2.8%</td></tr>
+    <tr><td>Czech, one join</td><td class="num">16 / 16.5%</td><td class="num">21 / 21.1%</td><td class="num win">26 / 24.9%</td></tr>
+    <tr><td>Czech, neither</td><td class="num">83 / 82.8%</td><td class="num">76 / 76.1%</td><td class="num">71 / 72.3%</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Double eights, in frequency order. English: original <span class="mono">her</span> 2.7%, <span class="mono">whe</span> 0.6%; QWERTY <span class="mono">thi</span> 2.4%, <span class="mono">oth</span> 0.6%; urza <span class="mono">thi</span> 2.4%, <span class="mono">his</span> 1.5%, <span class="mono">oth</span> 0.6%. Czech: original <span class="mono">sme</span> 0.7%; QWERTY and urza both <span class="mono">nem</span> 1.3%, <span class="mono">neb</span> 0.8%, <span class="mono">nen</span> 0.7%.</p>
+
+<p>Chaining two eights is hard everywhere, at most 3 of the top 100 in any layout. The single-eight column is where the layouts really differ, and there the original leads in English while urza leads in Czech.</p>
+
+<h2>Whole words that flow end to end</h2>
+
+<p>Words of 3 or more letters from the top 3000 whose every join is an eight. The number is corpus frequency.</p>
+
+<div class="words"><h3>English &middot; Original 8pen (6)</h3><p class="w">her (138,138), boy (26,610), box (4,142), hero (2,594), joy (1,954), meal (1,379)</p></div>
+<div class="words"><h3>English &middot; QWERTY 8pen (8)</h3><p class="w">lot (26,536), end (16,199), both (15,988), owe (4,089), low (2,814), ends (2,034), jury (1,833), bow (1,043)</p></div>
+<div class="words"><h3>English &middot; urza (11)</h3><p class="w"><span class="hot">this (421,767)</span>, his (115,301), day (40,756), lot (26,536), end (16,199), both (15,988), owe (4,089), slow (4,022), low (2,814), jury (1,833), bow (1,043)</p></div>
+<div class="words"><h3>Czech &middot; Original 8pen (3)</h3><p class="w">rok (6,552), tvá (5,523), sme (1,197)</p></div>
+<div class="words"><h3>Czech &middot; QWERTY 8pen (6)</h3><p class="w">nebo (65,061), nemá (11,770), toto (9,830), něm (8,761), málo (3,258), spí (1,988)</p></div>
+<div class="words"><h3>Czech &middot; urza (8)</h3><p class="w"><span class="hot">nebo (65,061)</span>, sis (11,948), toto (9,830), auto (9,708), něm (8,761), šlo (4,118), this (1,860), piš (1,139)</p></div>
+
+<p>On urza the word <b>this</b> is four loops and three consecutive eights, <span class="mono">th</span> then <span class="mono">hi</span> then <span class="mono">is</span>. It exists because of the a/s swap: before it, <span class="mono">is</span> was <span class="mono">turn/co</span> and the chain broke at the last join.</p>
+
+<h2>Data</h2>
+
+<p>Letter n-grams come from the OPUS OpenSubtitles v2018 dumps already in the repo, built by <span class="mono">tools/build-letter-ngrams.py</span>. Within-word pairs only, because a space puts the finger back in the center. The apostrophe splits a word. Czech diacritics fold to base letters before counting, since the end state is one combined en+cs layout.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th></th><th class="num">English</th><th class="num">Czech</th></tr></thead>
+  <tbody>
+    <tr><td>Corpus</td><td class="num">9.3M lines, 49.5M tokens</td><td class="num">8.7M lines, 38.1M tokens</td></tr>
+    <tr><td>Distinct bigrams</td><td class="num">667</td><td class="num">658</td></tr>
+    <tr><td>Top 100 bigrams cover</td><td class="num">76.7%</td><td class="num">74.1%</td></tr>
+    <tr><td>Top 100 trigrams cover</td><td class="num">38.4%</td><td class="num">24.3%</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>No published letter-bigram table exists for Czech, which is why both languages are derived by one method here. English has a cross-check against Norvig's Google Books table: 83 of our top 100 pairs are in his top 100, Spearman 0.61 on the shared set. The 17 that differ are the spoken/literary split, not an error. We gain <span class="mono">yo do go ay oo gh ck ey</span> and lose <span class="mono">io ns ec pr ct tr nc</span>. Published sources put the top 100 at about 76% of bigram frequency; our English tables measured 76.7%.</p>
+
+<h2>What to do next</h2>
+
+<ol class="plan">
+  <li><b>Keep the a/s swap.</b> It is clearly right for Czech and neutral for English, and Czech is the half that needs help.</li>
+  <li><b>Do not tune further by hand.</b> Single swaps move the number by tenths of a point and have side effects in both directions. The measurement is now cheap, so a search is the right tool.</li>
+  <li><b>Run a real optimization</b> over the combined en+cs weighted eight share, under the ring constraint that keeps frequent letters cheap. Beating 26.6% should be comfortable.</li>
+  <li><b>Do not optimize eights alone.</b> Ring cost and reversal share matter too. A layout that maximizes eights while pushing common letters to ring 4 would be worse to type.</li>
+  <li><b>Type the original 8pen layout for a while.</b> It has the fewest eights and the fewest reversals, 55.7% soft corners. The felt experience may not match the metric, and that is worth knowing before optimizing hard against the metric.</li>
+</ol>
+
+<div class="sources">
+<h2>Files</h2>
+<ul>
+  <li><span class="mono">tools/build-letter-ngrams.py</span> builds the letter tables from the corpus dumps</li>
+  <li><span class="mono">tools/letter-ngrams-{en,cs}.js</span> the generated tables; no runtime code reads them</li>
+  <li><span class="mono">tools/norvig-bigrams.json</span> the published English cross-check</li>
+  <li><span class="mono">tools/score-flow.mjs</span> produces every number here (<span class="mono">--matrix</span> for the grids)</li>
+  <li><span class="mono">layout.js</span> holds <span class="mono">flowJoin()</span>, the model</li>
+  <li><span class="mono">tests/flow-unit.mjs</span> locks the model and the tuned slots</li>
+  <li><a href="https://www.norvig.com/mayzner.html">Norvig, English Letter Frequency Counts</a> &middot; <a href="https://www.opensubtitles.org">OpenSubtitles</a></li>
+</ul>
+<p class="repo-note">Text twin of <span class="mono">layout-flow-analysis.md</span>. Measured 2026-08-26.</p>
+</div>
+
+</div>
+</body>
+</html>

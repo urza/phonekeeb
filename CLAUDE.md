@@ -31,6 +31,15 @@ that file before design work.
   `~/pw`, not in the repo, because this filesystem rejects npm's symlinks.
   Serve the root with `python3 -m http.server 8080`, then run
   `node tests/hello-flow.mjs`.
+- `layout-flow-analysis.md` (phone twin: `layout-flow-analysis.html`)
+  measures how often each layout draws a figure eight, over the top 100
+  letter bigrams and trigrams of English and Czech. The model is
+  `flowJoin()` in `layout.js`; `tools/score-flow.mjs` produces every
+  number; `tools/build-letter-ngrams.py` builds the letter tables into
+  `tools/letter-ngrams-{en,cs}.js`. Note that `bigrams-{en,cs}.js` at
+  the repo root are WORD bigrams for the predictor, a different thing.
+  Read this before layout tuning, and check any proposed swap with the
+  tool.
 - `ios-deployment-research.md` (phone twin: `ios-deployment-research.html`)
   documents the path from web prototype to a real iPhone: sideloading
   without the App Store (free Apple ID, 7-day builds), TestFlight, App
@@ -86,7 +95,12 @@ Confirmed mechanics of the original:
   handwriting. Verified in our transcription: he, in, er, ea (top
   bigrams) are exact eights; th, an, on are not, matching the video's
   "generally". This is a measurable objective (bigram-weighted flow
-  score) for a future flow-optimized layout.
+  score) for a future flow-optimized layout. Built and measured
+  2026-08-26; see `layout-flow-analysis.md`. The rule reproduces all
+  seven of those hand-decoded results, which is how it is validated.
+  Headline result: no current layout is optimized for flow. All three
+  sit near the p95 of a random shuffle, and 2000 blind shuffles
+  already beat every one of them, so a real search is the open work.
 - Constraint (user, 2026-08-25): the end-state keyboard has ONE letter
   layout for English and Czech together, with no per-language layout
   switching. Layout objectives (frequency rings, flow score) must
