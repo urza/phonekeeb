@@ -8,10 +8,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>Gesture Keyboard Prototype</title>
 <!-- Installable as a PWA (iOS: share menu, Add to Home Screen).
-     Deliberately NO service worker: freshness comes from the ?v=
-     pinning below, and a caching worker would fight it. iOS install
-     needs none. -->
-<link rel="manifest" href="manifest.webmanifest?v=24" />
+     sw.js caches one pinned build for offline use; freshness still
+     comes from the ?v= pinning below (the worker fetches navigations
+     network-first and never mixes two builds). -->
+<link rel="manifest" href="manifest.webmanifest?v=25" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -22,8 +22,9 @@
      have no hard refresh, so one page load could mix modules from two
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
-     Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=24" />
+     Bump every ?v= in this file, in cards.html, and the BUILD constant
+     in sw.js together on each push (grep "?v="). -->
+<link rel="stylesheet" href="style.css?v=25" />
 </head>
 <body>
 <header>
@@ -87,6 +88,9 @@
       <input type="checkbox" id="trigrams" checked />
     </label>
     <button id="forgetTyping" type="button">Forget learned words</button>
+    <!-- Nukes every cache (service worker + HTTP) and reloads. The
+         escape hatch for a phone stuck on an old bN. -->
+    <button id="forceReload" type="button">Force update</button>
     <a href="cards.html">Letter cards</a>
   </div>
   </div>
@@ -112,20 +116,20 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=24",
-    "./layout.js": "./layout.js?v=24",
-    "./layouts.js": "./layouts.js?v=24",
-    "./themes.js": "./themes.js?v=24",
-    "./prediction.js": "./prediction.js?v=24",
-    "./words-en.js": "./words-en.js?v=24",
-    "./words-cs.js": "./words-cs.js?v=24",
-    "./bigrams-en.js": "./bigrams-en.js?v=24",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=24",
-    "./trigrams-en.js": "./trigrams-en.js?v=24",
-    "./trigrams-cs.js": "./trigrams-cs.js?v=24"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=25",
+    "./layout.js": "./layout.js?v=25",
+    "./layouts.js": "./layouts.js?v=25",
+    "./themes.js": "./themes.js?v=25",
+    "./prediction.js": "./prediction.js?v=25",
+    "./words-en.js": "./words-en.js?v=25",
+    "./words-cs.js": "./words-cs.js?v=25",
+    "./bigrams-en.js": "./bigrams-en.js?v=25",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=25",
+    "./trigrams-en.js": "./trigrams-en.js?v=25",
+    "./trigrams-cs.js": "./trigrams-cs.js?v=25"
   }
 }
 </script>
-<script type="module" src="main.js?v=24"></script>
+<script type="module" src="main.js?v=25"></script>
 </body>
 </html>

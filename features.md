@@ -423,9 +423,26 @@ on combined en+cs statistics. Git history keeps them.
   pull-to-refresh from hijacking a gesture.
 - The `theme-color` meta follows the active theme's `--bg` via JS, so
   the installed app's chrome matches all 13 themes.
-- Deliberately no service worker: the `?v=` pinning is the freshness
-  mechanism and a caching worker would fight it. iOS install works
-  without one. Offline support is future work if ever needed.
+- Offline support: `sw.js` is a service worker that precaches one
+  build's pinned assets (cache name `phonekeeb-b<N>`, where `<N>` is
+  the same number as the `?v=` pins; the two are bumped together).
+  The worker is designed around the `?v=` pinning, not against it:
+  - Navigations are network-first with `cache: 'no-cache'`, which
+    revalidates GitHub Pages' 10-minute HTTP cache. An online launch
+    therefore gets the newest build immediately; the cached page is
+    served only when the network fails.
+  - Pinned assets are cache-first. Because cache keys carry `?v=`,
+    two builds can never mix. Activating a new worker deletes every
+    older cache.
+  - The trigram tables are not precached (they are lazy behind the
+    "Trigram data" toggle, which exists to save mobile data); they
+    are cached at runtime once actually fetched. Offline with the
+    toggle on but the tables never yet fetched falls back to bigrams.
+- "Force update" button in settings: deletes all worker caches,
+  unregisters the worker, refetches the page past the HTTP cache
+  (`fetch(location.href, {cache: 'reload'})`), and reloads. The
+  escape hatch for a phone stuck on an old `bN` when a normal app
+  restart did not pick up a new build.
 
 ## Persisted settings
 

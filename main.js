@@ -20,6 +20,7 @@ const clearButton = document.getElementById('clearText');
 const copyButton = document.getElementById('copyText');
 const learnTypingEl = document.getElementById('learnTyping');
 const forgetTypingEl = document.getElementById('forgetTyping');
+const forceReloadEl = document.getElementById('forceReload');
 const trigramsEl = document.getElementById('trigrams');
 const settingsEl = document.getElementById('settings');
 const settingsToggle = document.getElementById('settingsToggle');
@@ -898,4 +899,35 @@ applyTheme(themeEl.value);
 rebuildLayout(); // also validates the initial layout
 renderOutput();
 renderSuggestions(); // the strip has content even before typing now
+
+// Offline support. sw.js precaches this build's pinned assets; its
+// BUILD constant is bumped together with the ?v= numbers. No ?v= on
+// the registration URL: the registration must stay stable, and the
+// browser checks the worker script for byte changes on its own.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// Force update: drop every cache layer, then reload. The worker's
+// normal update path needs one app restart to notice a new build;
+// this button is for the times that restart did not take.
+forceReloadEl.addEventListener('click', async () => {
+  forceReloadEl.disabled = true;
+  forceReloadEl.textContent = 'Updating…';
+  try {
+    if ('caches' in window) {
+      for (const key of await caches.keys()) await caches.delete(key);
+    }
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+    // Refetch the page past the HTTP cache too, so the reload below
+    // cannot be served GitHub Pages' 10-minute-old copy.
+    await fetch(location.href, { cache: 'reload' });
+  } catch {
+    // Even a partial nuke is progress; reload with whatever remains.
+  }
+  location.reload();
+});
 loadTrigrams(); // after first paint: the big tables must not delay typing
