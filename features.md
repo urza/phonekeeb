@@ -281,9 +281,14 @@ a short alphabet after hand edits.
   matching QWERTY) plus six empty reserved slots. Within each ring,
   slots go to the letters whose direction from the QWERTY keyboard
   center best matches the slot direction, derived by
-  `tools/generate-qwerty8pen.mjs`. Worst compromises: a and o at
-  under 60 degrees off. A unit test locks the ring-or-promoted rule
-  and the letters-only rule.
+  `tools/generate-qwerty8pen.mjs`. On top of that computed assignment
+  sit hand-tuned swaps for stroke flow, currently one: a and s traded
+  ring-1 slots so the word "is" traces a figure eight (i exits the
+  center from N; s at S CW passes straight through it with reversed
+  rotation). The dated trail of these tweaks is `layout-tuning.md`.
+  Worst compromises: s and o at under 60 degrees off. A unit test
+  locks the ring-or-promoted rule, the letters-only rule, and the
+  tuned slots.
 - `original-8pen`: transcribed from a screenshot
   of the original app (`8pen.png` in the repo root). The geometry now
   matches the original directly, X arms and all, so the transcription

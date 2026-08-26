@@ -11,7 +11,7 @@
      Deliberately NO service worker: freshness comes from the ?v=
      pinning below, and a caching worker would fight it. iOS install
      needs none. -->
-<link rel="manifest" href="manifest.webmanifest?v=20" />
+<link rel="manifest" href="manifest.webmanifest?v=21" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +23,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=20" />
+<link rel="stylesheet" href="style.css?v=21" />
 </head>
 <body>
 <header>
@@ -111,20 +111,20 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=20",
-    "./layout.js": "./layout.js?v=20",
-    "./layouts.js": "./layouts.js?v=20",
-    "./themes.js": "./themes.js?v=20",
-    "./prediction.js": "./prediction.js?v=20",
-    "./words-en.js": "./words-en.js?v=20",
-    "./words-cs.js": "./words-cs.js?v=20",
-    "./bigrams-en.js": "./bigrams-en.js?v=20",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=20",
-    "./trigrams-en.js": "./trigrams-en.js?v=20",
-    "./trigrams-cs.js": "./trigrams-cs.js?v=20"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=21",
+    "./layout.js": "./layout.js?v=21",
+    "./layouts.js": "./layouts.js?v=21",
+    "./themes.js": "./themes.js?v=21",
+    "./prediction.js": "./prediction.js?v=21",
+    "./words-en.js": "./words-en.js?v=21",
+    "./words-cs.js": "./words-cs.js?v=21",
+    "./bigrams-en.js": "./bigrams-en.js?v=21",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=21",
+    "./trigrams-en.js": "./trigrams-en.js?v=21",
+    "./trigrams-cs.js": "./trigrams-cs.js?v=21"
   }
 }
 </script>
-<script type="module" src="main.js?v=20"></script>
+<script type="module" src="main.js?v=21"></script>
 </body>
 </html>

@@ -71,4 +71,10 @@ check('qwerty-8pen e innermost W CW', letterAt(lq, 'W', 'CW', 1) === 'e', letter
 check('qwerty-8pen n innermost S CCW', letterAt(lq, 'S', 'CCW', 1) === 'n', letterAt(lq, 'S', 'CCW', 1));
 check('qwerty-8pen z outermost W CCW', letterAt(lq, 'W', 'CCW', 4) === 'z', letterAt(lq, 'W', 'CCW', 4));
 
+// Hand-tuned swap (layout-tuning.md, 2026-08-26): s takes S CW ring 1
+// so "is" traces a figure eight; a takes the freed W CCW ring 1 slot.
+// Guards against a regenerate that drops TUNED_SWAPS.
+check('qwerty-8pen s innermost S CW (tuned)', letterAt(lq, 'S', 'CW', 1) === 's', letterAt(lq, 'S', 'CW', 1));
+check('qwerty-8pen a innermost W CCW (tuned)', letterAt(lq, 'W', 'CCW', 1) === 'a', letterAt(lq, 'W', 'CCW', 1));
+
 process.exit(failures ? 1 : 0);

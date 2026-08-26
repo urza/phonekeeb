@@ -1,0 +1,40 @@
+# Layout tuning log
+
+Hand-tuned changes to the letter layouts, newest first. Each entry
+records what changed, why, and what it cost, so future tuning has a
+trail to reason against. The qwerty-8pen swaps also live in
+`TUNED_SWAPS` in `tools/generate-qwerty8pen.mjs`, so a regenerate
+keeps them, and `tests/layouts-unit.mjs` locks the tuned slots.
+
+Vocabulary used in the reasoning (see the 8pen research notes in
+`CLAUDE.md`):
+
+- A letter's stroke ends by sweeping into the center from its exit
+  sector (the sector after the last crossing).
+- When the next letter starts in the sector opposite that exit, the
+  finger passes straight through the center. Call this a pass-through.
+- A pass-through where the rotation direction also reverses traces a
+  figure eight, the smoothest two-letter motion (like cursive
+  handwriting). This is the flow objective from the original 8pen
+  demo video.
+- When the next letter starts in the exit sector itself, the finger
+  must double back. Call this a reversal, the worst case.
+
+## 2026-08-26: swap a and s (qwerty-8pen)
+
+- Before: a at S CW ring 1, s at W CCW ring 1.
+- After: s at S CW ring 1, a at W CCW ring 1.
+- Reason: "is" is one of the most common English words. The letter i
+  (E CCW) exits the center from N. A figure eight then needs the next
+  letter to start at S with CW rotation, exactly the slot a held.
+  With the swap, "is" is an exact figure eight. Before, s started at
+  W, unrelated to the N exit, with no direction change.
+- Side effects, checked by hand:
+  - "at" gains a pass-through: a now exits from S, and t starts at N.
+  - "es" gains a pass-through: e exits from N, and s now starts at S.
+  - "st" loses its pass-through: s now exits from W, and t starts at N.
+  - "as" is a reversal before and after the swap.
+  - Direction fit: the two letters trade their offsets from the
+    generator's QWERTY-direction objective (s is now 58 degrees off,
+    a is 32 degrees off; before it was the reverse).
+  - Both letters stay in ring 1, so no gesture gets more crossings.
