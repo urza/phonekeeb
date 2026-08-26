@@ -65,3 +65,46 @@ keyboard app must reach for it with small local methods.
   and current-word completion (`you are am`, `do i e`, `I w`).
   The engine must serve both from one strip.
 
+## Session 2 (2026-08-26)
+
+### 8
+- Input: `deliberat`
+- Suggestions: 1. deliberately 2. deliberate 3. deliberation
+  4. deliberating 5. deliberated
+- Chosen: 1 (deliberately), hit at rank 1
+
+### 9
+- Input: `paja se šla vykoupat a zapla` (Czech)
+- Suggestions: 1. si 2. televizi 3. topení 4. světlo 5. rádio
+- Chosen: none, miss. The user wanted `zaplavat`. `zapla` reads as
+  a complete word (colloquial past of zapnout), but here it was a
+  prefix. Lesson: a valid word can still be a prefix. The strip
+  must mix both readings. Context argues for the prefix here: after
+  `vykoupat a` a parallel infinitive is likely (vykoupat a
+  zaplavat), and the same trick failed the other way in exchange 5.
+
+### 10
+- Input: `mam hlad dam si k` (Czech)
+- Suggestions: 1. obědu 2. večeři 3. kuře 4. snídani 5. koláč
+  (mixed readings: `k` as preposition -> next word, `k` as prefix
+  -> completion)
+- Chosen: 3 (kuře), hit at rank 3. The prefix reading won over the
+  preposition reading.
+
+### 11
+- Input: `smoo`
+- Suggestions: 1. smooth 2. smoothie 3. smoothly 4. smoother
+  5. smoothed
+- Chosen: 1 (smooth), hit at rank 1
+
+## Session 2 summary (2026-08-26)
+
+- 4 exchanges: 3 hits, 1 miss.
+- Hits by rank: 2 at rank 1, 1 at rank 3.
+- Miss (`zapla` -> zaplavat): a valid word can still be a prefix.
+  The strip must offer both readings at once.
+- Czech entered the game (exchanges 9, 10). Exchange 10 confirmed
+  the mixed strip: the prefix reading (kuře) beat the preposition
+  reading (obědu).
+
+
