@@ -24,7 +24,7 @@
 // words as language context; the gap to the single-language rows is
 // the price of mixing, which the language posterior must keep small.
 //
-// Three measurements per row, chips capped at the strip's 5:
+// Three measurements per row, chips capped at the strip 6:
 //   next-word   empty prefix after a space: is the true next word in
 //               the chips? This is the industry hit@k form.
 //   prefix-2    first 2 gesture letters of the true word typed
@@ -51,7 +51,7 @@ const PREFIX_BYTES = (Number(process.env.EVAL_PREFIX_MB) || 80) * 1024 * 1024;
 // the whole prefix. Taking the first N instead would draw everything
 // from the few subtitle files at the start of the dump.
 const MAX_PAIRS = 4000;
-const LIMIT = 5; // the suggestion strip shows at most 5 chips
+const LIMIT = 6; // the suggestion strip shows at most 6 chips
 const SEED = 8; // typo corruption seed; fixed so runs are comparable
 const RECENT = 8; // context words carried per pair, language evidence
 

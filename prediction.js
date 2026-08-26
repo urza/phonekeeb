@@ -30,7 +30,18 @@ export function matchKey(word) {
 }
 
 // Tuned constants (features.md holds the words-and-numbers table).
-const BACKOFF = 0.4; // stupid-backoff multiplier for a bigram miss
+const BACKOFF = 0.4; // stupid-backoff multiplier inside the personal model
+const CTX_MISS = 0.15; // static-chain discount when a KNOWN context lacks
+//   the word. Stronger than the classic 0.4: a stored successor list
+//   that does not hold the word is real evidence against it, and 0.4
+//   let context-free giants (what, kdo) outrank true continuations
+//   (prediction-game-analysis.md, cause C). Swept 2026-08-26 against
+//   the next-word eval rows.
+const TYPO_SLOTS = 2; // strip slots one-edit hypotheses may take when
+//   exact-prefix candidates exist; without the cap, giant words one
+//   edit away (a, all, my for "am") crowd out real completions
+//   (cause B). A fully mistyped word still fills the strip: capped
+//   entries return when exact candidates run out.
 const EDIT_PENALTY = 0.005; // per-edit multiplier for typo hypotheses
 const QUANT_K = 8; // count codes decode as exp(code / QUANT_K); keep in
 //                    sync with tools/build-ngrams.py
@@ -353,6 +364,15 @@ export class Predictor {
     // are separated by spaces alone; it addresses the trigram tables.
     const ctx2 = prev2 && prevKey ? `${matchKey(prev2.toLowerCase())} ${prevKey}` : '';
     const succ2 = this.langs.map((l) => (ctx2 ? l.heads2.get(ctx2) : undefined));
+    // The miss discount is cross-language: when ANY language knows the
+    // context, a language without it takes CTX_MISS on that level too.
+    // Otherwise the discount punishes only the language that has real
+    // evidence, and wrong-language unigram giants float to the top
+    // ("know" outranking every Czech word after "si"). Absent tables
+    // (trigrams not loaded) still change nothing: then no language
+    // knows the context and no discount applies.
+    const biKnown = succ.some(Boolean);
+    const triKnown = succ2.some(Boolean);
     this.syncPersonalEntries();
     const pers = this.personal?.total ? this.personal : null;
 
@@ -376,9 +396,10 @@ export class Predictor {
           // starts at the next level undiscounted, so absent tables
           // (trigrams not loaded yet) change nothing.
           const uni = e.p[this.langs[j].id] ?? 0;
-          const biLevel = succ[j] ? (succ[j].get(e.word) ?? BACKOFF * uni) : uni;
-          base += lp * (succ2[j]
-            ? (succ2[j].get(e.word) ?? BACKOFF * biLevel) : biLevel);
+          const biLevel = succ[j]?.get(e.word)
+            ?? (biKnown ? CTX_MISS : 1) * uni;
+          base += lp * (succ2[j]?.get(e.word)
+            ?? (triKnown ? CTX_MISS : 1) * biLevel);
         }
         // The personal model blends in language-free: the user's own
         // words are their language, so no prior scales them down.
@@ -387,11 +408,24 @@ export class Predictor {
             + PERSONAL_WEIGHT * pers.prob(e.word, prevKey, start);
         }
         const score = mult * base;
-        if (score > 0) scored.push([score, e.word]);
+        if (score > 0) scored.push([score, e.word, mult !== 1]);
       }
     }
     scored.sort((a, b) => b[0] - a[0]);
-    const out = scored.slice(0, limit).map(([, w]) => w);
+    // Assemble the strip with the typo cap: score order, but at most
+    // TYPO_SLOTS one-edit entries. Capped entries queue up and return
+    // when exact candidates cannot fill the strip (a fully mistyped
+    // word has nothing else), slightly out of score order by design.
+    const out = [];
+    const capped = [];
+    let typos = 0;
+    for (const [, w, isTypo] of scored) {
+      if (out.length >= limit) break;
+      if (isTypo && typos >= TYPO_SLOTS) { capped.push(w); continue; }
+      if (isTypo) typos++;
+      out.push(w);
+    }
+    while (out.length < limit && capped.length) out.push(capped.shift());
 
     // Verbatim guarantee: the literal typed word takes the last slot
     // when it did not earn one, so an out-of-vocabulary word is always

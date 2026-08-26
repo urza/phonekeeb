@@ -46,7 +46,7 @@ const vocab = new Set([...WEN, ...WCS, ...XEN, ...XCS].map(([w]) => w));
 
 let hits = 0;
 for (const c of CASES) {
-  const chips = predictor.predict(c.prefix, 5, { prev: c.prev, prev2: c.prev2, recent: c.recent });
+  const chips = predictor.predict(c.prefix, 6, { prev: c.prev, prev2: c.prev2, recent: c.recent });
   const rank = chips.findIndex((w) => matchKey(w.toLowerCase()) === matchKey(c.want)) + 1;
   if (rank) hits++;
   const inv = vocab.has(c.want) ? '' : '  [want not in vocab]';

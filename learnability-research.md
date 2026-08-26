@@ -245,6 +245,12 @@ because the QWERTY direction gives a beginner a guess for every letter.
    proficient in a couple of days. `cards.html` is the seed of this
    already. This is the proven mitigation for "I am totally lost", and
    it is cheaper than any layout change.
+   *Built 2026-08-26: `game.html`. Recall drill, hidden map, Leitner
+   boxes weighted by letter frequency, ring progression, and a hint
+   that teaches the QWERTY mnemonic from `qwerty-map.js` rather than
+   giving the answer. It records time to first answer per letter, so
+   the predicted difficulty in point 3 can eventually be checked
+   against measured difficulty. See `features.md`, "Practice game".*
 5. **Watch capitals and punctuation.** Both 8VIM reviewers flagged
    these, and they are the two mechanisms we have inherited or not yet
    built. Capitals by extra loop is reported as costing more than a

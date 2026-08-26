@@ -20,32 +20,9 @@
 // regenerate must never touch it.
 
 import { FREQUENCY } from '../layouts.js';
-
-// On-screen direction of each slot: its arm angle nudged 13 degrees
-// toward the start sector, same numbers main.js draws with.
-const SPOKES = {
-  'N CW': 302, 'N CCW': 238,
-  'E CW': 32, 'E CCW': 328,
-  'S CW': 122, 'S CCW': 58,
-  'W CW': 212, 'W CCW': 148,
-};
-
-// QWERTY key coordinates: column x with the standard row stagger,
-// row y downward.
-const KEYS = {
-  q: [0, 0], w: [1, 0], e: [2, 0], r: [3, 0], t: [4, 0],
-  y: [5, 0], u: [6, 0], i: [7, 0], o: [8, 0], p: [9, 0],
-  a: [0.25, 1], s: [1.25, 1], d: [2.25, 1], f: [3.25, 1], g: [4.25, 1],
-  h: [5.25, 1], j: [6.25, 1], k: [7.25, 1], l: [8.25, 1],
-  z: [0.75, 2], x: [1.75, 2], c: [2.75, 2], v: [3.75, 2], b: [4.75, 2],
-  n: [5.75, 2], m: [6.75, 2],
-};
-
-// Rows are visually taller than one key width is wide relative to the
-// keyboard's 10-column spread; 1.5 keeps top/bottom rows from
-// collapsing onto the horizontal axis.
-const CENTER = [4.5, 1];
-const Y_SCALE = 1.5;
+// Shared with game.js so the hint the learner sees is built from the
+// same table this generator optimizes against.
+import { SPOKES, qwertyAngle, angDist } from '../qwerty-map.js';
 
 // The rings of the original 8pen (layouts.js 'original-8pen'),
 // ring index = crossings - 1. Punctuation included here so the ring
@@ -59,15 +36,6 @@ const ORIGINAL = {
 
 const isLetter = (ch) => typeof ch === 'string' && /\p{L}/u.test(ch);
 const rank = (ch) => FREQUENCY.en.indexOf(ch);
-const angleOf = (ch) => {
-  const [x, y] = KEYS[ch];
-  const deg = (Math.atan2((y - CENTER[1]) * Y_SCALE, x - CENTER[0]) * 180) / Math.PI;
-  return (deg + 360) % 360;
-};
-const angDist = (a, b) => {
-  const d = Math.abs(a - b) % 360;
-  return Math.min(d, 360 - d);
-};
 
 function* permutations(arr) {
   if (arr.length <= 1) { yield arr; return; }
@@ -113,7 +81,7 @@ for (let ring = 0; ring < 4; ring++) {
   for (const perm of permutations(items)) {
     let cost = 0;
     for (let s = 0; s < slotNames.length; s++) {
-      if (perm[s] !== null) cost += angDist(angleOf(perm[s]), SPOKES[slotNames[s]]);
+      if (perm[s] !== null) cost += angDist(qwertyAngle(perm[s]), SPOKES[slotNames[s]]);
     }
     if (cost < bestCost - 1e-9) { bestCost = cost; best = perm; }
   }
@@ -122,7 +90,7 @@ for (let ring = 0; ring < 4; ring++) {
     const [sector, direction] = slotNames[s].split(' ');
     result[sector][direction][ring] = best[s];
     if (best[s] !== null) {
-      console.log(`  ${slotNames[s].padEnd(6)} ${best[s]}  slot ${SPOKES[slotNames[s]]}°  qwerty ${angleOf(best[s]).toFixed(0)}°  off ${angDist(angleOf(best[s]), SPOKES[slotNames[s]]).toFixed(0)}°`);
+      console.log(`  ${slotNames[s].padEnd(6)} ${best[s]}  slot ${SPOKES[slotNames[s]]}°  qwerty ${qwertyAngle(best[s]).toFixed(0)}°  off ${angDist(qwertyAngle(best[s]), SPOKES[slotNames[s]]).toFixed(0)}°`);
     }
   }
 }

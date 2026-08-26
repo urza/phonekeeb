@@ -156,8 +156,8 @@ main {
   /* An overlay on the canvas, not a flex row: the wheel pins to the
      canvas bottom, and on a tall phone a row in the flex flow sits a
      whole blank band above it, out of thumb reach. resize() in main.js
-     parks the row just above the wheel rim (user request 2026-08-26).
-     Out of the flow, the row also cannot resize the canvas. */
+     parks the strip just above the wheel rim (user request 2026-08-26).
+     Out of the flow, the strip also cannot resize the canvas. */
   position: absolute;
   left: 0;
   right: 0;
@@ -166,27 +166,24 @@ main {
      the overlay does not narrow the gesture area; only chips catch
      taps (pointer-events: auto below). */
   pointer-events: none;
-  height: 44px;
+  /* Two rows, no scrolling, no hidden chips (user request 2026-08-26).
+     Rank 1 sits bottom-right in thumb reach next to the wheel:
+     row-reverse starts each line at the right edge, wrap-reverse puts
+     the first line at the bottom, so chips appended in rank order fill
+     bottom-right first and likelihood falls toward the top-left.
+     88 = two 40px lines + the 8px line gap; resize() in main.js clamps
+     with the same number, keep in sync. */
+  height: 88px;
   display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap-reverse;
+  align-content: flex-start;
   gap: 8px;
   align-items: center;
   padding: 0 12px;
-  overflow-x: auto;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   background: var(--bg);
-}
-
-/* Center the chip group with auto margins, not justify-content: center.
-   Auto margins collapse to a normal scroll start when the chips overflow
-   a narrow screen; plain centering would clip the leftmost chip with no
-   way to scroll to it. */
-#suggestions button:first-child {
-  margin-left: auto;
-}
-
-#suggestions button:last-child {
-  margin-right: auto;
 }
 
 #suggestions button {
@@ -197,6 +194,12 @@ main {
   background: var(--panel);
   color: var(--fg);
   white-space: nowrap;
+  /* A third of the strip minus the gap: exactly 3 chips per row, so 6
+     chips always land as two full rows and nothing ever hides. Long
+     words ellipsize instead of pushing chips off-screen. */
+  max-width: calc(33.3% - 8px);
+  overflow: hidden;
+  text-overflow: ellipsis;
   /* The container is pointer-events: none (see #suggestions). */
   pointer-events: auto;
 }

@@ -27,6 +27,13 @@ that file before design work.
 - `layouts.js` and `themes.js` are data registries. Each is the single
   file to edit for its concern; dropdowns, validation, and tests read
   from them. Contrast floors for themes live in `tests/themes-unit.mjs`.
+- Three pages, each with its own entry script: `index.html`/`main.js`
+  (the keyboard), `cards.html`/`cards.js` (the study cards), and
+  `game.html`/`game.js` (the recall drill). Shared pieces:
+  `wheel-svg.js` draws one gesture as an SVG for both teaching pages,
+  and `qwerty-map.js` holds the QWERTY mnemonic table used by the
+  game's hint and by `tools/generate-qwerty8pen.mjs`. A new page needs
+  its own `?v=` importmap and an entry in the `sw.js` asset list.
 - `tests/` holds plain-node Playwright scripts. Playwright is installed in
   `~/pw`, not in the repo, because this filesystem rejects npm's symlinks.
   Serve the root with `python3 -m http.server 8080`, then run

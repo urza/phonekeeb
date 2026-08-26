@@ -359,6 +359,57 @@ on combined en+cs statistics. Git history keeps them.
 - Card geometry mirrors the wheel proportions in a fixed 200 px
   viewBox: arm 90, center circle 22, ring 1 at 35, ring step ~16.3,
   letters 13 degrees off their arm.
+- The drawing code lives in `wheel-svg.js`, shared with the practice
+  game, so the two teaching pages cannot draw a stroke differently.
+
+## Practice game
+
+- `game.html` is a recall drill, linked from the settings panel as
+  "Practice" and from the cards page. It shows a target letter, hides
+  the map, and asks for the stroke. The rationale is in
+  `learnability-research.md`: every account of learning an 8pen-style
+  keyboard says drawing a loop is easy and knowing which loop is not,
+  so a learner who can see the map is practising the wrong half. The
+  prior art is Palm's Graffiti game and 8pen's own practice game.
+- The pad is a centered wheel with arms, center circle, and the live
+  finger trail. It deliberately paints **no letters**. It runs the real
+  `GestureDecoder`, so a stroke commits exactly as it does on the
+  keyboard: on returning to the center, or on lift.
+- Grading is exact: same sector, same direction, same crossing count,
+  and not a capital. A capital is called out by name ("one full loop
+  too many") because the extra-loop rule is easy to trip. A wrong
+  answer names the letter that was actually typed.
+- Spaced repetition, Leitner boxes 0 to 5, due after 0/2/4/9/20/45
+  prompts. A correct unaided answer moves up one box, a miss resets to
+  0, and a correct answer after a hint holds the box (the letter was
+  read, not recalled). Among due letters the pick is weighted by
+  English frequency (rank 1 to 26 mapped to weight 26 down to 1), so
+  the letters that carry most text become automatic first. The
+  immediately previous letter is never repeated.
+- Ring progression. The pool starts at ring 1 (8 letters, most of
+  typing) and the next ring unlocks only when every letter in the pool
+  reaches box 3. Widening earlier floods the learner.
+- **Hint** shows the QWERTY mnemonic without the answer: a mini QWERTY
+  with the target key lit, plus a compass carrying two rays, solid for
+  the letter's direction from the QWERTY center and dashed for the
+  direction its stroke leaves the wheel. The caption gives the angle
+  between them and says plainly whether this letter can be guessed or
+  needs rote memory. Angles come from `qwerty-map.js`, the same table
+  `tools/generate-qwerty8pen.mjs` optimizes against, so the hint can
+  never teach an association the generator did not build.
+- **Show me** reveals the answer and counts as a miss, so a stuck
+  learner is never trapped and the boxes stay honest.
+- Per-letter time to first answer is recorded (median of the last 12)
+  and shown in a mastery strip under the drill, one chip per letter in
+  the pool, bordered by box. Untouched letters get their own "new"
+  style; box 0 alone would open a fresh install as a wall of red. The
+  times are an empirical difficulty measure, meant to be checked later
+  against the predicted difficulty in `qwerty-map.js`.
+- Progress persists in `localStorage` under `phonekeeb.game.v1`, keyed
+  by layout id: muscle memory for one letter map says nothing about
+  another. The layout dropdown starts from the keyboard page's saved
+  choice, read-only, like the cards page. "Reset progress" clears the
+  current layout after a confirm.
 
 ## Color themes
 

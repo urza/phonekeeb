@@ -232,11 +232,12 @@ function resize() {
   // tests: they must gesture around the anchored wheel, not the
   // canvas middle, and duplicating the anchor math there would drift.
   canvas.dataset.center = `${center.x},${center.y}`;
-  // The suggestion row is an absolute overlay (see style.css); park it
-  // 4 px above the wheel rim so the chips sit in thumb reach. Clamped
-  // so a short canvas (settings open on a small screen) cannot push
-  // the row up over the output box.
-  suggestionsEl.style.bottom = `${Math.min(2 * armLength + WHEEL_MARGIN + 4, rect.height - 44)}px`;
+  // The suggestion strip is an absolute overlay (see style.css); park
+  // it 4 px above the wheel rim so the chips sit in thumb reach.
+  // Clamped so a short canvas (settings open on a small screen) cannot
+  // push the strip up over the output box. 88 = the strip's two-row
+  // height in style.css; keep in sync.
+  suggestionsEl.style.bottom = `${Math.min(2 * armLength + WHEEL_MARGIN + 4, rect.height - 88)}px`;
   draw();
 }
 
@@ -347,7 +348,7 @@ function renderSuggestions() {
   // Start of a message or line: the personal model's SENT_START
   // bigrams predict first words there.
   const start = /(?:^|\n)\s*$/.test(before);
-  const words = predictor.predict(currentWord, 5, { prev, prev2, recent, start });
+  const words = predictor.predict(currentWord, 6, { prev, prev2, recent, start });
   // DOM building, not innerHTML: the verbatim chip echoes typed text,
   // and the future personal dictionary echoes learned text.
   suggestionsEl.replaceChildren(...words.map((w) => {

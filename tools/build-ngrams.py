@@ -103,6 +103,13 @@ def count_pairs(dump_path, vocab):
 
 def main():
     lang, dump_path, words_path, out_path = sys.argv[1:5]
+    # Optional sweep overrides: ... out.js [TOP_SUCCESSORS [MIN_PAIR]].
+    # The shipped tier is recorded in word-prediction-research.md.
+    global TOP_SUCCESSORS, MIN_PAIR
+    if len(sys.argv) > 5:
+        TOP_SUCCESSORS = int(sys.argv[5])
+    if len(sys.argv) > 6:
+        MIN_PAIR = int(sys.argv[6])
     words = list(bw.read_old_words(words_path))  # frequency order
     vocab = set(words)
     pairs, lines = count_pairs(dump_path, vocab)
