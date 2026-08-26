@@ -179,8 +179,7 @@ weight to the glide targets the language model expects next.
   log-odds clamped to 2.5) scales each language's scores, so Czech
   chips sink mid-English-sentence and the reverse. The prior never
   drops below 0.05 for either language, and a fresh strip with no
-  context serves both at 50/50. The Layout language dropdown does not
-  touch prediction.
+  context serves both at 50/50.
 - Trigram layer (2026-08-26): `trigrams-en.js` / `trigrams-cs.js`
   hold two-word contexts ("co se" leads to "děje"); the score walks
   trigram, then bigram, then unigram with stupid backoff, and the
@@ -258,20 +257,17 @@ weight to the glide targets the language model expects next.
 - Planned: seeding the personal model from chat exports
   (tools/build-personal.py in the research doc).
 
-## Layouts and languages, behind flags
+## Layouts
 
 Layouts are data. The registry in `layouts.js` is the only file to
 edit when adding or changing one: the dropdown, the validation, and
 the tests read from it. A console warning reports duplicate letters or
-a short alphabet after hand edits.
+a short alphabet after hand edits. Every layout is a static map. The
+generated experiment layouts (`qwerty-region`, `frequency`) and the
+per-layout language switch were removed 2026-08-26, because the end
+goal is one layout that serves English and Czech together, optimized
+on combined en+cs statistics. Git history keeps them.
 
-- `qwerty-region`: letters grouped by their QWERTY screen region (top
-  row split N/E by keyboard half, lower-left block W, lower-right block
-  S), then ordered inside each sector by frequency.
-- `frequency`: pure frequency placement, crossing-major, so the most
-  common letters need one crossing everywhere. The ranking is a
-  hand-written approximation of published letter-frequency tables, not
-  corpus-derived.
 - `qwerty-8pen`: letters only, original 8pen gesture costs, QWERTY
   directions. Punctuation is deliberately absent; it will get its own
   gesture mechanism. The freed slots backfill by frequency promotion:
@@ -300,19 +296,14 @@ a short alphabet after hand edits.
   is a plain copy: top sector to N, right to E, bottom to S, left to W.
   All 26 letters plus 6 punctuation marks (. , ' ? ! @) fill the 32
   slots exactly. The frequent marks sit innermost, and y sits at one
-  crossing, unlike the frequency mode's ranking.
-- `urza-layout` is the default on first load. The layout and language
-  dropdown choices persist in the browser (localStorage) and survive
-  reloads, like the theme.
+  crossing, unlike a pure frequency ranking.
+- `urza-layout` is the default on first load. The layout dropdown
+  choice persists in the browser (localStorage) and survives reloads,
+  like the theme. A stale `phonekeeb.language` key from before the
+  language switch was removed is simply ignored.
 - Slots can hold punctuation. A typed mark ends the prediction word.
-- Languages: English and Czech letter frequencies, affecting only the
-  two generated layouts and the cards page; prediction is always the
-  mixed en+cs model. Static layouts ignore language. Diacritics input
-  is not built yet; the plan is an accent popup or combining swipes,
-  and the prediction chips already restore them.
-- The end goal is one layout that serves English and Czech together;
-  the language switch is a prototype experiment tool, and the final
-  layout optimization runs on combined en+cs statistics.
+- Diacritics input is not built yet; the plan is an accent popup or
+  combining swipes, and the prediction chips already restore them.
 
 ## Letter study cards
 
@@ -343,9 +334,9 @@ a short alphabet after hand edits.
   hue, and the landing sector is tinted, matching the canvas learning
   colors. The hues come from the same `SECTOR_COLORS` table in
   `themes.js`, generated into CSS at load, so they cannot drift.
-- Cards sort alphabetically, punctuation last. The layout and language
-  dropdowns match the keyboard page and start from the same saved
-  localStorage choices (read-only: the cards page never writes them).
+- Cards sort alphabetically, punctuation last. The layout dropdown
+  matches the keyboard page and starts from the same saved
+  localStorage choice (read-only: the cards page never writes it).
   The page has no theme dropdown; it follows the device light or dark
   setting with the Light and Dark theme palettes.
 - Card geometry mirrors the wheel proportions in a fixed 200 px
@@ -398,7 +389,7 @@ a short alphabet after hand edits.
   trail accent for 0.9 s. With nothing to copy it does nothing. The
   selection is read at pointer down, before the click can collapse it.
 - The top bar holds only the name, Clear, and a Settings toggle. The
-  hint text and all controls (layout, language, theme, dead zone) sit
+  hint text and all controls (layout, theme, dead zone) sit
   inside the collapsed settings block, so the touch area keeps most of
   a phone screen. The open state is remembered (localStorage).
 - Inside settings, the how-to text sits behind its own collapsible
@@ -443,7 +434,6 @@ equivalent is UserDefaults. Key, values, default:
 
 - `phonekeeb.theme`: theme id, default `auto`.
 - `phonekeeb.layout`: layout id, default `urza-layout`.
-- `phonekeeb.language`: `en` or `cs`, default `en`.
 - `phonekeeb.settingsOpen`: `1`/`0`, default closed.
 - `phonekeeb.sectorColors`: `1`/`0`, default on.
 - `phonekeeb.learn`: `1`/`0`, default on (learn from typing).

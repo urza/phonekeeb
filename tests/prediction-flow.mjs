@@ -17,19 +17,19 @@ const { chromium } = createRequire(path.join(pwDir, 'package.json'))('playwright
 
 const URL = process.env.URL ?? 'http://localhost:8080';
 
-// Frequency EN layout strokes in the X geometry:
-// h=(W,CCW,1) e=(N,CW,1) l=(E,CW,2).
+// urza layout strokes in the X geometry:
+// h=(E,CW,2) e=(W,CW,1) l=(E,CCW,2).
 const HEL = [
-  { from: 180, to: 110 },
-  { from: 270, to: 340 },
   { from: 0, to: 160 },
+  { from: 180, to: 250 },
+  { from: 360, to: 200 },
 ];
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 420, height: 800 } });
 await page.goto(URL);
 await page.click('#settingsToggle'); // controls sit in the collapsed settings block
-await page.selectOption('#layoutMode', 'frequency');
+await page.selectOption('#layoutMode', 'urza-layout');
 
 async function drawStrokes(strokes) {
   const box = await page.locator('#stage').boundingBox();

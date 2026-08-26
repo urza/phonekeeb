@@ -161,33 +161,26 @@ function deck(layout) {
 }
 
 const layoutEl = document.getElementById('layoutMode');
-const languageEl = document.getElementById('language');
 const gridEl = document.getElementById('cards');
 
 function render() {
-  const layout = buildLayout(layoutEl.value, languageEl.value);
+  const layout = buildLayout(layoutEl.value);
   gridEl.innerHTML = deck(layout).map((card) => `
     <figure class="card">
       ${cardSvg(card)}
       <figcaption><b>${esc(card.letter)}</b><span>${card.sector} · ${card.direction} · ${card.crossings} ${card.crossings === 1 ? 'line' : 'lines'}</span></figcaption>
     </figure>`).join('');
-  // Static layouts ignore the language, exactly as on the keyboard page.
-  languageEl.disabled = !!LAYOUTS[layoutEl.value].static;
 }
 
 for (const [id, def] of Object.entries(LAYOUTS)) layoutEl.add(new Option(def.label, id));
 
-// Start from the keyboard page's saved choices so the deck matches
-// what the user practices. Read-only: changing a dropdown here must
+// Start from the keyboard page's saved choice so the deck matches
+// what the user practices. Read-only: changing the dropdown here must
 // not reconfigure the keyboard.
 let savedLayout = null;
-let savedLanguage = null;
 try { savedLayout = localStorage.getItem('phonekeeb.layout'); } catch {}
-try { savedLanguage = localStorage.getItem('phonekeeb.language'); } catch {}
 layoutEl.value = savedLayout && LAYOUTS[savedLayout] ? savedLayout : DEFAULT_LAYOUT;
-if (savedLanguage === 'en' || savedLanguage === 'cs') languageEl.value = savedLanguage;
 layoutEl.addEventListener('change', render);
-languageEl.addEventListener('change', render);
 
 // Sector hues as CSS rules generated from themes.js, so the card
 // colors can never drift from the main canvas. The SVG parts pick

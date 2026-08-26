@@ -17,7 +17,7 @@ const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 420, height: 800 } });
 await page.goto(URL);
 await page.click('#settingsToggle'); // controls sit in the collapsed settings block
-await page.selectOption('#layoutMode', 'frequency');
+await page.selectOption('#layoutMode', 'urza-layout');
 
 const box = await page.locator('#stage').boundingBox();
 // The wheel anchors bottom-right in the canvas; main.js exposes its
@@ -28,8 +28,8 @@ const cy = box.y + wy;
 const R = Math.min(box.width, box.height) * 0.3;
 const pt = (deg, r = R) => [cx + r * Math.cos((deg * Math.PI) / 180), cy + r * Math.sin((deg * Math.PI) / 180)];
 
-// Letter strokes in the frequency EN layout: h = (W, CCW, 1),
-// e = (N, CW, 1). Enter mid-sector, overshoot the last arm by 25 deg.
+// Letter strokes in the urza layout: h = (E, CW, 2),
+// e = (W, CW, 1). Enter mid-sector, overshoot the last arm by 25 deg.
 async function stroke(from, to) {
   await page.mouse.move(cx, cy);
   await page.mouse.down();
@@ -39,8 +39,8 @@ async function stroke(from, to) {
   await page.mouse.move(cx, cy, { steps: 4 });
   await page.mouse.up();
 }
-const strokeH = () => stroke(180, 110);
-const strokeE = () => stroke(270, 340);
+const strokeH = () => stroke(0, 160);
+const strokeE = () => stroke(180, 250);
 
 async function dipSpace() {
   await page.mouse.move(cx, cy);

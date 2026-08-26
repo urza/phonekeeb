@@ -19,21 +19,21 @@ const URL = process.env.URL ?? 'http://localhost:8080';
 
 // (entry angle, target angle) per letter, screen degrees, y axis down.
 // X geometry: arms on the diagonals, sectors N(270) E(0) S(90) W(180).
-// Frequency EN layout: h=(W,CCW,1) e=(N,CW,1) l=(E,CW,2) o=(E,CCW,1).
+// urza layout: h=(E,CW,2) e=(W,CW,1) l=(E,CCW,2) o=(E,CW,1).
 // Entry is mid-sector; target overshoots the last arm by 25 deg.
 const STROKES = [
-  { letter: 'h', from: 180, to: 110 },
-  { letter: 'e', from: 270, to: 340 },
-  { letter: 'l', from: 0, to: 160 },
-  { letter: 'l', from: 0, to: 160 },
-  { letter: 'o', from: 360, to: 290 },
+  { letter: 'h', from: 0, to: 160 },
+  { letter: 'e', from: 180, to: 250 },
+  { letter: 'l', from: 360, to: 200 },
+  { letter: 'l', from: 360, to: 200 },
+  { letter: 'o', from: 0, to: 70 },
 ];
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 420, height: 800 } });
 await page.goto(URL);
 await page.click('#settingsToggle'); // controls sit in the collapsed settings block
-await page.selectOption('#layoutMode', 'frequency');
+await page.selectOption('#layoutMode', 'urza-layout');
 
 const box = await page.locator('#stage').boundingBox();
 // The wheel anchors bottom-right in the canvas; main.js exposes its

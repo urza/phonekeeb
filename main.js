@@ -13,7 +13,6 @@ const ctx = canvas.getContext('2d');
 const output = document.getElementById('output');
 const suggestionsEl = document.getElementById('suggestions');
 const layoutModeEl = document.getElementById('layoutMode');
-const languageEl = document.getElementById('language');
 const deadZoneEl = document.getElementById('deadZone');
 const themeEl = document.getElementById('theme');
 const sectorColorsEl = document.getElementById('sectorColors');
@@ -27,8 +26,7 @@ const settingsToggle = document.getElementById('settingsToggle');
 
 // One mixed-language predictor: English and Czech live in a single
 // model with no switching, matching the one-layout constraint in the
-// research notes. The language dropdown only drives generated layouts
-// and the cards page; the predictor's own sentence-language posterior
+// research notes. The predictor's own sentence-language posterior
 // decides which language the chips lean toward.
 const predictor = new Predictor([
   { id: 'en', words: WORDS_EN, bigrams: BIGRAMS_EN },
@@ -131,11 +129,9 @@ function applyTheme(id) {
 }
 
 // The layout dropdown is generated from the registry, so adding a
-// layout means editing layouts.js only. Layout and language choices
-// persist like the theme, so a phone reload keeps the experiment
-// settings.
+// layout means editing layouts.js only. The choice persists like the
+// theme, so a phone reload keeps it.
 const LAYOUT_KEY = 'phonekeeb.layout';
-const LANG_KEY = 'phonekeeb.language';
 for (const [id, def] of Object.entries(LAYOUTS)) {
   const option = document.createElement('option');
   option.value = id;
@@ -145,9 +141,6 @@ for (const [id, def] of Object.entries(LAYOUTS)) {
 let savedLayout = null;
 try { savedLayout = localStorage.getItem(LAYOUT_KEY); } catch {}
 layoutModeEl.value = LAYOUTS[savedLayout] ? savedLayout : DEFAULT_LAYOUT;
-let savedLanguage = null;
-try { savedLanguage = localStorage.getItem(LANG_KEY); } catch {}
-if (savedLanguage === 'en' || savedLanguage === 'cs') languageEl.value = savedLanguage;
 
 // Same pattern for themes: the dropdown mirrors the THEMES registry.
 for (const [id, def] of Object.entries(THEMES)) {
@@ -159,7 +152,7 @@ for (const [id, def] of Object.entries(THEMES)) {
 
 let center = { x: 0, y: 0 };
 let deadZoneRadius = Number(deadZoneEl.value);
-let layout = buildLayout(layoutModeEl.value, languageEl.value);
+let layout = buildLayout(layoutModeEl.value);
 let decoder = new GestureDecoder({ center, deadZoneRadius });
 let typedText = '';
 let caret = 0; // insertion point in typedText, moved by the N hold-glide
@@ -247,7 +240,7 @@ function resize() {
 }
 
 function rebuildLayout() {
-  layout = buildLayout(layoutModeEl.value, languageEl.value);
+  layout = buildLayout(layoutModeEl.value);
   const { problems, letterCount } = validateLayout(layout);
   for (const p of problems) console.warn(`layout ${layoutModeEl.value}: ${p}`);
   if (letterCount < 26) console.warn(`layout ${layoutModeEl.value}: only ${letterCount} letters placed`);
@@ -767,10 +760,6 @@ deadZoneEl.addEventListener('input', () => {
 layoutModeEl.addEventListener('change', () => {
   rebuildLayout();
   try { localStorage.setItem(LAYOUT_KEY, layoutModeEl.value); } catch {}
-});
-languageEl.addEventListener('change', () => {
-  rebuildLayout();
-  try { localStorage.setItem(LANG_KEY, languageEl.value); } catch {}
 });
 
 // Trigram tables: ~1.5 MB of data, so they load lazily after first

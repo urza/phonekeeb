@@ -1,7 +1,6 @@
-// Unit test of the layout registry: every layout builds for every
-// language, has no duplicate letters, and the generated ones place the
-// full alphabet. Guards hand-edited entries in layouts.js against
-// typos. Run: node tests/layouts-unit.mjs
+// Unit test of the layout registry: every layout has the full slot
+// shape and no duplicate letters. Guards hand-edited entries in
+// layouts.js against typos. Run: node tests/layouts-unit.mjs
 
 import { LAYOUTS, buildLayout } from '../layouts.js';
 import { validateLayout, SECTORS, DIRECTIONS } from '../layout.js';
@@ -13,30 +12,22 @@ function check(name, ok, detail) {
 }
 
 for (const id of Object.keys(LAYOUTS)) {
-  for (const language of ['en', 'cs']) {
-    const layout = buildLayout(id, language);
+  const layout = buildLayout(id);
 
-    // Shape: all 4 sectors, both directions, exactly 4 slots each.
-    const shapeOk = SECTORS.every(
-      (s) => DIRECTIONS.every((d) => Array.isArray(layout[s]?.[d]) && layout[s][d].length === 4)
-    );
-    check(`${id}/${language} shape`, shapeOk, 'missing sector/direction or wrong slot count');
+  // Shape: all 4 sectors, both directions, exactly 4 slots each.
+  const shapeOk = SECTORS.every(
+    (s) => DIRECTIONS.every((d) => Array.isArray(layout[s]?.[d]) && layout[s][d].length === 4)
+  );
+  check(`${id} shape`, shapeOk, 'missing sector/direction or wrong slot count');
 
-    const { problems, letterCount } = validateLayout(layout);
-    check(`${id}/${language} no duplicates`, problems.length === 0, problems.join('; '));
-
-    // Generated layouts must place the full alphabet. Static layouts may
-    // be partial while their data is being transcribed.
-    if (LAYOUTS[id].build) {
-      check(`${id}/${language} places 26 letters`, letterCount === 26, `placed ${letterCount}`);
-    }
-  }
+  const { problems } = validateLayout(layout);
+  check(`${id} no duplicates`, problems.length === 0, problems.join('; '));
 }
 
 // The transcribed original: 26 letters + 6 punctuation = all 32 slots,
 // and spot checks against the 8pen.png screenshot.
 import { letterAt } from '../layout.js';
-const l8 = buildLayout('original-8pen', 'en');
+const l8 = buildLayout('original-8pen');
 check('original-8pen fills all 32 slots', validateLayout(l8).letterCount === 32, `got ${validateLayout(l8).letterCount}`);
 check('original-8pen e innermost S CW', letterAt(l8, 'S', 'CW', 1) === 'e', letterAt(l8, 'S', 'CW', 1));
 check('original-8pen y innermost N CCW', letterAt(l8, 'N', 'CCW', 1) === 'y', letterAt(l8, 'N', 'CCW', 1));
@@ -47,7 +38,7 @@ check('original-8pen z outermost N CW', letterAt(l8, 'N', 'CW', 4) === 'z', lett
 // later), all 26 present, and the ring rule holds: every letter keeps
 // its original-8pen crossing count, except the six promoted letters,
 // which sit exactly one ring closer. Same or cheaper gesture cost.
-const lq = buildLayout('qwerty-8pen', 'en');
+const lq = buildLayout('qwerty-8pen');
 check('qwerty-8pen holds exactly the 26 letters', validateLayout(lq).letterCount === 26, `got ${validateLayout(lq).letterCount}`);
 const allGlyphs = (layout) => SECTORS.flatMap((s) => DIRECTIONS.flatMap((d) => layout[s][d])).filter(Boolean);
 check('qwerty-8pen has no punctuation', allGlyphs(lq).every((g) => /\p{L}/u.test(g)), allGlyphs(lq).join(''));
@@ -75,7 +66,7 @@ check('qwerty-8pen z outermost W CCW', letterAt(lq, 'W', 'CCW', 4) === 'z', lett
 // Locks the letter set and the tuned slots only; the rest may drift
 // as tuning continues, and each locked slot changes here in the same
 // change set as its log entry.
-const lu = buildLayout('urza-layout', 'en');
+const lu = buildLayout('urza-layout');
 check('urza-layout holds exactly the 26 letters', validateLayout(lu).letterCount === 26, `got ${validateLayout(lu).letterCount}`);
 check('urza-layout has no punctuation', allGlyphs(lu).every((g) => /\p{L}/u.test(g)), allGlyphs(lu).join(''));
 check('urza-layout s innermost S CW (tuned)', letterAt(lu, 'S', 'CW', 1) === 's', letterAt(lu, 'S', 'CW', 1));

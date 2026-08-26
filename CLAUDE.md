@@ -88,8 +88,9 @@ Confirmed mechanics of the original:
   layout for English and Czech together, with no per-language layout
   switching. Layout objectives (frequency rings, flow score) must
   optimize over a combined en+cs table, diacritics folded to base
-  letters. The language dropdown in the prototype is an experiment
-  tool, never the mechanism.
+  letters. The prototype's language dropdown was an experiment tool,
+  never the mechanism; it and the generated experiment layouts
+  (qwerty-region, frequency) were removed 2026-08-26.
 - Reported weaknesses: steep learning curve, slow until memorized, no
   haptic feedback for blind typing, the thumb hides part of the screen
   during a gesture.

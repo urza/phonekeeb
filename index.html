@@ -11,7 +11,7 @@
      Deliberately NO service worker: freshness comes from the ?v=
      pinning below, and a caching worker would fight it. iOS install
      needs none. -->
-<link rel="manifest" href="manifest.webmanifest?v=23" />
+<link rel="manifest" href="manifest.webmanifest?v=24" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +23,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=23" />
+<link rel="stylesheet" href="style.css?v=24" />
 </head>
 <body>
 <header>
@@ -65,14 +65,6 @@
     <label>Layout
       <!-- options are generated from the LAYOUTS registry in layouts.js -->
       <select id="layoutMode"></select>
-    </label>
-    <!-- Only generated layouts and the cards page read this; word
-         prediction is always mixed en+cs with its own language sense. -->
-    <label>Layout language
-      <select id="language">
-        <option value="en">English</option>
-        <option value="cs">Czech (base letters)</option>
-      </select>
     </label>
     <label>Theme
       <!-- options are generated from the THEMES registry in themes.js -->
@@ -120,20 +112,20 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=23",
-    "./layout.js": "./layout.js?v=23",
-    "./layouts.js": "./layouts.js?v=23",
-    "./themes.js": "./themes.js?v=23",
-    "./prediction.js": "./prediction.js?v=23",
-    "./words-en.js": "./words-en.js?v=23",
-    "./words-cs.js": "./words-cs.js?v=23",
-    "./bigrams-en.js": "./bigrams-en.js?v=23",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=23",
-    "./trigrams-en.js": "./trigrams-en.js?v=23",
-    "./trigrams-cs.js": "./trigrams-cs.js?v=23"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=24",
+    "./layout.js": "./layout.js?v=24",
+    "./layouts.js": "./layouts.js?v=24",
+    "./themes.js": "./themes.js?v=24",
+    "./prediction.js": "./prediction.js?v=24",
+    "./words-en.js": "./words-en.js?v=24",
+    "./words-cs.js": "./words-cs.js?v=24",
+    "./bigrams-en.js": "./bigrams-en.js?v=24",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=24",
+    "./trigrams-en.js": "./trigrams-en.js?v=24",
+    "./trigrams-cs.js": "./trigrams-cs.js?v=24"
   }
 }
 </script>
-<script type="module" src="main.js?v=23"></script>
+<script type="module" src="main.js?v=24"></script>
 </body>
 </html>
