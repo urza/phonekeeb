@@ -68,3 +68,9 @@ bug*.png
 
 # Corpus prefix cache of tools/eval-prediction.mjs and build-ngrams.py
 tools/corpus/
+
+# Personal typing data must never reach the public repo
+# (word-prediction-research.md, "Personalization plan").
+personal/
+personal-ngrams.json
+__pycache__/

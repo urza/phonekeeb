@@ -57,10 +57,12 @@ function check(name, ok, detail) {
   if (!ok) failures++;
 }
 
-// Before any typing the strip shows the most frequent words, so the
-// first word of a message is one tap away.
+// Before any typing the strip shows the most frequent words of BOTH
+// languages (the model is mixed and no context exists yet), so the
+// first word of a message is one tap away in either language.
 const freshChips = await page.locator('#suggestions button').allTextContents();
-check('fresh strip shows top words', freshChips[0] === 'you', JSON.stringify(freshChips));
+check('fresh strip mixes both languages',
+  freshChips.includes('you') && freshChips.includes('to'), JSON.stringify(freshChips));
 
 await drawStrokes(HEL);
 const chips = await page.locator('#suggestions button').allTextContents();
@@ -121,7 +123,7 @@ check('next-word tap replaces following word', got === 'help me ', JSON.stringif
 const csChips = await page.evaluate(async () => {
   const { Predictor, stripDiacritics } = await import('./prediction.js');
   const { WORDS } = await import('./words-cs.js');
-  const p = new Predictor(WORDS);
+  const p = new Predictor([{ id: 'cs', words: WORDS }]);
   return { strip: stripDiacritics('řekl'), top: p.predict('rek', 5) };
 });
 check('stripDiacritics', csChips.strip === 'rekl', csChips.strip);

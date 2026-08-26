@@ -298,6 +298,67 @@ capability. The next-word numbers sit above the earlier probe's 23.0%
 hit@3 because the split and the pair rules differ; compare future runs
 against this table, not against the probe.
 
+## Scored predictor shipped, mixed en+cs (2026-08-26)
+
+Steps 2 of the build order landed, plus a design the plan did not yet
+have: one mixed English+Czech model with sentence-language awareness
+(user request 2026-08-26: no language switching, Czech chips must not
+intrude on English sentences and the reverse).
+
+What shipped, in prediction.js:
+
+- Stupid backoff over bigram tables v2 (build-ngrams.py): per head
+  the total adjacency count plus the top 12 successors with pair
+  counts, log-quantized at code = round(ln(c) x 8). Candidates come
+  from the vocabulary scan, scores from the counts.
+- One predictor holds both languages, counts normalized per language.
+  A sentence-language posterior over the last 6 words (decay 0.65,
+  per-word log-odds clamp 2.5, floor 0.05) scales each language's
+  probabilities. The floor plus the prefix filter keep a genuinely
+  typed cross-language word reachable.
+- Typo hypotheses: candidates within one edit of the typed prefix
+  (substitution, missing or extra letter) enter at a multiplier.
+- Verbatim chip: the literal typed word takes the last slot when it
+  earned none.
+- Diacritics and apostrophe restoration need no new mechanism: the
+  match-key fold plus scoring already rank "táta" first for a fully
+  typed "tata", and "it's" first for "its" (the game log's miss).
+
+Tuned by the harness (the design's constants were starting points):
+
+- EDIT_PENALTY swept at 0.05 / 0.02 / 0.01 / 0.005 / 0: EN prefix-2
+  hit@3 68.0 / 72.3 / 74.9 / 76.6 / 79.1, typo-2 hit@3 52.2 / 50.7 /
+  49.3 / 47.3 / 0. Picked 0.005: exact typing is the common case and
+  it still buys 47 points of typo recovery. The probe's 0.05 was too
+  strong: giant unigrams entered as typo hypotheses and crowded true
+  completions out of the top 3.
+- BACKOFF 0.4 beat 0.3 and 0.2 on prefix-2 (76.6 vs 76.1 vs 75.1);
+  next-word does not move.
+- Table size: cap 24 / floor 3 gives 574+595 KB and ~2 more points of
+  prefix-2 hit@3 than cap 12 / floor 4 at 301+310 KB. Shipped the
+  small tables: no service worker means a 10-minute cache and repeat
+  mobile downloads. The trigram layer is the better place to spend
+  bytes (lazy, flagged).
+
+Results on the rebuilt, holdout-clean tables (hit@1 / hit@3):
+
+| Mode | EN single | CS single | EN mixed | CS mixed |
+|---|---|---|---|---|
+| next-word | 16.6 / 29.4 | 15.8 / 28.0 | 16.4 / 29.2 | 15.7 / 27.7 |
+| prefix-2 | 59.1 / 74.3 | 54.7 / 70.2 | 59.1 / 74.1 | 54.2 / 69.9 |
+| typo-2 | 28.1 / 44.6 | 26.2 / 40.7 | 27.7 / 44.4 | 25.6 / 39.9 |
+
+Read: mixing two languages costs at most 0.3 points against the
+single-language ceiling in every cell, so the posterior does its job;
+prefix-2 hit@3 sits a point under the old concatenation baseline
+because of the smaller tables and the typo admission (see the sweeps),
+while typo-2 goes from impossible to ~40+ points. The old caveat about
+tables trained on eval lines is cleared: these tables skip the holdout.
+
+The eval harness gained mixed-en / mixed-cs rows (same pairs, mixed
+predictor, the line's own words as language context) and per-pair
+recent-word context; predict() now takes { prev, recent }.
+
 ## Personalization plan (added 2026-08-25)
 
 Goal: rank suggestions by how this user actually writes. Two

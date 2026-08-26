@@ -11,7 +11,7 @@
      Deliberately NO service worker: freshness comes from the ?v=
      pinning below, and a caching worker would fight it. iOS install
      needs none. -->
-<link rel="manifest" href="manifest.webmanifest?v=17" />
+<link rel="manifest" href="manifest.webmanifest?v=18" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +23,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=17" />
+<link rel="stylesheet" href="style.css?v=18" />
 </head>
 <body>
 <header>
@@ -47,13 +47,17 @@
   toward the center to delete more; drag back to restore. Hold top and drag
   sideways to move the caret. Drag from the bottom area: right types ?,
   up types ! (the center circle counts as up), left types a comma. The
-  corner button copies the text, or only the selected part.</p>
+  corner button copies the text, or only the selected part. Suggestions
+  mix English and Czech, follow the sentence's language, and restore
+  diacritics and apostrophes (tata &#8594; t&#225;ta, dont &#8594; don't).</p>
   <div class="controls">
     <label>Layout
       <!-- options are generated from the LAYOUTS registry in layouts.js -->
       <select id="layoutMode"></select>
     </label>
-    <label>Language
+    <!-- Only generated layouts and the cards page read this; word
+         prediction is always mixed en+cs with its own language sense. -->
+    <label>Layout language
       <select id="language">
         <option value="en">English</option>
         <option value="cs">Czech (base letters)</option>
@@ -94,18 +98,18 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=17",
-    "./layout.js": "./layout.js?v=17",
-    "./layouts.js": "./layouts.js?v=17",
-    "./themes.js": "./themes.js?v=17",
-    "./prediction.js": "./prediction.js?v=17",
-    "./words-en.js": "./words-en.js?v=17",
-    "./words-cs.js": "./words-cs.js?v=17",
-    "./bigrams-en.js": "./bigrams-en.js?v=17",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=17"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=18",
+    "./layout.js": "./layout.js?v=18",
+    "./layouts.js": "./layouts.js?v=18",
+    "./themes.js": "./themes.js?v=18",
+    "./prediction.js": "./prediction.js?v=18",
+    "./words-en.js": "./words-en.js?v=18",
+    "./words-cs.js": "./words-cs.js?v=18",
+    "./bigrams-en.js": "./bigrams-en.js?v=18",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=18"
   }
 }
 </script>
-<script type="module" src="main.js?v=17"></script>
+<script type="module" src="main.js?v=18"></script>
 </body>
 </html>

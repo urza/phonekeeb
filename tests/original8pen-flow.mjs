@@ -56,10 +56,11 @@ await page.mouse.up();
 
 await expectOutput('gestures type et.', 'et.');
 // Punctuation ends the prediction word AND drops next-word context:
-// the strip falls back to plain frequency order ("you" leads the EN
-// unigram list), instead of completing a word containing the period.
+// the strip falls back to the neutral mixed-language frequency order
+// (top words of BOTH languages), instead of completing a word
+// containing the period.
 const chips = await page.locator('#suggestions button').allTextContents();
-const ok = chips[0] === 'you';
+const ok = chips.includes('you') && chips.includes('to');
 console.log(ok ? 'PASS' : 'FAIL', 'punctuation resets prediction', ok ? '' : JSON.stringify(chips));
 if (!ok) failures++;
 

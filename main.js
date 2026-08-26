@@ -22,10 +22,15 @@ const copyButton = document.getElementById('copyText');
 const settingsEl = document.getElementById('settings');
 const settingsToggle = document.getElementById('settingsToggle');
 
-const predictors = {
-  en: new Predictor(WORDS_EN, BIGRAMS_EN),
-  cs: new Predictor(WORDS_CS, BIGRAMS_CS),
-};
+// One mixed-language predictor: English and Czech live in a single
+// model with no switching, matching the one-layout constraint in the
+// research notes. The language dropdown only drives generated layouts
+// and the cards page; the predictor's own sentence-language posterior
+// decides which language the chips lean toward.
+const predictor = new Predictor([
+  { id: 'en', words: WORDS_EN, bigrams: BIGRAMS_EN },
+  { id: 'cs', words: WORDS_CS, bigrams: BIGRAMS_CS },
+]);
 
 // The build number this script was loaded under, taken from the ?v=
 // query that index.html pins on every asset. Shown in the HUD so a
@@ -284,15 +289,23 @@ function applyFunction(sector) {
 }
 
 function renderSuggestions() {
-  // Next-word context: the completed word before the current prefix.
-  // Only spaces may separate them; punctuation or a newline ends the
-  // flow and the strip falls back to plain frequency order.
+  // Bigram context: the completed word before the current prefix, valid
+  // only when spaces alone separate them; punctuation or a newline
+  // resets it. The language posterior reads further back: the last few
+  // words regardless of punctuation.
   const before = typedText.slice(0, caret - currentWord.length);
-  const prevWord = before.match(/([\p{L}'’]+) *$/u)?.[1] ?? '';
-  const words = predictors[languageEl.value].predict(currentWord, 5, prevWord);
-  suggestionsEl.innerHTML = words
-    .map((w) => `<button type="button" data-word="${w}">${w}</button>`)
-    .join('');
+  const prev = before.match(/([\p{L}'’]+) *$/u)?.[1] ?? '';
+  const recent = before.match(/[\p{L}'’]+/gu)?.slice(-8) ?? [];
+  const words = predictor.predict(currentWord, 5, { prev, recent });
+  // DOM building, not innerHTML: the verbatim chip echoes typed text,
+  // and the future personal dictionary echoes learned text.
+  suggestionsEl.replaceChildren(...words.map((w) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.word = w;
+    b.textContent = w;
+    return b;
+  }));
 }
 
 // Our own caret element: #output is a div, so there is no browser
@@ -697,7 +710,6 @@ layoutModeEl.addEventListener('change', () => {
 });
 languageEl.addEventListener('change', () => {
   rebuildLayout();
-  renderSuggestions();
   try { localStorage.setItem(LANG_KEY, languageEl.value); } catch {}
 });
 

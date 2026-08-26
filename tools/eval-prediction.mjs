@@ -16,21 +16,21 @@
 // Held-out split: every line whose 0-based index is divisible by
 // HOLDOUT_MOD is an eval line. build-ngrams.py skips exactly those
 // lines (keep the two constants in sync), so regenerated tables never
-// train on the eval slice. The currently shipped tables predate the
-// split and did see these lines; for aggregate bigram counts over
-// millions of lines that inflates nothing measurable, but the caveat
-// is printed until the tables are rebuilt.
+// train on the eval slice.
 //
-// Three measurements per language, all against the real Predictor and
-// the shipped tables, chips capped at the strip's 5:
+// Each language is measured twice: with a single-language Predictor
+// (the ceiling) and with the shipped mixed en+cs Predictor
+// (mixed-en / mixed-cs). The mixed rows carry the line's own recent
+// words as language context; the gap to the single-language rows is
+// the price of mixing, which the language posterior must keep small.
+//
+// Three measurements per row, chips capped at the strip's 5:
 //   next-word   empty prefix after a space: is the true next word in
 //               the chips? This is the industry hit@k form.
 //   prefix-2    first 2 gesture letters of the true word typed
 //               (matchKey form: diacritics and apostrophes stripped).
 //   typo-2      the same 2-letter prefix with one seeded substitution
-//               (edit distance 1). Today's exact-prefix predictor
-//               scores ~0 here by design; the scoring predictor must
-//               raise it.
+//               (edit distance 1), served by the typo hypotheses.
 // Pairs come from adjacent in-vocabulary words, with the same
 // adjacency rules as build-ngrams.py: junk tokens and out-of-vocab
 // words break adjacency, clause-ending punctuation breaks after the
@@ -53,6 +53,7 @@ const PREFIX_BYTES = (Number(process.env.EVAL_PREFIX_MB) || 80) * 1024 * 1024;
 const MAX_PAIRS = 4000;
 const LIMIT = 5; // the suggestion strip shows at most 5 chips
 const SEED = 8; // typo corruption seed; fixed so runs are comparable
+const RECENT = 8; // context words carried per pair, language evidence
 
 const DUMP_URL = (lang) =>
   `https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2018/mono/${lang}.txt.gz`;
@@ -104,7 +105,9 @@ async function eachLine(file, onLine) {
   });
 }
 
-// (prev, target) pairs from held-out lines only, builder adjacency rules.
+// { prev, recent, target } from held-out lines only, builder adjacency
+// rules. recent = the in-vocabulary words of the line before the
+// target, for the mixed model's language posterior.
 async function collectPairs(file, vocab) {
   const pairs = [];
   let index = -1;
@@ -115,12 +118,16 @@ async function collectPairs(file, vocab) {
     if (line.includes('{')) line = line.replace(ASS_TAGS, ' ');
     if (line.includes("'")) line = line.replace(TAIL_JOIN, "'$1");
     let prev = null;
+    const seen = [];
     for (const wt of line.split(/\s+/)) {
       if (!wt) continue;
       if (JUNK.test(wt)) { prev = null; continue; }
       const { tok, trail } = stripEdges(wt);
       if (!vocab.has(tok)) { prev = null; continue; }
-      if (prev !== null) pairs.push([prev, tok]);
+      if (prev !== null) {
+        pairs.push({ prev, recent: seen.slice(-RECENT), target: tok });
+      }
+      seen.push(tok);
       prev = [...trail].some((c) => CLAUSE_END.has(c)) ? null : tok;
     }
   });
@@ -161,16 +168,7 @@ function pct(hits, total) {
   return total ? ((100 * hits) / total).toFixed(1).padStart(5) + '%' : '    -';
 }
 
-async function evalLang(lang) {
-  const { WORDS } = await import(`../words-${lang}.js`);
-  const { BIGRAMS } = await import(`../bigrams-${lang}.js`);
-  const predictor = new Predictor(WORDS, BIGRAMS);
-  const vocab = new Set(WORDS.map(([w]) => w));
-
-  const file = ensureDump(lang);
-  const all = await collectPairs(file, vocab);
-  const pairs = subsample(all);
-
+function evalPairs(label, predictor, pairs) {
   const modes = {
     'next-word': { hit1: 0, hit3: 0, n: 0 },
     'prefix-2': { hit1: 0, hit3: 0, n: 0 },
@@ -183,18 +181,17 @@ async function evalLang(lang) {
   };
 
   const rng = mulberry32(SEED);
-  for (const [prev, target] of pairs) {
-    score('next-word', predictor.predict('', LIMIT, prev), target);
+  for (const { prev, recent, target } of pairs) {
+    const ctx = { prev, recent };
+    score('next-word', predictor.predict('', LIMIT, ctx), target);
     const key = matchKey(target);
     if (key.length < 2) continue;
     const prefix2 = key.slice(0, 2);
-    score('prefix-2', predictor.predict(prefix2, LIMIT, prev), target);
-    score('typo-2', predictor.predict(corrupt(prefix2, rng), LIMIT, prev), target);
+    score('prefix-2', predictor.predict(prefix2, LIMIT, ctx), target);
+    score('typo-2', predictor.predict(corrupt(prefix2, rng), LIMIT, ctx), target);
   }
 
-  console.log(`\n${lang}: ${pairs.length} eval pairs, sampled evenly from `
-    + `${all.length} held-out pairs (every ${HOLDOUT_MOD}th line, `
-    + `${PREFIX_BYTES / 1024 / 1024} MB prefix)`);
+  console.log(`\n${label}:`);
   console.log('  mode        pairs  hit@1   hit@3');
   for (const [name, m] of Object.entries(modes)) {
     console.log(`  ${name.padEnd(10)} ${String(m.n).padStart(5)}  ${pct(m.hit1, m.n)}  ${pct(m.hit3, m.n)}`);
@@ -203,6 +200,26 @@ async function evalLang(lang) {
 }
 
 const langs = process.argv[2] ? [process.argv[2]] : ['en', 'cs'];
-for (const lang of langs) await evalLang(lang);
-console.log('\nCaveat: the shipped tables predate the held-out split and saw');
-console.log('these lines in training. Rebuild with build-ngrams.py to clear it.');
+const sources = {};
+const pairsByLang = {};
+for (const lang of langs) {
+  const { WORDS } = await import(`../words-${lang}.js`);
+  const { BIGRAMS } = await import(`../bigrams-${lang}.js`);
+  sources[lang] = { id: lang, words: WORDS, bigrams: BIGRAMS };
+  const vocab = new Set(WORDS.map(([w]) => w));
+  const all = await collectPairs(ensureDump(lang), vocab);
+  pairsByLang[lang] = subsample(all);
+  console.log(`${lang}: ${pairsByLang[lang].length} eval pairs, sampled evenly `
+    + `from ${all.length} held-out pairs (every ${HOLDOUT_MOD}th line, `
+    + `${PREFIX_BYTES / 1024 / 1024} MB prefix)`);
+}
+
+for (const lang of langs) {
+  evalPairs(lang, new Predictor([sources[lang]]), pairsByLang[lang]);
+}
+if (langs.length > 1) {
+  const mixed = new Predictor(langs.map((l) => sources[l]));
+  for (const lang of langs) {
+    evalPairs(`mixed-${lang}`, mixed, pairsByLang[lang]);
+  }
+}
