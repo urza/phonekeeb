@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Phonekeeb Learnability</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --ink: #1a212c; --muted: #576273;
+    --line: #dfe4eb; --accent: #2b5fe3; --link: #2154cf; --chip-bg: #eef1f6;
+    --warn-ink: #815409; --warn-bg: #faf1df; --warn-line: #e8d5a8;
+    --good: #1a7f4b; --quote-line: #b9c4d4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a; --card: #181d24; --ink: #e7eaf0; --muted: #98a2b1;
+      --line: #2a313b; --accent: #5c86f5; --link: #93b0ff; --chip-bg: #232a33;
+      --warn-ink: #e3b76c; --warn-bg: #251e0f; --warn-line: #4a3d1e;
+      --good: #52c98a; --quote-line: #3c4756;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a; --card: #181d24; --ink: #e7eaf0; --muted: #98a2b1;
+    --line: #2a313b; --accent: #5c86f5; --link: #93b0ff; --chip-bg: #232a33;
+    --warn-ink: #e3b76c; --warn-bg: #251e0f; --warn-line: #4a3d1e;
+    --good: #52c98a; --quote-line: #3c4756;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.03rem; line-height: 1.55; margin: 0;
+  }
+  .wrap { max-width: 42.5rem; margin: 0 auto; padding: 2.2rem 1.15rem 3.5rem; }
+  .eyebrow {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(1.9rem, 6vw, 2.5rem); font-weight: 700;
+    letter-spacing: -.015em; line-height: 1.08; text-wrap: balance; margin: 0 0 .7rem;
+  }
+  .dek { font-size: 1.11rem; color: var(--muted); max-width: 34em; margin: 0 0 1.8rem; }
+  h2 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.28rem; font-weight: 700; letter-spacing: -.01em;
+    text-wrap: balance; margin: 2.6rem 0 .8rem;
+  }
+  p { margin: .65rem 0; max-width: 65ch; }
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .mono { font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace; }
+
+  .tldr { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.05rem 1.25rem; margin: 1.6rem 0 0; }
+  .tldr ul { margin: 0; padding-left: 1.1rem; }
+  .tldr li { margin: .45rem 0; }
+  .tldr b { font-weight: 600; }
+
+  /* quote cards: the substance of this note is other people's words */
+  .q { border-left: 3px solid var(--quote-line); padding: .1rem 0 .1rem 1rem; margin: 1.1rem 0; }
+  .q.key { border-left-color: var(--good); }
+  .q p { font-size: .99rem; margin: 0 0 .4rem; }
+  .q b { font-weight: 600; }
+  .who {
+    font-family: "Spline Sans Mono", monospace; font-size: .78rem; color: var(--muted);
+  }
+  .who .yr { opacity: .75; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .5rem .7rem; border-top: 1px solid var(--line); vertical-align: top; }
+  thead th { border-top: 0; font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
+  td.num { text-align: right; font-family: "Spline Sans Mono", monospace; font-size: .84rem; white-space: nowrap; }
+  td:first-child { font-weight: 600; }
+
+  .warncard { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: .9rem 1.1rem; margin: 1.3rem 0; }
+  .warncard .tag { font-family: "Spline Sans Mono", monospace; font-size: .72rem; letter-spacing: .12em; color: var(--warn-ink); font-weight: 500; }
+  .warncard p { font-size: .95rem; margin: .4rem 0 0; }
+
+  .quit { display: grid; gap: .5rem; margin: 1rem 0; }
+  .quit div { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: .6rem .85rem; font-size: .93rem; }
+  .quit .h { font-family: "Spline Sans Mono", monospace; font-size: .8rem; color: var(--muted); display: block; }
+
+  ol.plan { padding-left: 1.25rem; margin: .8rem 0; }
+  ol.plan li { margin: .7rem 0; max-width: 62ch; }
+  ol.plan b { font-weight: 600; }
+
+  .sources { border-top: 1px solid var(--line); margin-top: 2.6rem; padding-top: 1.2rem; }
+  .sources h2 { margin-top: 0; font-size: 1.05rem; }
+  .sources ul { padding-left: 1.1rem; margin: .5rem 0 0; font-size: .84rem; }
+  .sources li { margin: .3rem 0; }
+  .repo-note { font-size: .88rem; color: var(--muted); margin-top: 1.3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">Phonekeeb · researched 2026-08-26</p>
+<h1>What 8pen and 8VIM users actually said</h1>
+<p class="dek">Fifteen years of complaints about this input family, and the one criticism that comes up more than any other is the one you just described.</p>
+
+<div class="tldr">
+  <ul>
+    <li><b>Your problem is the #1 documented complaint.</b> "The letters I D G Z are not related in any way, yet they are all arrived to by first moving up and rotating right" was written in 2010.</li>
+    <li><b>The QWERTY mnemonic is exactly the right fix</b>, and a 2010 commenter named the mechanism precisely when explaining why Swype was easy and 8pen was not.</li>
+    <li><b>Yes, 8VIM users author their own layouts</b> as YAML files, with a spreadsheet generator, a Python generator, an optimizer, and a published collection for a dozen languages.</li>
+    <li><b>Nobody has ever scored a layout for learnability.</b> Every optimizer in both communities scores only the motion between two letters you already know.</li>
+  </ul>
+</div>
+
+<h2>The complaint, stated in 2010</h2>
+
+<p>The sharpest diagnosis came from the launch thread, and it is your problem word for word.</p>
+
+<div class="q key">
+  <p>Swype, Graffiti, and the old fashioned keyboard are more intuitive because they borrow something core about our usage of inputting stuff: how we hand write a character for Graffiti, and everything we know about a QWERTY keyboard layout for Swype. […] Each octant does not have a collection of related things. <b>The letters I D G Z are not related in any way, yet they are all arrived to by first moving up and rotating right.</b></p>
+  <span class="who">charlief <span class="yr">· Hacker News, 2010</span></span>
+</div>
+
+<p>Another commenter named the mechanism that makes a QWERTY-derived layout easy, which is the mechanism <span class="mono">urza-layout</span> borrows.</p>
+
+<div class="q key">
+  <p>The reason Swype is so easy is that you don't really have to look to see where the letters are, it's QWERTY, you already know. You can type blind on it after a tiny amount of use once your brain has mapped out the keyboard size. I imagine you'd be able to use 8pen without looking too, maybe even better after a long while, <b>it would just take you a lot longer to get there.</b></p>
+  <span class="who">mattmaroon <span class="yr">· Hacker News, 2010</span></span>
+</div>
+
+<p>And this is why the learning cost cannot be paid off with on-screen labels, the part with no easy fix.</p>
+
+<div class="q">
+  <p>the keys on a keyboard are labeled, so there is a lower threshold for newbies. Imagine what someone would look like typing on a blank keyboard. Their fingers would seem to be flying around at random. People would be afraid to try learning it. That's what using 8pen is like. <b>And the problem is, there's no way to ever label all the loops and have them be visible.</b></p>
+  <span class="who">artursapek <span class="yr">· Hacker News</span></span>
+</div>
+
+<p>A buyer described the exact failure you have, staring at the screen in the middle of a gesture.</p>
+
+<div class="q">
+  <p>the learning process is heavily hindered by the fact that your thumb obscures at least one or two of the 'branches' during a gesture, which means <b>when you have to visually consult the screen because you have forgotten the unusual spatial model</b> (the direction matters too remember,) your only option is to pivot your thumb without it leaving the screen, and hold your phone at an odd angle so your can peer beneath your digit and decide where it should go next. Not very practical.</p>
+  <span class="who">JonnieCache <span class="yr">· Hacker News, 2010</span></span>
+</div>
+
+<h2>Why people quit</h2>
+
+<p>The 2013 repost is a graveyard of short attempts. Nobody in it reports sticking with 8pen.</p>
+
+<div class="quit">
+  <div><span class="h">drivebyacct2</span>"I tried it for a week or two of heavy frustration."</div>
+  <div><span class="h">phinnaeus</span>"I tried it with an open mind for about a week when it first came out a while ago. That was the end of it for me."</div>
+  <div><span class="h">franklinho</span>"I tried this a while ago and could never get used to it. It asks for too much learning to be widely adopted. (Think dvorak)"</div>
+  <div><span class="h">Tyr42</span>"I tried it for a few weeks. What was a real downside is that the tip of my finger got sorta friction burn from swiping too much."</div>
+  <div><span class="h">mcbridematt</span>"I can type fast enough on a QWERTY layout (even on a touchscreen) that any of these fancier input methods just slow me down and annoy me."</div>
+</div>
+
+<p>The ploum.net review is the most complete firsthand account, and its verdict is blunt: "even when being really fast, I didn't managed to get close to any virtual keyboard. Making loops is slow and cumbersome". Note what that reviewer switched to. MessagEase, learned in minutes, "more than 35WPM in a few weeks".</p>
+
+<h2>The numbers people report</h2>
+
+<p>Only the Quikwriting citation is a controlled study. Treat the rest as indicative.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Source</th><th>Claim</th></tr></thead>
+  <tbody>
+    <tr><td>HN 2010, several</td><td>"1-2 days if you work it"; vowel positions inside 10 minutes</td></tr>
+    <tr><td>Quikwriting research</td><td>4 WPM initially, <b>16 WPM after five hours</b> of practice</td></tr>
+    <tr><td>ploum, 8pen</td><td>never approached a normal virtual keyboard</td></tr>
+    <tr><td>ploum, MessagEase</td><td>35+ WPM in a few weeks</td></tr>
+    <tr><td>8VIM docs</td><td>"over 40 words per minute" once familiar (project claim, not independent)</td></tr>
+    <tr><td>Derisis13, 8VIM, 2024</td><td>one month to plateau, then six months of exclusive use</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>8pen is a variant of Perlin's <b>Quikwriting</b> (1998). This input family has an academic record, and 4 to 16 WPM over five hours is the shape of its learning curve.</p>
+
+<h2>8VIM: what changed, and what did not</h2>
+
+<p>The only long-term firsthand account I found is Derisis13's 2024 review: one month learning, six months exclusive use, then back to OpenBoard to compare.</p>
+
+<div class="q">
+  <p>Neither faster nor more accurate than OpenBoard. […] a party trick.</p>
+  <span class="who">Derisis13 <span class="yr">· 8VIM review, 2024</span></span>
+</div>
+
+<p><b>What worked:</b> navigation gestures, "the best I've experienced", and the clipboard history. Blind typing genuinely delivered, with vibration feedback letting them look away from the screen and stay confident.</p>
+
+<p><b>What did not:</b> symbols and numbers fall back to a numpad, so the blind-typing property breaks exactly where it is most annoying. Capitals need "a full turn (which is longer than typing any character)".</p>
+
+<div class="warncard">
+  <span class="tag">TWO THAT LAND ON US</span>
+  <p>Capitals by extra loop is the mechanism we inherited from 8pen, and it is reported as costing more than a whole letter. Our punctuation is still unbuilt, and punctuation is the thing that broke 8VIM's core value.</p>
+</div>
+
+<h2>Yes, they customize their own layouts</h2>
+
+<p>Your recollection is right, and it goes further than picking from a list.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>What</th><th>Detail</th></tr></thead>
+  <tbody>
+    <tr><td>Layouts are user files</td><td>A YAML file imported via "Select layout file from device". Users define letters, diacritics, characters, even whole sentences.</td></tr>
+    <tr><td>Authoring tools</td><td>A LibreOffice Calc spreadsheet generates the YAML (Discussion #295); a community Python generator also exists.</td></tr>
+    <tr><td>An optimizer</td><td><span class="mono">Glitchy-Tozier/8vim_keyboard_layout_calculator</span> searches arrangements and scores them.</td></tr>
+    <tr><td>A published collection</td><td>Discussion #254: optimized layouts for a dozen languages, plus a German-English hybrid built for daily bilingual use.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>So 8VIM's answer to "which layout" is "whichever you generate". That is the opposite of our fixed single-layout constraint. Worth being deliberate about the difference rather than drifting into it.</p>
+
+<p>One piece of their guidance applies straight to the en+cs constraint:</p>
+
+<div class="q">
+  <p>Do not choose the layout that is highest up in the list without careful consideration […] test out those layouts, and think about which one works best with the other languages you plan to type.</p>
+  <span class="who">Glitchy-Tozier <span class="yr">· 8VIM Discussion #254</span></span>
+</div>
+
+<h2>What they optimize, and the hole in it</h2>
+
+<p>The 8VIM optimizer work is the closest prior art to our own flow analysis, and it converged on the same objective from the same starting point: <b>bigram flow</b>, scored by direction and distance around the wheel, with <b>layer penalties</b> so common letters do not get pushed outward. Discussion #99 reports optimized layouts at about 91% against the original's 81% on their scale.</p>
+
+<p>Do not compare those percentages to our 21%. Their "good bigram" is a broad comfort score; our figure-eight share is the strict <span class="mono">through</span>-plus-<span class="mono">counter</span> case only. Different denominators.</p>
+
+<div class="warncard">
+  <span class="tag">THE HOLE</span>
+  <p>Across the optimizer repo and Discussions #99, #138 and #254, there is <b>no learnability metric, no memorability metric, and no discussion of how a user finds a letter they have not yet memorized</b>. Every scoring function is about the motion between two letters you already know. The one time learnability appears, it appears as an argument against adopting a better layout: "the small speed increase isn't worth of learning the new layout". Both communities optimized the second hour of use and never scored the first.</p>
+</div>
+
+<h2>The counterexample that works</h2>
+
+<p>MessagEase solved the same problem and stayed learnable. Nine large keys in a 3&times;3 grid; the nine most frequent English letters (<span class="mono">ETAONRISH</span>) are plain taps and cover about 71% of typed letters. Everything else is a swipe from the nearest of those nine. Placement uses frequency and digram data tuned with Fitts's law, so <span class="mono">t</span> and <span class="mono">e</span> sit adjacent.</p>
+
+<p>The lesson is not the grid. It is that MessagEase spent its optimization budget on the <b>common</b> case and left the rare case discoverable, so a beginner is never lost, only slow. 8pen made every letter equally opaque. Our layout is closer to MessagEase in spirit, because the QWERTY direction gives a beginner a guess for every letter.</p>
+
+<h2>What this means for phonekeeb</h2>
+
+<ol class="plan">
+  <li><b>Keep the QWERTY direction mapping.</b> It is the direct answer to the most repeated criticism of this entire input family, and you arrived at it independently. mattmaroon's 2010 comment describes the exact mechanism it buys.</li>
+  <li><b>Do not switch to the original 8pen layout for its flow.</b> Its advantage is turn-smoothness, not figure eights, and it draws the fewest eights of the three. Trading a working mnemonic for that is a bad deal.</li>
+  <li><b>Measure the mnemonic.</b> The flow score exists now; the learnability score does not, here or anywhere else in this input family. The raw material is already in the repo: the generator matches slot direction to QWERTY direction, and the tuning log already records angular error per letter ("s is now 58 degrees off, a is 32 degrees off"). Scoring that next to the flow score would let a search optimize both, and would be genuinely new work in this space.</li>
+  <li><b>Build the practice game.</b> 8pen shipped one and ploum called it "very funny and addictive". Palm's Graffiti game made people proficient in a couple of days. <span class="mono">cards.html</span> is the seed already. This is the proven mitigation for "I am totally lost", and it is cheaper than any layout change.</li>
+  <li><b>Watch capitals and punctuation.</b> Both are flagged by 8VIM reviewers, and both are mechanisms we have inherited or not yet built.</li>
+</ol>
+
+<div class="sources">
+<h2>Sources</h2>
+<ul>
+  <li><a href="https://news.ycombinator.com/item?id=1857033">HN 2010 launch, 123 comments</a></li>
+  <li><a href="https://news.ycombinator.com/item?id=5053137">HN 2013 repost, 44 comments</a></li>
+  <li><a href="https://ploum.net/writing-on-a-smartphone-review-of-8pen-and-messagease/index.html">ploum.net, 8pen and MessagEase review</a></li>
+  <li><a href="https://derisis13.github.io/2024/07/26/8vim.html">Derisis13, 8VIM review after 7 months</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/discussions/295">8VIM custom layouts by spreadsheet (#295)</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/discussions/99">8VIM better English layout (#99)</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/discussions/138">8VIM layout calculator discussion (#138)</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/discussions/254">8VIM optimized layout collection (#254)</a></li>
+  <li><a href="https://github.com/Glitchy-Tozier/8vim_keyboard_layout_calculator">Glitchy-Tozier layout optimizer</a></li>
+  <li><a href="https://github.com/sslater11/8vim_keyboard_layout_file_generator">sslater11 layout file generator</a></li>
+  <li><a href="https://8vim.github.io/docs/">8VIM documentation</a></li>
+  <li><a href="http://www.mrl.nyu.edu/perlin/demos/quikwriting.html">Quikwriting (Perlin, 1998), the research ancestor</a></li>
+  <li><a href="https://en.wikipedia.org/wiki/MessagEase">MessagEase</a></li>
+</ul>
+<p class="repo-note">Text twin of <span class="mono">learnability-research.md</span>. Researched 2026-08-26.</p>
+</div>
+
+</div>
+</body>
+</html>

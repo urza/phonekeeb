@@ -40,6 +40,11 @@ that file before design work.
   the repo root are WORD bigrams for the predictor, a different thing.
   Read this before layout tuning, and check any proposed swap with the
   tool.
+- `learnability-research.md` (phone twin: `learnability-research.html`)
+  collects what 8pen and 8VIM users said about learning these
+  keyboards, from HN 2010/2013, reviews, and the 8VIM discussions. Read
+  it before any layout change that would weaken the QWERTY direction
+  mnemonic, and before deciding what to build for beginners.
 - `ios-deployment-research.md` (phone twin: `ios-deployment-research.html`)
   documents the path from web prototype to a real iPhone: sideloading
   without the App Store (free Apple ID, 7-day builds), TestFlight, App
@@ -110,7 +115,11 @@ Confirmed mechanics of the original:
   (qwerty-region, frequency) were removed 2026-08-26.
 - Reported weaknesses: steep learning curve, slow until memorized, no
   haptic feedback for blind typing, the thumb hides part of the screen
-  during a gesture.
+  during a gesture. Researched in depth 2026-08-26, see
+  `learnability-research.md`: the top complaint across fifteen years is
+  that letter placement carries no clue, which is what the QWERTY
+  direction mapping in `urza-layout` fixes. No optimizer in this input
+  family (ours included) has ever scored a layout for learnability.
 
 Sources:
 
