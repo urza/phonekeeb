@@ -11,7 +11,7 @@
      Deliberately NO service worker: freshness comes from the ?v=
      pinning below, and a caching worker would fight it. iOS install
      needs none. -->
-<link rel="manifest" href="manifest.webmanifest?v=22" />
+<link rel="manifest" href="manifest.webmanifest?v=23" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +23,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=22" />
+<link rel="stylesheet" href="style.css?v=23" />
 </head>
 <body>
 <header>
@@ -38,20 +38,29 @@
        half the touch area, and typing happens far more often than
        configuring. -->
   <div id="settings" hidden>
-  <p class="hint">Start in the center circle. Sweep across the lines and
-  come back. The letter's distance from the center tells you how many lines
-  to cross. Letters sit on the side where your sweep starts. A letter's
-  color names the region your sweep returns from. Space: tap the center, or dip out and back without crossing a
-  line. Double-tap the center for a period. One extra full loop makes a
-  capital. Tap an area: right deletes, bottom is enter. Hold right and drag
-  toward the center to delete more; drag back to restore. Hold top and drag
-  sideways to move the caret. Drag from the bottom area: right types ?,
-  up types ! (the center circle counts as up), left types a comma. The
-  corner button copies the text, or only the selected part. Suggestions
-  mix English and Czech, follow the sentence's language, and restore
-  diacritics and apostrophes (tata &#8594; t&#225;ta, dont &#8594; don't). The keyboard
-  learns your words and phrases on this device only; the settings can
-  switch that off or forget everything learned.</p>
+  <!-- Collapsed by default (no `open` attribute) on purpose: the
+       how-to matters in the first sessions only, while the controls
+       below are what settings gets opened for. -->
+  <details class="hint">
+    <summary>How to type</summary>
+    <p>Start in the center circle. Keep your finger on screen and sweep
+    to one of the segments (up, left, down or right). Still keeping your
+    finger down sweep across the lines to neighbouring sector and come
+    back to center. The letter's distance from the center tells you how
+    many lines to cross. Letters sit on the side where your sweep starts.
+    A letter's color names the region your sweep returns from. Space: tap
+    the center, or dip out and back without crossing a line. Double-tap
+    the center for a period. One extra full loop makes a capital. Tap an
+    area: right deletes, bottom is enter. Hold right and drag toward the
+    center to delete more; drag back to restore. Hold top and drag
+    sideways to move the caret. Drag from the bottom area: right types ?,
+    up types ! (the center circle counts as up), left types a comma. The
+    corner button copies the text, or only the selected part. Suggestions
+    mix English and Czech, follow the sentence's language, and restore
+    diacritics and apostrophes (tata &#8594; t&#225;ta, dont &#8594; don't). The keyboard
+    learns your words and phrases on this device only; the settings can
+    switch that off or forget everything learned.</p>
+  </details>
   <div class="controls">
     <label>Layout
       <!-- options are generated from the LAYOUTS registry in layouts.js -->
@@ -111,20 +120,20 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=22",
-    "./layout.js": "./layout.js?v=22",
-    "./layouts.js": "./layouts.js?v=22",
-    "./themes.js": "./themes.js?v=22",
-    "./prediction.js": "./prediction.js?v=22",
-    "./words-en.js": "./words-en.js?v=22",
-    "./words-cs.js": "./words-cs.js?v=22",
-    "./bigrams-en.js": "./bigrams-en.js?v=22",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=22",
-    "./trigrams-en.js": "./trigrams-en.js?v=22",
-    "./trigrams-cs.js": "./trigrams-cs.js?v=22"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=23",
+    "./layout.js": "./layout.js?v=23",
+    "./layouts.js": "./layouts.js?v=23",
+    "./themes.js": "./themes.js?v=23",
+    "./prediction.js": "./prediction.js?v=23",
+    "./words-en.js": "./words-en.js?v=23",
+    "./words-cs.js": "./words-cs.js?v=23",
+    "./bigrams-en.js": "./bigrams-en.js?v=23",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=23",
+    "./trigrams-en.js": "./trigrams-en.js?v=23",
+    "./trigrams-cs.js": "./trigrams-cs.js?v=23"
   }
 }
 </script>
-<script type="module" src="main.js?v=22"></script>
+<script type="module" src="main.js?v=23"></script>
 </body>
 </html>

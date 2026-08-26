@@ -85,7 +85,7 @@ export const LAYOUTS = {
   },
 
   'urza-layout': {
-    label: 'Urza',
+    label: 'urza',
     // The hand-owned layout: this map, right here, is the source of
     // truth. No script regenerates it. Edit it directly, and log
     // every change with its dated reasoning in layout-tuning.md.

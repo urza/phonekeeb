@@ -84,6 +84,14 @@ h1 {
   margin: 0 0 8px;
 }
 
+.hint summary {
+  cursor: pointer;
+}
+
+.hint p {
+  margin: 6px 0 0;
+}
+
 .controls {
   display: flex;
   flex-wrap: wrap;

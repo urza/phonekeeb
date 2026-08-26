@@ -401,6 +401,10 @@ a short alphabet after hand edits.
   hint text and all controls (layout, language, theme, dead zone) sit
   inside the collapsed settings block, so the touch area keeps most of
   a phone screen. The open state is remembered (localStorage).
+- Inside settings, the how-to text sits behind its own collapsible
+  ("How to type", a native details element), closed by default and
+  not remembered. It matters in the first sessions only; open
+  settings usually means reaching for the controls.
 - The typed-text box has a fixed two-line height and scrolls, with the
   newest line kept in view. The suggestion row height is fixed and the
   row sits outside the flex flow. Nothing above the canvas changes
