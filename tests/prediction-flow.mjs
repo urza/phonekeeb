@@ -1,8 +1,10 @@
 // End-to-end check of word prediction: gesture "hel", expect a "hello"
 // suggestion chip, tap it, expect the completed word in the output.
 // Also: next-word chips (empty prefix, bigram context), mid-word and
-// mid-text corrections, and Czech diacritics matching (gesture-typing
-// plain letters must surface accented suggestions).
+// mid-text corrections, Czech diacritics matching (gesture-typing
+// plain letters must surface accented suggestions), and the personal
+// learning loop (accepted words lead the fresh strip; forget and the
+// learn toggle both stop it).
 //
 // Run like tests/hello-flow.mjs (server on :8080, Playwright in ~/pw).
 
@@ -128,6 +130,35 @@ const csChips = await page.evaluate(async () => {
 });
 check('stripDiacritics', csChips.strip === 'rekl', csChips.strip);
 check('cs rek finds accented', csChips.top.some((w) => w.startsWith('řek')), JSON.stringify(csChips.top));
+
+// Personal learning, end to end through the UI. Forget first: the
+// chip taps above already taught the model a few words.
+async function acceptHello() {
+  await drawStrokes(HEL);
+  await page.locator('#suggestions button', { hasText: /^hello$/ }).click();
+  await page.click('#clearText');
+}
+await page.click('#clearText');
+await page.click('#forgetTyping');
+await acceptHello();
+await acceptHello();
+const learned = await page.locator('#suggestions button').allTextContents();
+check('learned start word leads the fresh strip', learned[0] === 'hello',
+  JSON.stringify(learned));
+
+await page.click('#forgetTyping');
+const forgot = await page.locator('#suggestions button').allTextContents();
+check('forget restores the neutral strip', !forgot.includes('hello'),
+  JSON.stringify(forgot));
+
+// With the toggle off, accepted words must not teach the model.
+await page.uncheck('#learnTyping');
+await acceptHello();
+await acceptHello();
+const off = await page.locator('#suggestions button').allTextContents();
+check('learning toggle off learns nothing', !off.includes('hello'),
+  JSON.stringify(off));
+await page.check('#learnTyping');
 
 await page.screenshot({ path: process.env.SHOT ?? '/tmp/prediction-flow.png' });
 await browser.close();

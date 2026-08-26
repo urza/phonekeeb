@@ -224,8 +224,27 @@ weight to the glide targets the language model expects next.
   2018 dump (attribution: opensubtitles.org). One-letter words ("i",
   "a"; Czech a/i/o/u/s/z/v/k) and contractions ("don't", "i'm") are
   real entries.
-- Planned: a personal n-gram model learned from the user's own typing,
-  blended into the same score with high weight; a lazy trigram layer
+- Personal learning (2026-08-26): the keyboard learns the user's own
+  words and word pairs while typing, on this device only
+  (localStorage; UserDefaults on iOS). A word is learned when a
+  separator lands right behind it, one rule for every commit path
+  (space, enter, punctuation, accepted chips); backspaces and delete
+  glides never learn. Each learned word records its previous word,
+  or a start-of-message token when it opens the text or follows a
+  newline, so the model also predicts first words. Scores blend as
+  0.7 x static + 0.3 x personal, with stupid backoff inside the
+  personal store too; the personal share carries no language prior
+  (the user's words are their language). A small store makes
+  personal probabilities large, so a twice-typed phrase already
+  outranks any corpus word. Out-of-vocabulary words enroll as
+  candidates after 2 sightings (before that only the verbatim chip
+  offers them); all counts halve past 50000 learned tokens, so old
+  habits fade and the store stays bounded. Saves are write-behind
+  (every 20th word, plus leaving or hiding the page). Settings:
+  "Learn my typing" (default on, stops future learning only) and
+  "Forget learned words" (immediate, permanent).
+- Planned: seeding the personal model from chat exports
+  (tools/build-personal.py in the research doc); a lazy trigram layer
   if the eval earns its bytes.
 
 ## Layouts and languages, behind flags
@@ -402,6 +421,10 @@ equivalent is UserDefaults. Key, values, default:
 - `phonekeeb.language`: `en` or `cs`, default `en`.
 - `phonekeeb.settingsOpen`: `1`/`0`, default closed.
 - `phonekeeb.sectorColors`: `1`/`0`, default on.
+- `phonekeeb.learn`: `1`/`0`, default on (learn from typing).
+- `phonekeeb.personal`: the personal model's counts as JSON
+  (`{v, uni, bi}`); absent until something is learned, removed by
+  "Forget learned words". Never leaves the device.
 
 Typed text and the caret are not persisted. Every save is wrapped so a
 storage failure (private browsing) never breaks the feature itself.
@@ -464,6 +487,11 @@ Tuned constants, one place to read them all:
 | Stupid backoff | 0.4 x unigram P on a bigram miss |
 | Typo edit penalty | 0.005 per edit, one edit max, prefix of 2+ |
 | Language posterior | window 6 words, decay 0.65, log-odds clamp 2.5, floor 0.05 |
+| Personal blend | 0.3 x personal + 0.7 x static |
+| Personal enrollment | out-of-vocabulary words need 2 sightings |
+| Personal decay | halve all counts past 50000 learned tokens |
+| Personal save | every 20th learned word, plus pagehide/hidden |
+| Learned word length cap | 24 characters |
 | Arm length | 0.44 x min canvas dimension |
 | Wheel anchor | bottom, 12 px margin; right on touch, x-centered with a mouse |
 | South drag targets | E = ?, N = !, W = ,; center circle counts as N |

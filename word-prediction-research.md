@@ -361,6 +361,16 @@ recent-word context; predict() now takes { prev, recent }.
 
 ## Personalization plan (added 2026-08-25)
 
+Status 2026-08-26: Component A (learning while typing) is shipped —
+PersonalModel in prediction.js, learning and controls in main.js,
+locked by tests/personal-unit.mjs and the prediction-flow learning
+loop. Implementation choices against this plan: λ = 0.3 instead of
+0.25 (the user asked for their own phrases to rank very high;
+held-out tuning waits for seeded data), out-of-vocabulary words
+enroll after 2 sightings so one-off typos do not learn themselves,
+and the store uses Maps internally so words like "constructor" stay
+data. Component B (tools/build-personal.py seeding) is still open.
+
 Goal: rank suggestions by how this user actually writes. Two
 components, one model. A script seeds the model from exported chats
 (component B), and the keyboard then updates the same model while

@@ -11,7 +11,7 @@
      Deliberately NO service worker: freshness comes from the ?v=
      pinning below, and a caching worker would fight it. iOS install
      needs none. -->
-<link rel="manifest" href="manifest.webmanifest?v=18" />
+<link rel="manifest" href="manifest.webmanifest?v=19" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +23,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=18" />
+<link rel="stylesheet" href="style.css?v=19" />
 </head>
 <body>
 <header>
@@ -49,7 +49,9 @@
   up types ! (the center circle counts as up), left types a comma. The
   corner button copies the text, or only the selected part. Suggestions
   mix English and Czech, follow the sentence's language, and restore
-  diacritics and apostrophes (tata &#8594; t&#225;ta, dont &#8594; don't).</p>
+  diacritics and apostrophes (tata &#8594; t&#225;ta, dont &#8594; don't). The keyboard
+  learns your words and phrases on this device only; the settings can
+  switch that off or forget everything learned.</p>
   <div class="controls">
     <label>Layout
       <!-- options are generated from the LAYOUTS registry in layouts.js -->
@@ -73,6 +75,12 @@
     <label>Sector colors
       <input type="checkbox" id="sectorColors" checked />
     </label>
+    <!-- The learned words live only in this browser (localStorage);
+         nothing is sent anywhere. -->
+    <label>Learn my typing
+      <input type="checkbox" id="learnTyping" checked />
+    </label>
+    <button id="forgetTyping" type="button">Forget learned words</button>
     <a href="cards.html">Letter cards</a>
   </div>
   </div>
@@ -98,18 +106,18 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=18",
-    "./layout.js": "./layout.js?v=18",
-    "./layouts.js": "./layouts.js?v=18",
-    "./themes.js": "./themes.js?v=18",
-    "./prediction.js": "./prediction.js?v=18",
-    "./words-en.js": "./words-en.js?v=18",
-    "./words-cs.js": "./words-cs.js?v=18",
-    "./bigrams-en.js": "./bigrams-en.js?v=18",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=18"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=19",
+    "./layout.js": "./layout.js?v=19",
+    "./layouts.js": "./layouts.js?v=19",
+    "./themes.js": "./themes.js?v=19",
+    "./prediction.js": "./prediction.js?v=19",
+    "./words-en.js": "./words-en.js?v=19",
+    "./words-cs.js": "./words-cs.js?v=19",
+    "./bigrams-en.js": "./bigrams-en.js?v=19",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=19"
   }
 }
 </script>
-<script type="module" src="main.js?v=18"></script>
+<script type="module" src="main.js?v=19"></script>
 </body>
 </html>

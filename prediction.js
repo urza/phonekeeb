@@ -37,6 +37,111 @@ const LANG_CLAMP = 2.5; // max |log-odds| a single word contributes
 const LANG_FLOOR = 0.05; // no language prior falls below this: a truly
 //                          typed cross-language word must stay reachable
 const OOV_P = 1e-7; // stand-in probability for a word a language lacks
+const PERSONAL_WEIGHT = 0.3; // λ: the personal model's share of the score.
+//   The user's own phrases must rank very high (request 2026-08-26);
+//   a small personal store makes its probabilities large, so 0.3
+//   already lets a twice-typed phrase beat any corpus word.
+const PERSONAL_MIN_COUNT = 2; // sightings before an out-of-vocabulary
+//   word becomes a candidate; below that only the verbatim chip
+//   offers it, so one-off typos do not enroll themselves
+const DECAY_LIMIT = 50000; // learned tokens before all counts halve,
+//   so old habits fade and the store stays bounded
+
+// The head that stands for "start of a message" in the personal
+// bigrams: it predicts first words, where the strip is weakest. Not a
+// typeable character, so it can never collide with a real word.
+export const SENT_START = '\u0001';
+
+// The user's own unigram+bigram counts, learned while typing and
+// persisted by main.js (localStorage; UserDefaults on iOS). Pure and
+// DOM-free like the Predictor; Maps inside so real words such as
+// "constructor" can never collide with object prototypes.
+export class PersonalModel {
+  // data: the toJSON() shape { v: 1, uni: {w: c}, bi: {head: {w: c}} },
+  // or null/invalid for an empty model.
+  constructor(data) {
+    const ok = data && data.v === 1
+      && typeof data.uni === 'object' && typeof data.bi === 'object';
+    this.uni = new Map(ok ? Object.entries(data.uni) : []);
+    this.bi = new Map();
+    if (ok) {
+      for (const [h, succ] of Object.entries(data.bi)) {
+        this.bi.set(h, new Map(Object.entries(succ)));
+      }
+    }
+    this.version = 0; // bumped on every change; the Predictor watches it
+    this.rebuildIndex();
+  }
+
+  rebuildIndex() {
+    this.total = 0;
+    for (const c of this.uni.values()) this.total += c;
+    this.biTotals = new Map();
+    this.headByKey = new Map();
+    for (const [h, succ] of this.bi) {
+      let t = 0;
+      for (const c of succ.values()) t += c;
+      this.biTotals.set(h, t);
+      const k = h === SENT_START ? h : matchKey(h);
+      if (!this.headByKey.has(k)) this.headByKey.set(k, h);
+    }
+  }
+
+  // One committed word. prev: the word before it (null when none),
+  // atStart: the word opens a message/line, learned under SENT_START.
+  learn(word, prev, atStart) {
+    this.uni.set(word, (this.uni.get(word) ?? 0) + 1);
+    this.total += 1;
+    const head = atStart ? SENT_START : prev;
+    if (head) {
+      let succ = this.bi.get(head);
+      if (!succ) this.bi.set(head, (succ = new Map()));
+      succ.set(word, (succ.get(word) ?? 0) + 1);
+      this.biTotals.set(head, (this.biTotals.get(head) ?? 0) + 1);
+      const k = head === SENT_START ? head : matchKey(head);
+      if (!this.headByKey.has(k)) this.headByKey.set(k, head);
+    }
+    if (this.total > DECAY_LIMIT) this.decay();
+    this.version++;
+  }
+
+  // Halve everything, drop what reaches zero: old habits fade and the
+  // store stays bounded (word-prediction-research.md, personalization).
+  decay() {
+    for (const [w, c] of this.uni) {
+      if (c >= 2) this.uni.set(w, c >> 1);
+      else this.uni.delete(w);
+    }
+    for (const [h, succ] of this.bi) {
+      for (const [w, c] of succ) {
+        if (c >= 2) succ.set(w, c >> 1);
+        else succ.delete(w);
+      }
+      if (!succ.size) this.bi.delete(h);
+    }
+    this.rebuildIndex();
+  }
+
+  // Stupid backoff inside the personal store: the start/previous-word
+  // conditional when seen, else BACKOFF times the personal unigram.
+  // prevKey arrives match-key folded; heads index by their fold.
+  prob(word, prevKey, atStart) {
+    if (!this.total) return 0;
+    const head = atStart ? SENT_START : (prevKey ? this.headByKey.get(prevKey) : undefined);
+    if (head !== undefined) {
+      const c = this.bi.get(head)?.get(word);
+      if (c) return c / this.biTotals.get(head);
+    }
+    const u = this.uni.get(word);
+    return u ? BACKOFF * (u / this.total) : 0;
+  }
+
+  toJSON() {
+    const bi = {};
+    for (const [h, succ] of this.bi) bi[h] = Object.fromEntries(succ);
+    return { v: 1, uni: Object.fromEntries(this.uni), bi };
+  }
+}
 
 // Is some prefix of key exactly one edit (substitution, or one char
 // missing or extra in p) away from the typed prefix p? Exact prefixes
@@ -104,6 +209,31 @@ export class Predictor {
       this.langs.push({ id, uniByKey, heads });
     }
     this.entries = [...byWord.values()];
+    this.known = new Set(byWord.keys());
+    this.personal = null;
+    this.personalEntries = [];
+    this.personalVersion = -1;
+  }
+
+  // Attach the user's PersonalModel. Its probabilities blend into
+  // every candidate's score, and its repeated out-of-vocabulary words
+  // become candidates of their own.
+  setPersonal(model) {
+    this.personal = model;
+    this.personalVersion = -1;
+  }
+
+  // Candidate entries for learned words the static tables lack, rebuilt
+  // only when the model changed (at most once per committed word).
+  syncPersonalEntries() {
+    if (!this.personal || this.personal.version === this.personalVersion) return;
+    this.personalVersion = this.personal.version;
+    this.personalEntries = [];
+    for (const [word, count] of this.personal.uni) {
+      if (count >= PERSONAL_MIN_COUNT && !this.known.has(word)) {
+        this.personalEntries.push({ word, key: matchKey(word), p: {} });
+      }
+    }
   }
 
   // P(language | recent words), from unigram log-odds of the last few
@@ -145,36 +275,48 @@ export class Predictor {
   // Top suggestions for a typed prefix. context.prev is the word
   // directly before (empty when punctuation intervenes; it feeds the
   // bigram), context.recent the last words before the prefix, oldest
-  // first (they feed the language posterior). A plain-string context
-  // is accepted as the previous word, the pre-mixed calling shape.
+  // first (they feed the language posterior), context.start true when
+  // the prefix opens a message or line (it feeds the personal model's
+  // SENT_START bigrams). A plain-string context is accepted as the
+  // previous word, the pre-mixed calling shape.
   predict(prefix, limit = 5, context = {}) {
     if (typeof context === 'string') context = { prev: context, recent: [context] };
-    const { prev = '', recent = [] } = context;
+    const { prev = '', recent = [], start = false } = context;
     const p = matchKey(prefix.toLowerCase());
     const prior = this.langPosterior(recent);
     const prevKey = prev ? matchKey(prev.toLowerCase()) : '';
     const succ = this.langs.map((l) => (prevKey ? l.heads.get(prevKey) : undefined));
+    this.syncPersonalEntries();
+    const pers = this.personal?.total ? this.personal : null;
 
     const scored = [];
-    for (const e of this.entries) {
-      let mult = 1;
-      if (!e.key.startsWith(p)) {
-        // Typo hypotheses: one edit inside the prefix, admitted at a
-        // heavy discount. A 1-letter prefix is skipped: within one
-        // edit it would match the whole vocabulary.
-        if (p.length < 2 || !withinOneEditPrefix(e.key, p)) continue;
-        mult = EDIT_PENALTY;
+    for (const list of [this.entries, this.personalEntries]) {
+      for (const e of list) {
+        let mult = 1;
+        if (!e.key.startsWith(p)) {
+          // Typo hypotheses: one edit inside the prefix, admitted at a
+          // heavy discount. A 1-letter prefix is skipped: within one
+          // edit it would match the whole vocabulary.
+          if (p.length < 2 || !withinOneEditPrefix(e.key, p)) continue;
+          mult = EDIT_PENALTY;
+        }
+        let base = 0;
+        for (let j = 0; j < this.langs.length; j++) {
+          const lp = prior[this.langs[j].id];
+          const bi = succ[j]?.get(e.word);
+          // Stupid backoff: the observed conditional when the pair is in
+          // the table, else BACKOFF times the unigram probability.
+          base += lp * (bi ?? BACKOFF * (e.p[this.langs[j].id] ?? 0));
+        }
+        // The personal model blends in language-free: the user's own
+        // words are their language, so no prior scales them down.
+        if (pers) {
+          base = (1 - PERSONAL_WEIGHT) * base
+            + PERSONAL_WEIGHT * pers.prob(e.word, prevKey, start);
+        }
+        const score = mult * base;
+        if (score > 0) scored.push([score, e.word]);
       }
-      let base = 0;
-      for (let j = 0; j < this.langs.length; j++) {
-        const lp = prior[this.langs[j].id];
-        const bi = succ[j]?.get(e.word);
-        // Stupid backoff: the observed conditional when the pair is in
-        // the table, else BACKOFF times the unigram probability.
-        base += lp * (bi ?? BACKOFF * (e.p[this.langs[j].id] ?? 0));
-      }
-      const score = mult * base;
-      if (score > 0) scored.push([score, e.word]);
     }
     scored.sort((a, b) => b[0] - a[0]);
     const out = scored.slice(0, limit).map(([, w]) => w);

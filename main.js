@@ -2,7 +2,7 @@ import { GestureDecoder, angleToSector } from './gesture-decoder.js';
 import { letterAt, validateLayout, SECTORS, DIRECTIONS, FIRST_ARM, landingSector } from './layout.js';
 import { LAYOUTS, buildLayout, DEFAULT_LAYOUT } from './layouts.js';
 import { THEMES, THEME_VARS, DEFAULT_THEME, SECTOR_COLORS } from './themes.js';
-import { Predictor } from './prediction.js';
+import { Predictor, PersonalModel } from './prediction.js';
 import { WORDS as WORDS_EN } from './words-en.js';
 import { WORDS as WORDS_CS } from './words-cs.js';
 import { BIGRAMS as BIGRAMS_EN } from './bigrams-en.js';
@@ -19,6 +19,8 @@ const themeEl = document.getElementById('theme');
 const sectorColorsEl = document.getElementById('sectorColors');
 const clearButton = document.getElementById('clearText');
 const copyButton = document.getElementById('copyText');
+const learnTypingEl = document.getElementById('learnTyping');
+const forgetTypingEl = document.getElementById('forgetTyping');
 const settingsEl = document.getElementById('settings');
 const settingsToggle = document.getElementById('settingsToggle');
 
@@ -31,6 +33,53 @@ const predictor = new Predictor([
   { id: 'en', words: WORDS_EN, bigrams: BIGRAMS_EN },
   { id: 'cs', words: WORDS_CS, bigrams: BIGRAMS_CS },
 ]);
+
+// The personal model: the user's own unigram+bigram counts, learned
+// while typing (word-prediction-research.md, "Personalization plan").
+// Local to this browser only; the store never reaches the repo or any
+// server. A broken or absent store degrades to an empty model.
+const PERSONAL_KEY = 'phonekeeb.personal';
+const LEARN_KEY = 'phonekeeb.learn';
+let personal;
+try {
+  personal = new PersonalModel(JSON.parse(localStorage.getItem(PERSONAL_KEY) ?? 'null'));
+} catch {
+  personal = new PersonalModel(null);
+}
+predictor.setPersonal(personal);
+let learnEnabled = true;
+try { learnEnabled = localStorage.getItem(LEARN_KEY) !== '0'; } catch {}
+
+// Write-behind: saving on every committed word would serialize the
+// whole store per word; every 20th learn (plus leaving the page) is
+// plenty for a convenience model.
+let personalDirty = 0;
+function savePersonal() {
+  personalDirty = 0;
+  try { localStorage.setItem(PERSONAL_KEY, JSON.stringify(personal)); } catch {}
+}
+window.addEventListener('pagehide', () => { if (personalDirty) savePersonal(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && personalDirty) savePersonal();
+});
+
+// A word is learned when a separator lands right behind it: the text
+// before the caret ends in word-then-one-non-word-character. Derived
+// from the text like syncCurrentWord, so every commit path (space,
+// enter, punctuation drags and slots, chip taps) funnels through one
+// rule, and backspaces or glides never learn anything.
+function maybeLearnCommittedWord() {
+  if (!learnEnabled) return;
+  const before = typedText.slice(0, caret);
+  const m = before.match(/([\p{L}'’]+)[^\p{L}'’]$/u);
+  if (!m || m[1].length > 24) return;
+  const rest = before.slice(0, -m[1].length - 1);
+  const prev = rest.match(/([\p{L}'’]+) *$/u)?.[1]?.toLowerCase() ?? null;
+  const atStart = /(?:^|\n)\s*$/.test(rest);
+  personal.learn(m[1].toLowerCase(), prev, atStart);
+  personalDirty++;
+  if (personalDirty >= 20) savePersonal();
+}
 
 // The build number this script was loaded under, taken from the ?v=
 // query that index.html pins on every asset. Shown in the HUD so a
@@ -278,6 +327,7 @@ function commitGesture(commit) {
     if (letter) insertAtCaret(letter);
     lastSpaceTapAt = 0;
   }
+  maybeLearnCommittedWord();
   syncCurrentWord();
   renderSuggestions();
 }
@@ -296,7 +346,10 @@ function renderSuggestions() {
   const before = typedText.slice(0, caret - currentWord.length);
   const prev = before.match(/([\p{L}'’]+) *$/u)?.[1] ?? '';
   const recent = before.match(/[\p{L}'’]+/gu)?.slice(-8) ?? [];
-  const words = predictor.predict(currentWord, 5, { prev, recent });
+  // Start of a message or line: the personal model's SENT_START
+  // bigrams predict first words there.
+  const start = /(?:^|\n)\s*$/.test(before);
+  const words = predictor.predict(currentWord, 5, { prev, recent, start });
   // DOM building, not innerHTML: the verbatim chip echoes typed text,
   // and the future personal dictionary echoes learned text.
   suggestionsEl.replaceChildren(...words.map((w) => {
@@ -343,6 +396,9 @@ suggestionsEl.addEventListener('click', (e) => {
   const addSpace = rest === '';
   typedText = typedText.slice(0, start) + word + (addSpace ? ' ' : '') + rest;
   caret = start + word.length + (addSpace || rest.startsWith(' ') ? 1 : 0);
+  // An accepted chip is a committed word too (the caret sits right
+  // after the word's separator when one exists).
+  maybeLearnCommittedWord();
   syncCurrentWord();
   renderSuggestions();
   renderOutput();
@@ -711,6 +767,22 @@ layoutModeEl.addEventListener('change', () => {
 languageEl.addEventListener('change', () => {
   rebuildLayout();
   try { localStorage.setItem(LANG_KEY, languageEl.value); } catch {}
+});
+
+// Personal-learning controls. The toggle stops future learning but
+// keeps what is learned; the button forgets everything, immediately
+// and permanently (it is the user's data to destroy).
+learnTypingEl.checked = learnEnabled;
+learnTypingEl.addEventListener('change', () => {
+  learnEnabled = learnTypingEl.checked;
+  try { localStorage.setItem(LEARN_KEY, learnEnabled ? '1' : '0'); } catch {}
+});
+forgetTypingEl.addEventListener('click', () => {
+  personal = new PersonalModel(null);
+  predictor.setPersonal(personal);
+  personalDirty = 0;
+  try { localStorage.removeItem(PERSONAL_KEY); } catch {}
+  renderSuggestions();
 });
 
 // Sector colors default to on: they are a learning aid and the page is
