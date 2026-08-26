@@ -108,8 +108,10 @@ async function eachLine(file, onLine) {
 // { prev, prev2, recent, target } from held-out lines only, builder
 // adjacency rules. recent = the in-vocabulary words of the line before
 // the target (language posterior); prev2 = the word before prev when
-// the run is unbroken (trigram context).
-async function collectPairs(file, vocab) {
+// the run is unbroken (trigram context). cov (optional): token
+// coverage counters { core: Set, counts: {core, full, total} },
+// incremented for every structurally valid token.
+async function collectPairs(file, vocab, cov = null) {
   const pairs = [];
   let index = -1;
   await eachLine(file, (raw) => {
@@ -125,6 +127,11 @@ async function collectPairs(file, vocab) {
       if (!wt) continue;
       if (JUNK.test(wt)) { prev = null; prev2 = null; continue; }
       const { tok, trail } = stripEdges(wt);
+      if (cov && tok) {
+        cov.counts.total++;
+        if (vocab.has(tok)) cov.counts.full++;
+        if (cov.core.has(tok)) cov.counts.core++;
+      }
       if (!vocab.has(tok)) { prev = null; prev2 = null; continue; }
       if (prev !== null) {
         pairs.push({ prev, prev2: prev2 ?? '', recent: seen.slice(-RECENT), target: tok });
@@ -206,11 +213,13 @@ function evalPairs(label, predictor, pairs) {
 const langs = process.argv[2] ? [process.argv[2]] : ['en', 'cs'];
 const sources = {};
 const pairsByLang = {};
+const vocabByLang = {};
 for (const lang of langs) {
   const { WORDS } = await import(`../words-${lang}.js`);
   const { BIGRAMS } = await import(`../bigrams-${lang}.js`);
   sources[lang] = { id: lang, words: WORDS, bigrams: BIGRAMS };
   const vocab = new Set(WORDS.map(([w]) => w));
+  vocabByLang[lang] = vocab;
   const all = await collectPairs(ensureDump(lang), vocab);
   pairsByLang[lang] = subsample(all);
   console.log(`${lang}: ${pairsByLang[lang].length} eval pairs, sampled evenly `
@@ -250,5 +259,36 @@ if (TRI) {
     evalPairs(`${lang}+tri`,
       new Predictor([{ ...sources[lang], trigrams: TRI[lang] }]),
       pairsByLang[lang]);
+  }
+}
+
+// Extension-vocabulary rows, only when words-ext-*.js exist. Two views
+// per language: the old core-vocab pairs (does the bigger candidate
+// pool displace core hits?) and a fresh full-vocab pair collection
+// (the new regime: tail words become predictable at all). The coverage
+// line is the headline: what share of structurally valid held-out
+// tokens each tier can represent.
+let EXT = {};
+try {
+  for (const lang of langs) {
+    EXT[lang] = (await import(`../words-ext-${lang}.js`)).WORDS_EXT;
+  }
+} catch {
+  EXT = null;
+}
+if (TRI && EXT) {
+  const label = langs.length > 1 ? 'mixed-' : '';
+  const extPredictor = new Predictor(
+    langs.map((l) => ({ ...sources[l], trigrams: TRI[l] })));
+  for (const lang of langs) extPredictor.addWords(lang, EXT[lang]);
+  for (const lang of langs) {
+    evalPairs(`${label}${lang}+tri+ext (core pairs)`, extPredictor, pairsByLang[lang]);
+    const vocabFull = new Set([...vocabByLang[lang], ...EXT[lang].map(([w]) => w)]);
+    const cov = { core: vocabByLang[lang], counts: { core: 0, full: 0, total: 0 } };
+    const allFull = await collectPairs(ensureDump(lang), vocabFull, cov);
+    evalPairs(`${label}${lang}+tri+ext (full-vocab pairs)`, extPredictor, subsample(allFull));
+    const { core, full, total } = cov.counts;
+    console.log(`  ${lang} token coverage: core ${pct(core, total).trim()}, `
+      + `core+ext ${pct(full, total).trim()} of ${total} held-out tokens`);
   }
 }

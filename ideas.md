@@ -161,3 +161,18 @@ if one exists, otherwise the whole text. Symbols, emoji, and the
 numberpad stay open. The same day added South punctuation drags
 (S to E = ?, S to N = !, S to W = comma), the first gesture
 punctuation the double-space note above pointed toward.*
+
+### Harper for grammar and dictionaries
+> for english could we use harper? its opensource and its engine for
+> fixing typos so it must have all the english words.. we could just
+> download it and use the words for our needs. And maybe we can also
+> integrate harper itself later for grammar check.
+
+*Note (2026-08-26): the extension vocabulary shipped with aspell as
+the tail filter instead: it was already installed and expands affixed
+forms with a built-in command, while Harper's dictionary.dict is
+affix-compressed and needs Harper's own expansion logic. Harper stays
+interesting for the native phase: the Rust core is portable to iOS,
+and a grammar layer is beyond anything the n-gram tables can give. If
+aspell rejects too many real words, a Harper union filter is the
+first upgrade to try.*

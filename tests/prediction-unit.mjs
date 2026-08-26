@@ -90,4 +90,34 @@ tp.clearTrigrams();
 check('clearTrigrams reverts to bigrams',
   tp.predict('', 3, { prev: 'alpha', prev2: 'zero' })[0] === 'beta');
 
+// Extension tier, synthetic: ext words are completion candidates but
+// never typo hypotheses, and re-adding a core word does not duplicate.
+const xp = new Predictor([{ id: 'xx', words: [['alpha', 100], ['beta', 90]], bigrams: {} }]);
+xp.addWords('xx', [['alphorn', 5], ['alpha', 50]]);
+check('ext word completes by prefix',
+  xp.predict('alph', 3).includes('alphorn'), JSON.stringify(xp.predict('alph', 3)));
+check('ext word skipped by the typo scan',
+  !xp.predict('slpho', 5).includes('alphorn'), JSON.stringify(xp.predict('slpho', 5)));
+check('re-added core word stays single',
+  xp.entries.filter((e) => e.word === 'alpha').length === 1);
+
+// Extension tier, real tables: the prediction-game coverage misses
+// (prediction-game-analysis.md, cause A) must stay fixed.
+const { WORDS_EXT: XEN } = await import('../words-ext-en.js');
+const { WORDS_EXT: XCS } = await import('../words-ext-cs.js');
+p.addWords('en', XEN);
+p.addWords('cs', XCS);
+const delib = p.predict('deliberat', 5);
+check('ext en: deliberat completes to deliberately',
+  delib.includes('deliberately'), JSON.stringify(delib));
+const smoo = p.predict('smoo', 5);
+check('ext en: smoo completes to smooth', smoo.includes('smooth'), JSON.stringify(smoo));
+// Reachability, not rank: the core zaplat* inflection cluster fills a
+// 5-wide strip, so zaplavat sits ~rank 12 today. Lifting it needs the
+// ranking fix (prediction-game-analysis.md, cause C), not vocabulary.
+const zapla = p.predict('zapla', 20,
+  { prev: 'a', prev2: 'vykoupat', recent: ['se', 'šla', 'vykoupat', 'a'] });
+check('ext cs: zapla reaches zaplavat',
+  zapla.includes('zaplavat'), JSON.stringify(zapla));
+
 process.exit(failures ? 1 : 0);

@@ -1,8 +1,11 @@
 // Scored word prediction over static frequency tables: the design in
 // word-prediction-research.md ("Scored prediction design"). Candidates
 // come from a linear scan of the merged vocabulary against the typed
-// prefix (microseconds for ~6000 words, so no trie); their rank comes
-// from a stupid-backoff score (Brants 2007), not from list order.
+// prefix (microseconds for the ~6000 core words, so no trie); their
+// rank comes from a stupid-backoff score (Brants 2007), not from list
+// order. The extension tier (addWords) grows the scan tenfold, but ext
+// entries take only the cheap startsWith test: the expensive one-edit
+// branch stays core-only.
 //
 // The model is mixed-language by construction: one Predictor holds
 // every language's table at once and there is no language switch,
@@ -195,6 +198,8 @@ export class Predictor {
     this.langs = [];
     const byWord = new Map(); // one entry per display word across languages
     for (const { id, words, bigrams = {}, trigrams = null } of sources) {
+      // The core list's count sum is the probability denominator for
+      // both tiers: ext counts arrive rescaled to this scale.
       const sum = words.reduce((a, [, c]) => a + c, 0);
       const uniByKey = new Map(); // best P per match key, language evidence
       for (const [word, count] of words) {
@@ -214,10 +219,11 @@ export class Predictor {
         const k = matchKey(head);
         if (!heads.has(k)) heads.set(k, decodeSuccessors(packed));
       }
-      const lang = { id, uniByKey, heads, heads2: new Map() };
+      const lang = { id, sum, uniByKey, heads, heads2: new Map() };
       this.langs.push(lang);
       if (trigrams) this.setTrigrams(id, trigrams);
     }
+    this.byWord = byWord;
     this.entries = [...byWord.values()];
     this.known = new Set(byWord.keys());
     this.personal = null;
@@ -237,6 +243,33 @@ export class Predictor {
       const k = `${matchKey(ctx.slice(0, cut))} ${matchKey(ctx.slice(cut + 1))}`;
       if (!lang.heads2.has(k)) lang.heads2.set(k, decodeSuccessors(packed));
     }
+  }
+
+  // Attach a language's extension vocabulary (words-ext-*.js): tail
+  // words with unigram counts only, lazy-loaded after first paint.
+  // Counts arrive rescaled to the core list's corpus scale, so the
+  // core sum stays the denominator. Ext entries are completion
+  // candidates only; the typo scan skips them (a one-edit jump to a
+  // rare tail word is nearly always wrong, and the edit check is the
+  // expensive branch of the per-keystroke scan).
+  addWords(id, words) {
+    const lang = this.langs.find((l) => l.id === id);
+    if (!lang) return;
+    for (const [word, count] of words) {
+      const p = count / lang.sum;
+      const key = matchKey(word);
+      if (!lang.uniByKey.has(key)) lang.uniByKey.set(key, p);
+      let e = this.byWord.get(word);
+      if (!e) {
+        this.byWord.set(word, (e = { word, key, p: {}, ext: true }));
+        this.entries.push(e);
+        this.known.add(word);
+      }
+      if (!(id in e.p)) e.p[id] = p;
+    }
+    // Words the personal model enrolled may now be known: rebuild its
+    // candidate entries so the scan never holds a word twice.
+    this.personalVersion = -1;
   }
 
   // Drop all trigram tables (the data-saving toggle): predictions
@@ -330,8 +363,9 @@ export class Predictor {
         if (!e.key.startsWith(p)) {
           // Typo hypotheses: one edit inside the prefix, admitted at a
           // heavy discount. A 1-letter prefix is skipped: within one
-          // edit it would match the whole vocabulary.
-          if (p.length < 2 || !withinOneEditPrefix(e.key, p)) continue;
+          // edit it would match the whole vocabulary. Ext entries are
+          // skipped too (see addWords).
+          if (p.length < 2 || e.ext || !withinOneEditPrefix(e.key, p)) continue;
           mult = EDIT_PENALTY;
         }
         let base = 0;

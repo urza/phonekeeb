@@ -767,6 +767,26 @@ layoutModeEl.addEventListener('change', () => {
 // paint (typing works on bigrams meanwhile) and hide behind a
 // data-saving toggle. The body marker lets tests and the curious see
 // when the tables are live.
+// Extension vocabularies: unigram-only tail words (top 20k en / 40k cs
+// combined tiers, ~0.9 MB raw), lazy like the trigrams so first paint
+// types on the core tables. Not behind the data toggle: coverage is
+// core behavior, not an extra. The body marker mirrors data-trigrams.
+async function loadExtWords() {
+  if (document.body.dataset.extWords === '1') return;
+  try {
+    const [en, cs] = await Promise.all([
+      import('./words-ext-en.js'),
+      import('./words-ext-cs.js'),
+    ]);
+    predictor.addWords('en', en.WORDS_EXT);
+    predictor.addWords('cs', cs.WORDS_EXT);
+  } catch {
+    return; // offline with an old cache: the core vocabulary keeps working
+  }
+  document.body.dataset.extWords = '1';
+  renderSuggestions();
+}
+
 const TRIGRAMS_KEY = 'phonekeeb.trigrams';
 let trigramsEnabled = true;
 try { trigramsEnabled = localStorage.getItem(TRIGRAMS_KEY) !== '0'; } catch {}
@@ -931,3 +951,4 @@ forceReloadEl.addEventListener('click', async () => {
   location.reload();
 });
 loadTrigrams(); // after first paint: the big tables must not delay typing
+loadExtWords();

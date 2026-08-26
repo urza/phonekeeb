@@ -14,6 +14,8 @@ import { BIGRAMS as BEN } from '../bigrams-en.js';
 import { BIGRAMS as BCS } from '../bigrams-cs.js';
 import { TRIGRAMS as TEN } from '../trigrams-en.js';
 import { TRIGRAMS as TCS } from '../trigrams-cs.js';
+import { WORDS_EXT as XEN } from '../words-ext-en.js';
+import { WORDS_EXT as XCS } from '../words-ext-cs.js';
 
 // mode: 'complete' = the last token is a prefix still being typed;
 // 'next' = the last token is committed, the strip predicts the next
@@ -37,8 +39,10 @@ const predictor = new Predictor([
   { id: 'en', words: WEN, bigrams: BEN, trigrams: TEN },
   { id: 'cs', words: WCS, bigrams: BCS, trigrams: TCS },
 ]);
+predictor.addWords('en', XEN);
+predictor.addWords('cs', XCS);
 
-const vocab = new Set([...WEN, ...WCS].map(([w]) => w));
+const vocab = new Set([...WEN, ...WCS, ...XEN, ...XCS].map(([w]) => w));
 
 let hits = 0;
 for (const c of CASES) {

@@ -100,6 +100,26 @@ Rule for all of them: `tools/eval-prediction.mjs` numbers decide, and
    shipped. Optionally revisit trigram pruning thresholds later;
    do not chase set phrases in static tables.
 
+## Update 2026-08-26: fix 1 shipped (extension vocabulary)
+
+`words-ext-en.js` / `words-ext-cs.js` close cause A (design and full
+numbers: word-prediction-research.md, "Extension vocabulary
+shipped"). Replay went from 3/11 to 5/11.
+
+- Case 8 (deliberately) and case 11 (smooth): now hit at rank 1.
+- Case 9 (zaplavat): reachable at rank 12, but the core zaplat*
+  inflection cluster fills the strip. Reclassified from cause A to
+  cause C.
+- Token coverage: en 89.4% to 96.6%, cs 74.7% to 91.0%.
+- Core-pair eval rows moved at most 0.1pp: the bigger candidate pool
+  displaces nothing.
+- smoothie stayed out (below rank 20000 in the corpus). The
+  EXT_TOTAL knob or a more modern corpus would admit it; not worth a
+  change alone.
+
+Next up: fix 2 (typo slot cap, cause B) and fix 3 (backed-off giant
+discount, cause C, which now owns cases 1, 7, 9, 10).
+
 ## Notes
 
 - The game mixes two strip modes (completion vs. next word) and the

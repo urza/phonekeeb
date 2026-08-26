@@ -11,7 +11,7 @@
      sw.js caches one pinned build for offline use; freshness still
      comes from the ?v= pinning below (the worker fetches navigations
      network-first and never mixes two builds). -->
-<link rel="manifest" href="manifest.webmanifest?v=26" />
+<link rel="manifest" href="manifest.webmanifest?v=27" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -24,7 +24,7 @@
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file, in cards.html, and the BUILD constant
      in sw.js together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=26" />
+<link rel="stylesheet" href="style.css?v=27" />
 </head>
 <body>
 <header>
@@ -116,20 +116,22 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=26",
-    "./layout.js": "./layout.js?v=26",
-    "./layouts.js": "./layouts.js?v=26",
-    "./themes.js": "./themes.js?v=26",
-    "./prediction.js": "./prediction.js?v=26",
-    "./words-en.js": "./words-en.js?v=26",
-    "./words-cs.js": "./words-cs.js?v=26",
-    "./bigrams-en.js": "./bigrams-en.js?v=26",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=26",
-    "./trigrams-en.js": "./trigrams-en.js?v=26",
-    "./trigrams-cs.js": "./trigrams-cs.js?v=26"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=27",
+    "./layout.js": "./layout.js?v=27",
+    "./layouts.js": "./layouts.js?v=27",
+    "./themes.js": "./themes.js?v=27",
+    "./prediction.js": "./prediction.js?v=27",
+    "./words-en.js": "./words-en.js?v=27",
+    "./words-cs.js": "./words-cs.js?v=27",
+    "./bigrams-en.js": "./bigrams-en.js?v=27",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=27",
+    "./trigrams-en.js": "./trigrams-en.js?v=27",
+    "./trigrams-cs.js": "./trigrams-cs.js?v=27",
+    "./words-ext-en.js": "./words-ext-en.js?v=27",
+    "./words-ext-cs.js": "./words-ext-cs.js?v=27"
   }
 }
 </script>
-<script type="module" src="main.js?v=26"></script>
+<script type="module" src="main.js?v=27"></script>
 </body>
 </html>

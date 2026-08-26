@@ -191,6 +191,23 @@ weight to the glide targets the language model expects next.
   contexts seen 200+ times with top 4 successors seen 6+ times: the
   eval measured ~70% of the full tables' gain at a quarter of their
   bytes.
+- Extension vocabulary (2026-08-26): `words-ext-en.js` /
+  `words-ext-cs.js` grow the candidate pool past the core top-3000
+  lists, to 20000 combined English and 40000 combined Czech forms
+  (Czech inflection spreads one lemma over many forms, so it gets
+  more). Built by `tools/build-wordlists.py` ext mode from a 400 MiB
+  corpus prefix; a tail word must be in the aspell dictionary for its
+  language (clitic bases accepted: driver's, this'll), which removes
+  the transcription junk and misspellings that flood deep subtitle
+  ranks. Counts are rescaled to the core corpus scale, so the core
+  sum stays the one probability denominator. Ext words are unigram
+  completion candidates only: never typo hypotheses (a one-edit jump
+  to a rare tail word is nearly always wrong, and skipping the edit
+  check keeps the 10x bigger scan cheap), never n-gram heads or
+  successors. The ~0.9 MB raw lazy-loads after first paint like the
+  trigrams (body marker `data-ext-words`) but not behind the data
+  toggle: coverage is core behavior. Fixes the prediction game's
+  pure-coverage misses (deliberately, zaplavat, smooth).
 - Diacritics and apostrophe restoration: matching runs on stripped
   keys, so "rek" suggests "řekl" and a fully typed "tata" offers
   "táta"; likewise "its" offers "it's" and "dont" offers "don't" (the
@@ -520,7 +537,8 @@ Tuned constants, one place to read them all:
 | Trigram contexts | count >= 200; top 4 successors, triple count >= 6 |
 | N-gram count quantization | code = round(ln(count) x 8); decode exp(code/8) |
 | Stupid backoff | 0.4 x unigram P on a bigram miss |
-| Typo edit penalty | 0.005 per edit, one edit max, prefix of 2+ |
+| Typo edit penalty | 0.005 per edit, one edit max, prefix of 2+, core words only |
+| Extension vocabulary | to 20000 en / 40000 cs combined forms; tail must pass aspell; counts rescaled to core scale |
 | Language posterior | window 6 words, decay 0.65, log-odds clamp 2.5, floor 0.05 |
 | Personal blend | 0.3 x personal + 0.7 x static |
 | Personal enrollment | out-of-vocabulary words need 2 sightings |

@@ -393,6 +393,66 @@ Quantization ties are the designed imprecision: "co se" holds děje
 and stalo at the same code, so their mutual order is arbitrary
 (~13% count steps; the flow test asserts top-2, not first place).
 
+## Extension vocabulary shipped (2026-08-26)
+
+The improvement list from the prediction game (see
+prediction-game-analysis.md) put coverage first: deliberately,
+zaplavat, and smooth were simply absent from the top-3000 lists.
+words-ext-en.js / words-ext-cs.js extend the vocabulary to 20000 en /
+40000 cs combined forms; Czech gets more because its inflection
+spreads one lemma over many forms.
+
+Design (tools/build-wordlists.py ext mode):
+
+- Counted from a 400 MiB corpus prefix per language (~5x the core's
+  80 MiB: the top 3000 is stable from 50M tokens, the tail is not).
+- The core lists and every n-gram table stay byte-identical: ext
+  words are unigram-only, never heads or successors.
+- A tail word must be in its language's aspell dictionary
+  (dump master | expand, lowercased). Deep subtitle ranks are full
+  of transcription junk (iike, ofthe, we'ii) and misspellings;
+  frequency alone stops being evidence of wordhood there. Fallbacks:
+  en accepts clitic bases (driver's, this'll); cs accepts colloquial
+  endings rewritten to standard (-uju -> -uji: gratuluju; -ej -> -ý:
+  novej), because phone typing is colloquial and aspell cs is
+  standard Czech only.
+- Counts are rescaled by the ratio of the core words' counts in the
+  big corpus to the shipped core counts (factor 4.96 en / 5.28 cs),
+  so the predictor keeps the core sum as the one probability
+  denominator for both tiers.
+- Predictor.addWords() joins ext entries into the scan as completion
+  candidates only. The typo (one-edit) branch skips them: a one-edit
+  jump to a rare tail word is nearly always wrong, and skipping the
+  expensive edit check keeps the 10x bigger scan cheap. The lists
+  (93 KB en + 208 KB cs gzipped) lazy-load after first paint like
+  the trigrams, not behind the data toggle.
+
+Measured (80 MB held-out slice, strip of 5):
+
+| | EN | CS |
+|---|---|---|
+| token coverage, core | 89.4% | 74.7% |
+| token coverage, core+ext | 96.6% | 91.0% |
+
+Displacement on the old core-vocab eval pairs is 0 to 0.1pp in every
+mode (mixed+tri vs mixed+tri+ext): the added candidates cost the core
+predictions nothing. On full-vocab pairs (tail targets now allowed
+in) the rates read lower by construction, because the new targets are
+rare words without n-gram support. These rows are the new baseline
+for future model changes (hit@1 / hit@3):
+
+| Mode | EN mixed+tri+ext | CS mixed+tri+ext |
+|---|---|---|
+| next-word | 18.1 / 31.3 | 14.2 / 24.1 |
+| prefix-2 | 56.1 / 69.5 | 43.8 / 56.0 |
+| typo-2 | 29.9 / 44.5 | 22.2 / 32.5 |
+
+Game replay: 3/11 to 5/11 (deliberat and smoo hit at rank 1). zapla
+still misses at strip width 5: zaplavat is reachable at rank 12, but
+the core zaplat* inflection cluster outranks it. That case moved from
+the coverage bucket to the ranking bucket (cause C in
+prediction-game-analysis.md).
+
 ## Personalization plan (added 2026-08-25)
 
 Status 2026-08-26: Component A (learning while typing) is shipped —
