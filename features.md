@@ -65,8 +65,8 @@ research live in `gesture-keyboard-handoff.md`; sources are listed in
 
 A stationary press-and-release out in a sector. "Stationary" means the
 lift point is less than 18 px from the press point; at 18 px or more
-the press becomes a hold-glide (next section) or, in an unassigned
-sector, silence:
+the press becomes a hold-glide or a South punctuation drag (next two
+sections) or, in an unassigned sector, silence:
 
 - Right (E): backspace.
 - Bottom (S): enter.
@@ -75,6 +75,29 @@ sector, silence:
 
 The E and S taps follow the 8VIM successor project's assignment. The
 original 8pen had no function taps.
+
+## South punctuation drags
+
+A press out in the S sector that slides into another region and lifts
+there types one punctuation mark (user request 2026-08-26):
+
+- S to E: question mark (?).
+- S to N: exclamation mark (!).
+- S to W: comma (,).
+
+Only the press point and the lift point matter; the path between them
+does not. The N target is deliberately generous: a lift anywhere
+inside the center circle also counts as N, so "!" does not demand a
+drag all the way through to the top. The drag activates at the same
+18 px threshold that ends tap eligibility; below it the press is the
+S function tap (enter). A drag that lifts back in the S sector stays
+silent and reserved.
+
+Mechanically, the decoder commits `{ type: 'drag', from, to }` for any
+outside-start press that moves 18 px or more and lifts in a different
+region (`to` is a sector or `C` for the center circle). main.js maps
+only S starts to characters; E and N starts already act live as
+hold-glides, and W starts stay reserved.
 
 ## Hold-glides (press out in a sector, then drag)
 
@@ -95,7 +118,8 @@ both glides measure horizontal travel only, one character per 14 px:
   the text, relative to its position at press time, clamped to the
   text ends. The caret is a blinking bar in the output box, and
   letters, spaces, deletes, and suggestions all apply at the caret.
-- Bottom (S) and left (W) drags stay silent and reserved.
+- Bottom (S) drags type punctuation on lift (previous section); left
+  (W) drags stay silent and reserved.
 
 ## Live glide preview
 
@@ -118,7 +142,7 @@ While a stroke is active:
   first crossing fixes the direction, then only the matching one).
 - The finger trail fades from its tail over about 0.7 seconds, so a
   long continuous stroke shows only the recent motion. Green over the
-  center, blue in the sectors, gray for ignored outside-start drags.
+  center, blue in the sectors, gray for outside-start drags.
 - Preview letters show true case: lowercase normally, uppercase under
   the capital loop.
 
@@ -289,17 +313,28 @@ a short alphabet after hand edits.
 
 ## Phone-keyboard page layout
 
-- Top to bottom: compact header, typed text, suggestion row, canvas.
-  The canvas fills the rest of the screen down to the bottom edge,
-  where a phone keyboard sits.
+- Top to bottom: compact header, typed text, canvas. The canvas fills
+  the rest of the screen down to the bottom edge, where a phone
+  keyboard sits.
+- The suggestion row is an absolute overlay on the canvas, parked with
+  its bottom edge 4 px above the wheel rim, so the chips sit in thumb
+  reach (user request 2026-08-26). Empty parts of the strip pass
+  presses through to the canvas; only the chips catch taps. On a short
+  canvas the row clamps so it cannot cover the typed-text box.
+- A copy button sits fixed in the bottom-right corner (48 x 40 px,
+  12 px inset plus the safe-area inset), in the pocket the wheel disk
+  leaves free. It copies the finger-selected text if a selection
+  exists, otherwise the whole text, and flashes a check mark in the
+  trail accent for 0.9 s. With nothing to copy it does nothing. The
+  selection is read at pointer down, before the click can collapse it.
 - The top bar holds only the name, Clear, and a Settings toggle. The
   hint text and all controls (layout, language, theme, dead zone) sit
   inside the collapsed settings block, so the touch area keeps most of
   a phone screen. The open state is remembered (localStorage).
 - The typed-text box has a fixed two-line height and scrolls, with the
-  newest line kept in view. The suggestion row height is fixed too.
-  Nothing above the canvas changes size mid-gesture, so the decoder
-  center stays under the finger.
+  newest line kept in view. The suggestion row height is fixed and the
+  row sits outside the flex flow. Nothing above the canvas changes
+  size mid-gesture, so the decoder center stays under the finger.
 - The wheel anchors to the bottom of the canvas, 12 px margin. On a
   touch screen (primary pointer coarse) it also hugs the right edge,
   under a right thumb; with a mouse (desktop testing) it centers
@@ -397,6 +432,9 @@ Tuned constants, one place to read them all:
 | Bigram successors per head | top 5, pair count >= 3, in-vocabulary only |
 | Arm length | 0.44 x min canvas dimension |
 | Wheel anchor | bottom, 12 px margin; right on touch, x-centered with a mouse |
+| South drag targets | E = ?, N = !, W = ,; center circle counts as N |
+| Suggestion row gap | bottom edge 4 px above the wheel rim |
+| Copy button | 48 x 40 px, 12 px corner inset; copied flash 900 ms |
 
 Pixel values were tuned on a ~390 px wide phone viewport; on iOS
 they should scale in points, not pixels.

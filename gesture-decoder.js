@@ -13,8 +13,9 @@
 // from the original: a tap that never leaves it, or a dip from the
 // center into a sector and back with no arm crossed, which keeps whole
 // sentences in one stroke. A stationary press-and-release out in a
-// sector is a function tap (delete, enter, shift; the mapping lives in
-// main.js). No DOM or canvas dependency here, so this file is
+// sector is a function tap; an outside press that slides into another
+// sector, or into the center circle, commits a sector drag on lift.
+// Both mappings live in main.js. No DOM or canvas dependency here, so this file is
 // unit-testable on its own and is the piece meant to port to Swift once
 // the design is proven.
 // See gesture-keyboard-handoff.md and features.md.
@@ -100,9 +101,9 @@ export class GestureDecoder {
     this.downPoint = { x, y };
     // Letter gestures must start in the center, as in the original 8pen.
     // A press that starts out in a sector never types letters: held
-    // still it is a function tap, and moving gestures from outside are
-    // reserved address space for future features (the original used
-    // them for user-defined word macros).
+    // still it is a function tap, and a moved press commits a sector
+    // drag on lift (see pointerUp). Same-sector drags stay reserved
+    // (the original used outside starts for user-defined word macros).
     this.state = dist <= this.deadZoneRadius ? 'center' : 'outside';
     return this.snapshot();
   }
@@ -167,12 +168,22 @@ export class GestureDecoder {
       // With no crossings this is 8pen's "end word without a space".
       committed = this.commitLetter();
     } else if (this.state === 'outside') {
-      // Held still: a function tap. Moved: reserved for future
-      // outside-start gestures, silence for now.
+      // Held still: a function tap. Moved into another sector or into
+      // the center circle: a sector drag; main.js maps South starts to
+      // punctuation. A drag that ends in its own sector stays silent
+      // and reserved.
       const moved = Math.hypot(x - this.downPoint.x, y - this.downPoint.y);
       if (moved < 18) {
         const { angle } = this.distanceAndAngle(this.downPoint.x, this.downPoint.y);
         committed = { type: 'function', sector: angleToSector(angle) };
+      } else {
+        const from = angleToSector(this.distanceAndAngle(this.downPoint.x, this.downPoint.y).angle);
+        const { dist, angle } = this.distanceAndAngle(x, y);
+        // 'C' marks a lift inside the center circle, kept distinct from
+        // the sectors: main.js counts it as a generous North target,
+        // and a future gesture may want the exact geometry.
+        const to = dist <= this.deadZoneRadius ? 'C' : angleToSector(angle);
+        if (to !== from) committed = { type: 'drag', from, to };
       }
     } else if (this.state === 'center' && !this.leftCenter) {
       // Pure tap on the center dot, never left it: the spacebar.

@@ -154,3 +154,10 @@ idea meet.*
 *Note: 8VIM keeps a conventional side strip for exactly this. Honest
 approach: not everything deserves a gesture. The reserved W-sector tap
 (number and symbol layer) can open such a panel.*
+
+*Partially shipped 2026-08-26: a copy-to-clipboard button sits in the
+bottom-right corner pocket outside the wheel. It copies the selection
+if one exists, otherwise the whole text. Symbols, emoji, and the
+numberpad stay open. The same day added South punctuation drags
+(S to E = ?, S to N = !, S to W = comma), the first gesture
+punctuation the double-space note above pointed toward.*

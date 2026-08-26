@@ -1,6 +1,8 @@
 // End-to-end check of dip-space, function taps (backspace E, enter S),
 // the Typewise-style delete glide with undelete, the double-tap-center
-// period, and the N caret glide. Run like tests/hello-flow.mjs.
+// period, the N caret glide, the South punctuation drags, the
+// suggestion-row overlay position, and the copy button. Run like
+// tests/hello-flow.mjs.
 
 import path from 'node:path';
 import os from 'node:os';
@@ -99,6 +101,78 @@ await expectOutput('letter e after period', 'h. e');
 await glide(270, -30);
 await strokeH();
 await expectOutput('caret glide inserts mid-text', 'h.h e');
+
+// South punctuation drags: press out in S, slide to the target, lift.
+// Only press and lift points matter, so a straight line is enough.
+async function southDrag(tx, ty) {
+  const [x, y] = pt(90, Math.min(box.width, box.height) * 0.35);
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(tx, ty, { steps: 8 });
+  await page.mouse.up();
+}
+
+await page.click('#clearText');
+await strokeH();
+await southDrag(...pt(0)); // S to E
+await expectOutput('S to E drag types ?', 'h?');
+await southDrag(...pt(270)); // S to N
+await expectOutput('S to N drag types !', 'h?!');
+await southDrag(...pt(180)); // S to W
+await expectOutput('S to W drag types ,', 'h?!,');
+await southDrag(cx, cy); // lift in the center circle: generous N
+await expectOutput('S drag into the center types !', 'h?!,!');
+
+// The suggestion row overlays the canvas with its bottom edge 4 px
+// above the wheel rim, unless the short-canvas clamp holds it at the
+// canvas top (resize() in main.js). With the settings block open this
+// viewport hits the clamped case, so compute the expected gap with
+// the same formula instead of assuming the 4 px.
+const arm = Math.min(box.width, box.height) * 0.44;
+const expectedGap = Math.min(2 * arm + 12 + 4, box.height - 44) - (2 * arm + 12);
+const sbox = await page.locator('#suggestions').boundingBox();
+const rowGap = (cy - arm) - (sbox.y + sbox.height);
+const rowOk = Math.abs(rowGap - expectedGap) < 1.5;
+console.log(rowOk ? 'PASS' : 'FAIL', 'suggestion row hugs the wheel', rowOk ? '' : `gap ${rowGap} want ${expectedGap}`);
+if (!rowOk) failures++;
+
+// Copy button. The clipboard write is async, so poll the clipboard
+// instead of racing the click handler.
+async function expectClipboard(name, expected) {
+  let ok = true;
+  try {
+    await page.waitForFunction(
+      async (want) => (await navigator.clipboard.readText()) === want,
+      expected,
+      { timeout: 3000 },
+    );
+  } catch {
+    ok = false;
+  }
+  console.log(ok ? 'PASS' : 'FAIL', name, ok ? '' : `clipboard never became ${JSON.stringify(expected)}`);
+  if (!ok) failures++;
+}
+
+await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+await page.click('#copyText');
+await expectClipboard('copy button copies the whole text', 'h?!,!');
+const flashed = await page.locator('#copyText.copied').count();
+console.log(flashed ? 'PASS' : 'FAIL', 'copy button flashes the copied state');
+if (!flashed) failures++;
+
+// A selection wins over the whole text. Built programmatically: the
+// first text node of #output holds the text before the caret.
+await page.evaluate(() => {
+  const node = document.querySelector('#output').firstChild;
+  const range = document.createRange();
+  range.setStart(node, 0);
+  range.setEnd(node, 1);
+  const sel = document.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+});
+await page.click('#copyText');
+await expectClipboard('selection copy copies only the selection', 'h');
 
 await page.screenshot({ path: process.env.SHOT ?? '/tmp/functions-flow.png' });
 await browser.close();

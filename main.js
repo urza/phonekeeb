@@ -18,6 +18,7 @@ const deadZoneEl = document.getElementById('deadZone');
 const themeEl = document.getElementById('theme');
 const sectorColorsEl = document.getElementById('sectorColors');
 const clearButton = document.getElementById('clearText');
+const copyButton = document.getElementById('copyText');
 const settingsEl = document.getElementById('settings');
 const settingsToggle = document.getElementById('settingsToggle');
 
@@ -143,6 +144,13 @@ function scheduleTrailFade() {
 const FUNCTION_KEYS = { E: 'backspace', S: 'enter', N: null, W: null };
 const FUNCTION_GLYPHS = { E: '⌫', S: '⏎', N: '↔' };
 
+// South drags: a press out in the S sector that slides to another
+// sector types punctuation on lift (user request 2026-08-26). 'C' is
+// the center circle, a deliberately generous target for the upward
+// drag: "!" must not demand reaching all the way through to N. E and
+// N starts belong to the hold-glides below; W starts stay reserved.
+const SOUTH_DRAG_CHARS = { E: '?', N: '!', C: '!', W: ',' };
+
 // The wheel anchors to the bottom-right canvas corner instead of
 // centering: the canvas runs to the bottom of a tall phone screen and
 // a centered wheel floats out of thumb reach (user request
@@ -175,6 +183,11 @@ function resize() {
   // tests: they must gesture around the anchored wheel, not the
   // canvas middle, and duplicating the anchor math there would drift.
   canvas.dataset.center = `${center.x},${center.y}`;
+  // The suggestion row is an absolute overlay (see style.css); park it
+  // 4 px above the wheel rim so the chips sit in thumb reach. Clamped
+  // so a short canvas (settings open on a small screen) cannot push
+  // the row up over the output box.
+  suggestionsEl.style.bottom = `${Math.min(2 * armLength + WHEEL_MARGIN + 4, rect.height - 44)}px`;
   draw();
 }
 
@@ -243,6 +256,13 @@ function commitGesture(commit) {
     }
   } else if (commit.type === 'function') {
     applyFunction(commit.sector);
+    lastSpaceTapAt = 0;
+  } else if (commit.type === 'drag') {
+    // Only South starts carry a meaning; the decoder also reports E/N
+    // drags (their editing effect is the hold-glide, applied live) and
+    // W drags (reserved), all no-ops here.
+    const char = commit.from === 'S' ? SOUTH_DRAG_CHARS[commit.to] : null;
+    if (char) insertAtCaret(char);
     lastSpaceTapAt = 0;
   } else {
     let letter = letterAt(layout, commit.sector, commit.direction, commit.crossings);
@@ -696,6 +716,30 @@ clearButton.addEventListener('click', () => {
   currentWord = '';
   renderOutput();
   renderSuggestions();
+});
+
+// Copy to clipboard: a finger-made selection wins over the whole text.
+// The selection is stashed on pointerdown, not read in the click
+// handler, because browsers may collapse it as the click's default
+// action before the click event lands.
+let copySelection = '';
+copyButton.addEventListener('pointerdown', () => {
+  const sel = document.getSelection();
+  copySelection = sel && !sel.isCollapsed ? sel.toString() : '';
+});
+let copyFlashTimer = null;
+copyButton.addEventListener('click', async () => {
+  const text = copySelection || typedText;
+  copySelection = '';
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    return; // no flash on failure; the API exists on https and localhost
+  }
+  copyButton.classList.add('copied');
+  clearTimeout(copyFlashTimer);
+  copyFlashTimer = setTimeout(() => copyButton.classList.remove('copied'), 900);
 });
 
 // The hint and all controls collapse behind the settings toggle so the

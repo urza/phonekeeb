@@ -11,7 +11,7 @@
      Deliberately NO service worker: freshness comes from the ?v=
      pinning below, and a caching worker would fight it. iOS install
      needs none. -->
-<link rel="manifest" href="manifest.webmanifest?v=16" />
+<link rel="manifest" href="manifest.webmanifest?v=17" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +23,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=16" />
+<link rel="stylesheet" href="style.css?v=17" />
 </head>
 <body>
 <header>
@@ -45,7 +45,9 @@
   line. Double-tap the center for a period. One extra full loop makes a
   capital. Tap an area: right deletes, bottom is enter. Hold right and drag
   toward the center to delete more; drag back to restore. Hold top and drag
-  sideways to move the caret.</p>
+  sideways to move the caret. Drag from the bottom area: right types ?,
+  up types ! (the center circle counts as up), left types a comma. The
+  corner button copies the text, or only the selected part.</p>
   <div class="controls">
     <label>Layout
       <!-- options are generated from the LAYOUTS registry in layouts.js -->
@@ -78,23 +80,32 @@
   <div id="output" aria-live="polite"></div>
   <div id="suggestions"></div>
   <canvas id="stage"></canvas>
+  <!-- Lives in the bottom-right corner pocket outside the wheel disk;
+       position and feedback state are in style.css, wiring in main.js. -->
+  <button id="copyText" type="button" aria-label="Copy to clipboard" title="Copy">
+    <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+    <span class="check" aria-hidden="true">&#10003;</span>
+  </button>
 </main>
 
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=16",
-    "./layout.js": "./layout.js?v=16",
-    "./layouts.js": "./layouts.js?v=16",
-    "./themes.js": "./themes.js?v=16",
-    "./prediction.js": "./prediction.js?v=16",
-    "./words-en.js": "./words-en.js?v=16",
-    "./words-cs.js": "./words-cs.js?v=16",
-    "./bigrams-en.js": "./bigrams-en.js?v=16",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=16"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=17",
+    "./layout.js": "./layout.js?v=17",
+    "./layouts.js": "./layouts.js?v=17",
+    "./themes.js": "./themes.js?v=17",
+    "./prediction.js": "./prediction.js?v=17",
+    "./words-en.js": "./words-en.js?v=17",
+    "./words-cs.js": "./words-cs.js?v=17",
+    "./bigrams-en.js": "./bigrams-en.js?v=17",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=17"
   }
 }
 </script>
-<script type="module" src="main.js?v=16"></script>
+<script type="module" src="main.js?v=17"></script>
 </body>
 </html>

@@ -65,19 +65,39 @@ d5.pointerMove(170, 130);
 check('dragged crossing-less lift is silent', d5.pointerUp(170, 130).committed, null);
 
 // Letter gestures must start in the center: an outside start that loops
-// through several sectors still types nothing (reserved for future
-// outside-start gestures).
+// through several sectors commits a sector drag on lift, never a
+// letter. Only the press and lift points matter, not the path.
 const d6 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
 d6.pointerDown(...at(90, 80));
 for (let deg = 90; deg <= 290; deg += 8) d6.pointerMove(...at(deg, 80));
-check('outside start never types letters', d6.pointerUp(...at(290, 80)).committed, null);
+check('outside start commits a drag, never letters', d6.pointerUp(...at(290, 80)).committed, { type: 'drag', from: 'S', to: 'N' });
 
-// An outside start that drags through the center still types nothing:
-// the press's role is fixed at pointer down.
+// An outside start that drags through the center still types no
+// letter: the press's role is fixed at pointer down.
 const d7 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
 d7.pointerDown(160, 160);
 d7.pointerMove(100, 100);
 d7.pointerMove(40, 100);
-check('outside start through center stays silent', d7.pointerUp(40, 100).committed, null);
+check('outside start through center is a drag', d7.pointerUp(40, 100).committed, { type: 'drag', from: 'S', to: 'W' });
+
+// South drags carry punctuation (mapped in main.js); the decoder only
+// reports the geometry.
+const d8 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
+d8.pointerDown(...at(90, 60));
+d8.pointerMove(...at(0, 60));
+check('S to E drag', d8.pointerUp(...at(0, 60)).committed, { type: 'drag', from: 'S', to: 'E' });
+
+// A lift inside the center circle reports 'C', kept distinct from the
+// sectors; main.js counts it as a generous N target.
+const d9 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
+d9.pointerDown(...at(90, 60));
+d9.pointerMove(100, 105);
+check('S drag into the center circle reports C', d9.pointerUp(100, 105).committed, { type: 'drag', from: 'S', to: 'C' });
+
+// A drag that lifts back in its own sector stays silent and reserved.
+const d10 = new GestureDecoder({ center: { x: 100, y: 100 }, deadZoneRadius: 20 });
+d10.pointerDown(...at(90, 60));
+d10.pointerMove(100, 135);
+check('S to S drag stays silent', d10.pointerUp(100, 135).committed, null);
 
 process.exit(failures ? 1 : 0);
