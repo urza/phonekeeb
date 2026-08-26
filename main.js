@@ -779,8 +779,17 @@ async function loadExtWords() {
       import('./words-ext-en.js'),
       import('./words-ext-cs.js'),
     ]);
-    predictor.addWords('en', en.WORDS_EXT);
-    predictor.addWords('cs', cs.WORDS_EXT);
+    // Chunked, one frame between slices: feeding all ~54k words at
+    // once blocks the main thread long enough to eat a stroke drawn
+    // right after the load (observed 2026-08-27). List order inside
+    // each language is preserved, so probabilities are unaffected.
+    const CHUNK = 4000;
+    for (const [id, list] of [['en', en.WORDS_EXT], ['cs', cs.WORDS_EXT]]) {
+      for (let i = 0; i < list.length; i += CHUNK) {
+        predictor.addWords(id, list.slice(i, i + CHUNK));
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+    }
   } catch {
     return; // offline with an old cache: the core vocabulary keeps working
   }

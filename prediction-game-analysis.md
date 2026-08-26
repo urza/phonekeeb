@@ -120,6 +120,32 @@ shipped"). Replay went from 3/11 to 5/11.
 Next up: fix 2 (typo slot cap, cause B) and fix 3 (backed-off giant
 discount, cause C, which now owns cases 1, 7, 9, 10).
 
+## Update 2026-08-27: fixes 2 and 3 shipped
+
+Typo slot cap (2), context-miss discount (0.15, cross-language),
+bigram successor depth 12 to 24, and a 6-chip two-row strip. Details
+and sweep numbers: word-prediction-research.md, "Ranking fixes
+shipped". Replay: 5/11 to 6/11 on the 6-chip strip.
+
+- Case 1 (amazing): hits at rank 6. The cap holds "a" and "all" to
+  two slots; "my" no longer pushes the real completion off.
+- Case 2 (are): rank 5 to 2, from successor depth.
+- New lesson while tuning: the miss discount must be cross-language.
+  Discounting only the language that knows the context pushed
+  English "know" to rank 1 after Czech "si", because English had no
+  "si" head to miss. Any-language-knows now means every language
+  discounts.
+- Cases 4, 6, 7 (now, love, would): reclassified from cause C to
+  cause E. Even at depth 24, "love" sits ~rank 8 among "i"
+  successors; no 6-slot static strip reaches it. The PersonalModel
+  owns these after a few sightings.
+- Case 9 (zaplavat): unchanged, the zaplat* cluster outranks it.
+- Case 10 (kuře): the English leak is gone ("know" left the strip),
+  but kuře still loses to Czech k-giants. Waits on fix 4.
+
+Fix 4 (prefix-scaled language floor, cause D) is the one improvement
+still open.
+
 ## Notes
 
 - The game mixes two strip modes (completion vs. next word) and the

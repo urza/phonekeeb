@@ -194,12 +194,16 @@ main {
   background: var(--panel);
   color: var(--fg);
   white-space: nowrap;
-  /* A third of the strip minus the gap: exactly 3 chips per row, so 6
-     chips always land as two full rows and nothing ever hides. Long
-     words ellipsize instead of pushing chips off-screen. */
+  /* Fixed thirds, not size-to-content: every chip is a third of the
+     strip wide, so six chips always land as two rows of three and
+     rank 4 opens the upper row. Size-to-content packed five short
+     chips into the bottom row (screenshot-verified 2026-08-27). Long
+     words ellipsize inside their third; nothing scrolls or hides. */
+  flex: 0 0 calc(33.3% - 8px);
   max-width: calc(33.3% - 8px);
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
   /* The container is pointer-events: none (see #suggestions). */
   pointer-events: auto;
 }

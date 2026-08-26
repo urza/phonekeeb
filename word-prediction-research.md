@@ -453,6 +453,58 @@ the core zaplat* inflection cluster outranks it. That case moved from
 the coverage bucket to the ranking bucket (cause C in
 prediction-game-analysis.md).
 
+## Ranking fixes shipped (2026-08-27): typo cap, context discount, deeper bigrams
+
+Causes B and C from prediction-game-analysis.md, plus the strip
+growing to 6 chips in two rows (rank 1 bottom right). Three changes
+in prediction.js and the tables, each swept on the eval harness:
+
+- Typo slot cap (cause B): at most TYPO_SLOTS = 2 one-edit
+  hypotheses on the strip while exact-prefix candidates exist;
+  capped entries refill a strip that would otherwise come up short
+  (a fully mistyped word has nothing else). Swept 1/2/3: one slot
+  costs 4pp of typo-2 hit@3, three slots cost a real game hit.
+- Context-miss discount (cause C): CTX_MISS = 0.15 replaces the
+  classic 0.4 stupid-backoff multiplier when a KNOWN context lacks
+  the candidate. The discount is cross-language: when any language
+  knows the context, a language without it takes the discount too,
+  else wrong-language unigram giants float up ("know" ranked first
+  after Czech "si" because English has no "si" head to miss).
+  Unloaded tables still discount nothing. Swept 0.4/0.15/0.08:
+  0.15 wins next-word and typo rows, 0.4 wins only prefix-2.
+- Deeper bigram tables: top 24 successors, pair floor 20, from the
+  400 MiB corpus prefix (was 12/4 from 80 MiB). The sweep isolated
+  the effects: the bigger corpus with a scaled floor (12/20) matches
+  the shipped tables within 0.2pp everywhere, so the entire gain is
+  successor depth. 18/20 gives half the gain for half the extra
+  weight, no knee. 24/20 took it: prefix-2 hit@1 +3.7pp EN / +2.6pp
+  CS, hit@3 +2.1pp both, typo-2 hit@3 +1.9pp EN, next-word flat
+  (-0.2pp). Cost: 403 KB gzipped precached at first paint, against
+  229 KB before.
+
+Final mixed+tri rows (hit@1 / hit@3, strip of 6, core-vocab pairs):
+
+| Mode | EN | CS |
+|---|---|---|
+| next-word | 21.4 / 36.4 | 19.3 / 33.4 |
+| prefix-2 | 61.4 / 75.0 | 57.1 / 70.6 |
+| typo-2 | 36.8 / 53.0 | 33.0 / 47.8 |
+
+Game replay 6/11: case 1 (you are am -> amazing) enters at rank 6
+via the cap; case 2 (how -> are) climbs rank 5 to 2 via successor
+depth. Still missing: 4/6/7 are phrase-and-person tail ("future is
+now", "I love", "I would": love sits ~rank 8 among "i" successors
+even at depth 24, so no 6-slot static strip holds it; the
+PersonalModel owns these after a few sightings). 9 is the zaplat*
+morphology cluster; 10 (kuře) waits on the prefix-scaled language
+floor (cause D), the one improvement from the game analysis still
+open.
+
+One UI bug found and fixed while verifying: feeding all ~54k ext
+words into the predictor in one batch blocked the main thread long
+enough to eat a stroke drawn during the load; the loader now feeds
+4000-word chunks with a frame between slices.
+
 ## Personalization plan (added 2026-08-25)
 
 Status 2026-08-26: Component A (learning while typing) is shipped —
