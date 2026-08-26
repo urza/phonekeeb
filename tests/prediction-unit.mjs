@@ -71,4 +71,23 @@ check('missing-letter typo finds hello', short.includes('hello'), JSON.stringify
 const oov = p.predict('zxq', 5);
 check('oov word offered verbatim', oov.includes('zxq'), JSON.stringify(oov));
 
+// Trigram layer, synthetic so the math is inspectable. Codes are
+// round(ln(count) x 8): 56 ~ 1097, 44 ~ 245, 38 ~ 116, 32 ~ 55.
+const tWords = [['alpha', 100], ['beta', 90], ['gamma', 80]];
+const tp = new Predictor([{
+  id: 'xx',
+  words: tWords,
+  bigrams: { alpha: '56 beta|44 gamma|32' },
+  trigrams: { 'zero alpha': '44 gamma|38' },
+}]);
+check('bigram order without prev2',
+  tp.predict('', 3, { prev: 'alpha' })[0] === 'beta');
+check('trigram context flips the order',
+  tp.predict('', 3, { prev: 'alpha', prev2: 'zero' })[0] === 'gamma');
+check('unknown prev2 keeps the bigram order',
+  tp.predict('', 3, { prev: 'alpha', prev2: 'nope' })[0] === 'beta');
+tp.clearTrigrams();
+check('clearTrigrams reverts to bigrams',
+  tp.predict('', 3, { prev: 'alpha', prev2: 'zero' })[0] === 'beta');
+
 process.exit(failures ? 1 : 0);

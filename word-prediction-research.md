@@ -359,6 +359,40 @@ The eval harness gained mixed-en / mixed-cs rows (same pairs, mixed
 predictor, the line's own words as language context) and per-pair
 recent-word context; predict() now takes { prev, recent }.
 
+## Trigram layer shipped (2026-08-26)
+
+Step 3 of the build order: tools/build-trigrams.py (two passes so
+memory stays flat), the trigram walk in prediction.js (stupid backoff
+down trigram -> bigram -> unigram; the discount applies only when a
+KNOWN context misses the word, so unloaded tables change nothing),
+lazy loading after first paint behind the "Trigram data" toggle,
+and mixed-…+tri rows in the harness (pairs now carry prev2).
+
+Pruning swept on EN, mixed-model hit@1 / hit@3 next-word (no-trigram
+baseline 16.4 / 29.2):
+
+| Tier (ctx / top / triple) | Size | next-word | prefix-2 | typo-2 |
+|---|---|---|---|---|
+| 30 / 6 / 4 | 3832 KB | 23.8 / 39.6 | 64.1 / 76.5 | 37.1 / 54.2 |
+| 60 / 6 / 4 | 2693 KB | 23.1 / 38.8 | 63.8 / 76.4 | 36.7 / 54.0 |
+| 100 / 5 / 5 | 1725 KB | 22.3 / 37.6 | 62.5 / 75.6 | 35.4 / 52.2 |
+| 200 / 4 / 6 | 886 KB | 21.4 / 36.3 | 61.2 / 75.0 | 34.1 / 50.7 |
+
+Shipped 200 / 4 / 6 (886 KB en + 564 KB cs): ~70% of the full gain at
+a quarter of the bytes, and with the 10-minute GitHub Pages cache and
+no service worker, every visit past 10 minutes re-downloads the data.
+Final shipped mixed numbers (hit@1 / hit@3):
+
+| Mode | EN mixed+tri | CS mixed+tri |
+|---|---|---|
+| next-word | 21.2 / 36.1 | 19.2 / 33.0 |
+| prefix-2 | 60.8 / 74.6 | 56.6 / 71.1 |
+| typo-2 | 33.3 / 50.0 | 29.9 / 44.3 |
+
+Quantization ties are the designed imprecision: "co se" holds děje
+and stalo at the same code, so their mutual order is arbitrary
+(~13% count steps; the flow test asserts top-2, not first place).
+
 ## Personalization plan (added 2026-08-25)
 
 Status 2026-08-26: Component A (learning while typing) is shipped —

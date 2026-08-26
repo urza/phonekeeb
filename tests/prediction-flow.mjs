@@ -131,6 +131,33 @@ const csChips = await page.evaluate(async () => {
 check('stripDiacritics', csChips.strip === 'rekl', csChips.strip);
 check('cs rek finds accented', csChips.top.some((w) => w.startsWith('řek')), JSON.stringify(csChips.top));
 
+// Trigram tables lazy-load after first paint; main.js flips a body
+// marker when they are live. A zero- or one-word context scores
+// identically with or without them, so the earlier assertions cannot
+// race the load.
+let triLoaded = true;
+try {
+  await page.waitForSelector('body[data-trigrams="1"]', { timeout: 15000 });
+} catch {
+  triLoaded = false;
+}
+check('trigram tables loaded lazily', triLoaded);
+
+// The shipped cs table through the real engine, in-page: after
+// "co se" the strip leads with the table's strongest continuations.
+// Top 2, not first place: "děje" and "stalo" share a quantized count
+// code (the ~13% steps are the designed precision), so their order
+// may fall either way.
+const tri = await page.evaluate(async () => {
+  const { Predictor } = await import('./prediction.js');
+  const { WORDS } = await import('./words-cs.js');
+  const { TRIGRAMS } = await import('./trigrams-cs.js');
+  const p = new Predictor([{ id: 'cs', words: WORDS, trigrams: TRIGRAMS }]);
+  return p.predict('', 5, { prev: 'se', prev2: 'co' });
+});
+check('cs trigram context surfaces děje', tri.slice(0, 2).includes('děje'),
+  JSON.stringify(tri));
+
 // Personal learning, end to end through the UI. Forget first: the
 // chip taps above already taught the model a few words.
 async function acceptHello() {

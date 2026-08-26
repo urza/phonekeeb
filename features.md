@@ -181,6 +181,17 @@ weight to the glide targets the language model expects next.
   drops below 0.05 for either language, and a fresh strip with no
   context serves both at 50/50. The Layout language dropdown does not
   touch prediction.
+- Trigram layer (2026-08-26): `trigrams-en.js` / `trigrams-cs.js`
+  hold two-word contexts ("co se" leads to "děje"); the score walks
+  trigram, then bigram, then unigram with stupid backoff, and the
+  discount applies only when a known context misses the word, so
+  absent tables change nothing. The ~1.5 MB of data lazy-loads after
+  first paint (typing runs on bigrams meanwhile; a body marker
+  `data-trigrams` flips when live) and hides behind the "Trigram
+  data" toggle for mobile-data saving. The shipped pruning tier keeps
+  contexts seen 200+ times with top 4 successors seen 6+ times: the
+  eval measured ~70% of the full tables' gain at a quarter of their
+  bytes.
 - Diacritics and apostrophe restoration: matching runs on stripped
   keys, so "rek" suggests "řekl" and a fully typed "tata" offers
   "táta"; likewise "its" offers "it's" and "dont" offers "don't" (the
@@ -207,13 +218,14 @@ weight to the glide targets the language model expects next.
   "děkuji"; when two heads share a key ("hell", "he'll") the more
   frequent head owns it.
 - Measured on held-out subtitles (tools/eval-prediction.mjs, hit@3,
-  mixed model): next-word 29% EN / 28% CS, two-letter prefix 74% EN /
-  70% CS, corrupted prefix 44% EN / 40% CS. The single-language
-  ceilings sit at most 0.3 points higher, so the posterior makes
-  mixing nearly free. The successor cap 12 and floor 4 trade ~2
-  points of prefix hit@3 for half the bytes (measured against cap
-  24, floor 3); the trigram layer is the planned place to buy
-  quality back.
+  mixed model with the shipped trigram tables): next-word 36% EN /
+  33% CS, two-letter prefix 75% EN / 71% CS, corrupted prefix 50% EN /
+  44% CS. Without trigrams (the toggle off): 29 / 28, 74 / 70, and
+  44 / 39. The single-language ceilings sit at most 0.3 points above
+  the mixed rows, so the posterior makes mixing nearly free. The
+  bigram successor cap 12 / floor 4 trades ~2 points of prefix hit@3
+  for half the bytes (measured against cap 24 / floor 3); the trigram
+  layer buys the quality back and more.
 - The prediction prefix is the run of letters and in-word apostrophes
   just before the caret, derived from the text on every change. So
   punctuation ends the word, an apostrophe continues it ("don'" keeps
@@ -244,8 +256,7 @@ weight to the glide targets the language model expects next.
   "Learn my typing" (default on, stops future learning only) and
   "Forget learned words" (immediate, permanent).
 - Planned: seeding the personal model from chat exports
-  (tools/build-personal.py in the research doc); a lazy trigram layer
-  if the eval earns its bytes.
+  (tools/build-personal.py in the research doc).
 
 ## Layouts and languages, behind flags
 
@@ -422,6 +433,8 @@ equivalent is UserDefaults. Key, values, default:
 - `phonekeeb.settingsOpen`: `1`/`0`, default closed.
 - `phonekeeb.sectorColors`: `1`/`0`, default on.
 - `phonekeeb.learn`: `1`/`0`, default on (learn from typing).
+- `phonekeeb.trigrams`: `1`/`0`, default on (download and use the
+  trigram tables).
 - `phonekeeb.personal`: the personal model's counts as JSON
   (`{v, uni, bi}`); absent until something is learned, removed by
   "Forget learned words". Never leaves the device.
@@ -483,7 +496,8 @@ Tuned constants, one place to read them all:
 | Capital loop | crossings 5 to 8 map to 1 to 4, uppercase |
 | Suggestions | at most 5 chips |
 | Bigram successors per head | top 12, pair count >= 4, in-vocabulary only |
-| Bigram count quantization | code = round(ln(count) x 8); decode exp(code/8) |
+| Trigram contexts | count >= 200; top 4 successors, triple count >= 6 |
+| N-gram count quantization | code = round(ln(count) x 8); decode exp(code/8) |
 | Stupid backoff | 0.4 x unigram P on a bigram miss |
 | Typo edit penalty | 0.005 per edit, one edit max, prefix of 2+ |
 | Language posterior | window 6 words, decay 0.65, log-odds clamp 2.5, floor 0.05 |

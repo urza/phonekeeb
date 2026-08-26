@@ -170,14 +170,31 @@ function withinOneEditPrefix(key, p) {
   return false;
 }
 
+// Decode one packed successor table entry ("T succ|c succ|c ...")
+// into a Map of conditional probabilities. Shared by the bigram and
+// trigram tables; both quantize with QUANT_K.
+function decodeSuccessors(packed) {
+  const parts = packed.split(' ');
+  const total = Math.exp(Number(parts[0]) / QUANT_K);
+  const succ = new Map();
+  for (let i = 1; i < parts.length; i++) {
+    const cut = parts[i].lastIndexOf('|');
+    const c = Math.exp(Number(parts[i].slice(cut + 1)) / QUANT_K);
+    succ.set(parts[i].slice(0, cut), Math.min(1, c / total));
+  }
+  return succ;
+}
+
 export class Predictor {
-  // sources: [{ id, words, bigrams }] — words as [word, count] arrays
-  // sorted by count descending, bigrams in the v2 string format of
-  // tools/build-ngrams.py ("T succ|c ..."), optional.
+  // sources: [{ id, words, bigrams, trigrams }] — words as
+  // [word, count] arrays sorted by count descending, bigrams and
+  // trigrams in the packed string formats of tools/build-ngrams.py
+  // and tools/build-trigrams.py; both optional (trigrams usually
+  // arrive later via setTrigrams, lazy-loaded).
   constructor(sources) {
     this.langs = [];
     const byWord = new Map(); // one entry per display word across languages
-    for (const { id, words, bigrams = {} } of sources) {
+    for (const { id, words, bigrams = {}, trigrams = null } of sources) {
       const sum = words.reduce((a, [, c]) => a + c, 0);
       const uniByKey = new Map(); // best P per match key, language evidence
       for (const [word, count] of words) {
@@ -195,24 +212,37 @@ export class Predictor {
       const heads = new Map();
       for (const [head, packed] of Object.entries(bigrams)) {
         const k = matchKey(head);
-        if (heads.has(k)) continue;
-        const parts = packed.split(' ');
-        const total = Math.exp(Number(parts[0]) / QUANT_K);
-        const succ = new Map();
-        for (let i = 1; i < parts.length; i++) {
-          const cut = parts[i].lastIndexOf('|');
-          const c = Math.exp(Number(parts[i].slice(cut + 1)) / QUANT_K);
-          succ.set(parts[i].slice(0, cut), Math.min(1, c / total));
-        }
-        heads.set(k, succ);
+        if (!heads.has(k)) heads.set(k, decodeSuccessors(packed));
       }
-      this.langs.push({ id, uniByKey, heads });
+      const lang = { id, uniByKey, heads, heads2: new Map() };
+      this.langs.push(lang);
+      if (trigrams) this.setTrigrams(id, trigrams);
     }
     this.entries = [...byWord.values()];
     this.known = new Set(byWord.keys());
     this.personal = null;
     this.personalEntries = [];
     this.personalVersion = -1;
+  }
+
+  // Attach a language's trigram table ("w1 w2" contexts in the packed
+  // format of tools/build-trigrams.py). Kept separate from the
+  // constructor so the page can lazy-load the big tables after first
+  // paint; predictions before that simply back off to bigrams.
+  setTrigrams(id, trigrams) {
+    const lang = this.langs.find((l) => l.id === id);
+    if (!lang) return;
+    for (const [ctx, packed] of Object.entries(trigrams)) {
+      const cut = ctx.indexOf(' ');
+      const k = `${matchKey(ctx.slice(0, cut))} ${matchKey(ctx.slice(cut + 1))}`;
+      if (!lang.heads2.has(k)) lang.heads2.set(k, decodeSuccessors(packed));
+    }
+  }
+
+  // Drop all trigram tables (the data-saving toggle): predictions
+  // back off to bigrams immediately.
+  clearTrigrams() {
+    for (const lang of this.langs) lang.heads2 = new Map();
   }
 
   // Attach the user's PersonalModel. Its probabilities blend into
@@ -281,11 +311,15 @@ export class Predictor {
   // previous word, the pre-mixed calling shape.
   predict(prefix, limit = 5, context = {}) {
     if (typeof context === 'string') context = { prev: context, recent: [context] };
-    const { prev = '', recent = [], start = false } = context;
+    const { prev = '', prev2 = '', recent = [], start = false } = context;
     const p = matchKey(prefix.toLowerCase());
     const prior = this.langPosterior(recent);
     const prevKey = prev ? matchKey(prev.toLowerCase()) : '';
     const succ = this.langs.map((l) => (prevKey ? l.heads.get(prevKey) : undefined));
+    // context.prev2 is the word before prev, set only when the three
+    // are separated by spaces alone; it addresses the trigram tables.
+    const ctx2 = prev2 && prevKey ? `${matchKey(prev2.toLowerCase())} ${prevKey}` : '';
+    const succ2 = this.langs.map((l) => (ctx2 ? l.heads2.get(ctx2) : undefined));
     this.syncPersonalEntries();
     const pers = this.personal?.total ? this.personal : null;
 
@@ -303,10 +337,14 @@ export class Predictor {
         let base = 0;
         for (let j = 0; j < this.langs.length; j++) {
           const lp = prior[this.langs[j].id];
-          const bi = succ[j]?.get(e.word);
-          // Stupid backoff: the observed conditional when the pair is in
-          // the table, else BACKOFF times the unigram probability.
-          base += lp * (bi ?? BACKOFF * (e.p[this.langs[j].id] ?? 0));
+          // Stupid backoff down the chain. The discount applies only
+          // when a KNOWN context misses the word; an unknown context
+          // starts at the next level undiscounted, so absent tables
+          // (trigrams not loaded yet) change nothing.
+          const uni = e.p[this.langs[j].id] ?? 0;
+          const biLevel = succ[j] ? (succ[j].get(e.word) ?? BACKOFF * uni) : uni;
+          base += lp * (succ2[j]
+            ? (succ2[j].get(e.word) ?? BACKOFF * biLevel) : biLevel);
         }
         // The personal model blends in language-free: the user's own
         // words are their language, so no prior scales them down.

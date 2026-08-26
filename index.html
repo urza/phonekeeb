@@ -11,7 +11,7 @@
      Deliberately NO service worker: freshness comes from the ?v=
      pinning below, and a caching worker would fight it. iOS install
      needs none. -->
-<link rel="manifest" href="manifest.webmanifest?v=19" />
+<link rel="manifest" href="manifest.webmanifest?v=20" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +23,7 @@
      different pushes; a mixed set draws letters in wrong places. The
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=19" />
+<link rel="stylesheet" href="style.css?v=20" />
 </head>
 <body>
 <header>
@@ -80,6 +80,11 @@
     <label>Learn my typing
       <input type="checkbox" id="learnTyping" checked />
     </label>
+    <!-- ~1.5 MB of prediction data, lazy-loaded; off saves mobile
+         data and falls back to bigrams. -->
+    <label>Trigram data
+      <input type="checkbox" id="trigrams" checked />
+    </label>
     <button id="forgetTyping" type="button">Forget learned words</button>
     <a href="cards.html">Letter cards</a>
   </div>
@@ -106,18 +111,20 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=19",
-    "./layout.js": "./layout.js?v=19",
-    "./layouts.js": "./layouts.js?v=19",
-    "./themes.js": "./themes.js?v=19",
-    "./prediction.js": "./prediction.js?v=19",
-    "./words-en.js": "./words-en.js?v=19",
-    "./words-cs.js": "./words-cs.js?v=19",
-    "./bigrams-en.js": "./bigrams-en.js?v=19",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=19"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=20",
+    "./layout.js": "./layout.js?v=20",
+    "./layouts.js": "./layouts.js?v=20",
+    "./themes.js": "./themes.js?v=20",
+    "./prediction.js": "./prediction.js?v=20",
+    "./words-en.js": "./words-en.js?v=20",
+    "./words-cs.js": "./words-cs.js?v=20",
+    "./bigrams-en.js": "./bigrams-en.js?v=20",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=20",
+    "./trigrams-en.js": "./trigrams-en.js?v=20",
+    "./trigrams-cs.js": "./trigrams-cs.js?v=20"
   }
 }
 </script>
-<script type="module" src="main.js?v=19"></script>
+<script type="module" src="main.js?v=20"></script>
 </body>
 </html>

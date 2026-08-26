@@ -21,6 +21,7 @@ const clearButton = document.getElementById('clearText');
 const copyButton = document.getElementById('copyText');
 const learnTypingEl = document.getElementById('learnTyping');
 const forgetTypingEl = document.getElementById('forgetTyping');
+const trigramsEl = document.getElementById('trigrams');
 const settingsEl = document.getElementById('settings');
 const settingsToggle = document.getElementById('settingsToggle');
 
@@ -345,11 +346,14 @@ function renderSuggestions() {
   // words regardless of punctuation.
   const before = typedText.slice(0, caret - currentWord.length);
   const prev = before.match(/([\p{L}'’]+) *$/u)?.[1] ?? '';
+  // The word before prev, only when spaces alone separate all three:
+  // it addresses the trigram tables.
+  const prev2 = before.match(/([\p{L}'’]+) +[\p{L}'’]+ *$/u)?.[1] ?? '';
   const recent = before.match(/[\p{L}'’]+/gu)?.slice(-8) ?? [];
   // Start of a message or line: the personal model's SENT_START
   // bigrams predict first words there.
   const start = /(?:^|\n)\s*$/.test(before);
-  const words = predictor.predict(currentWord, 5, { prev, recent, start });
+  const words = predictor.predict(currentWord, 5, { prev, prev2, recent, start });
   // DOM building, not innerHTML: the verbatim chip echoes typed text,
   // and the future personal dictionary echoes learned text.
   suggestionsEl.replaceChildren(...words.map((w) => {
@@ -769,6 +773,43 @@ languageEl.addEventListener('change', () => {
   try { localStorage.setItem(LANG_KEY, languageEl.value); } catch {}
 });
 
+// Trigram tables: ~1.5 MB of data, so they load lazily after first
+// paint (typing works on bigrams meanwhile) and hide behind a
+// data-saving toggle. The body marker lets tests and the curious see
+// when the tables are live.
+const TRIGRAMS_KEY = 'phonekeeb.trigrams';
+let trigramsEnabled = true;
+try { trigramsEnabled = localStorage.getItem(TRIGRAMS_KEY) !== '0'; } catch {}
+
+async function loadTrigrams() {
+  if (!trigramsEnabled || document.body.dataset.trigrams === '1') return;
+  try {
+    const [en, cs] = await Promise.all([
+      import('./trigrams-en.js'),
+      import('./trigrams-cs.js'),
+    ]);
+    predictor.setTrigrams('en', en.TRIGRAMS);
+    predictor.setTrigrams('cs', cs.TRIGRAMS);
+  } catch {
+    return; // offline or blocked: bigrams keep working
+  }
+  document.body.dataset.trigrams = '1';
+  renderSuggestions();
+}
+
+trigramsEl.checked = trigramsEnabled;
+trigramsEl.addEventListener('change', () => {
+  trigramsEnabled = trigramsEl.checked;
+  try { localStorage.setItem(TRIGRAMS_KEY, trigramsEnabled ? '1' : '0'); } catch {}
+  if (trigramsEnabled) {
+    loadTrigrams();
+  } else {
+    predictor.clearTrigrams();
+    delete document.body.dataset.trigrams;
+    renderSuggestions();
+  }
+});
+
 // Personal-learning controls. The toggle stops future learning but
 // keeps what is learned; the button forgets everything, immediately
 // and permanently (it is the user's data to destroy).
@@ -868,3 +909,4 @@ applyTheme(themeEl.value);
 rebuildLayout(); // also validates the initial layout
 renderOutput();
 renderSuggestions(); // the strip has content even before typing now
+loadTrigrams(); // after first paint: the big tables must not delay typing

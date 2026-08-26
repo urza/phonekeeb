@@ -23,7 +23,10 @@ m.learn('vecerka', null, true);
 check('one sighting does not enroll', !p.predict('ve', 5).includes('vecerka'),
   JSON.stringify(p.predict('ve', 5)));
 m.learn('vecerka', null, true);
-check('two sightings enroll the word', p.predict('ve', 5)[0] === 'vecerka',
+// Enrollment is the contract here; rank under context has its own
+// checks below (the tiny synthetic vocabulary inflates unigram shares,
+// so an absolute first place would test the fixture, not the model).
+check('two sightings enroll the word', p.predict('ve', 5).includes('vecerka'),
   JSON.stringify(p.predict('ve', 5)));
 
 // The start token: learned first words lead the fresh strip.

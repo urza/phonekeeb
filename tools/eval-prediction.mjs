@@ -105,9 +105,10 @@ async function eachLine(file, onLine) {
   });
 }
 
-// { prev, recent, target } from held-out lines only, builder adjacency
-// rules. recent = the in-vocabulary words of the line before the
-// target, for the mixed model's language posterior.
+// { prev, prev2, recent, target } from held-out lines only, builder
+// adjacency rules. recent = the in-vocabulary words of the line before
+// the target (language posterior); prev2 = the word before prev when
+// the run is unbroken (trigram context).
 async function collectPairs(file, vocab) {
   const pairs = [];
   let index = -1;
@@ -118,17 +119,20 @@ async function collectPairs(file, vocab) {
     if (line.includes('{')) line = line.replace(ASS_TAGS, ' ');
     if (line.includes("'")) line = line.replace(TAIL_JOIN, "'$1");
     let prev = null;
+    let prev2 = null;
     const seen = [];
     for (const wt of line.split(/\s+/)) {
       if (!wt) continue;
-      if (JUNK.test(wt)) { prev = null; continue; }
+      if (JUNK.test(wt)) { prev = null; prev2 = null; continue; }
       const { tok, trail } = stripEdges(wt);
-      if (!vocab.has(tok)) { prev = null; continue; }
+      if (!vocab.has(tok)) { prev = null; prev2 = null; continue; }
       if (prev !== null) {
-        pairs.push({ prev, recent: seen.slice(-RECENT), target: tok });
+        pairs.push({ prev, prev2: prev2 ?? '', recent: seen.slice(-RECENT), target: tok });
       }
       seen.push(tok);
-      prev = [...trail].some((c) => CLAUSE_END.has(c)) ? null : tok;
+      const broke = [...trail].some((c) => CLAUSE_END.has(c));
+      prev2 = broke ? null : prev;
+      prev = broke ? null : tok;
     }
   });
   return pairs;
@@ -181,8 +185,8 @@ function evalPairs(label, predictor, pairs) {
   };
 
   const rng = mulberry32(SEED);
-  for (const { prev, recent, target } of pairs) {
-    const ctx = { prev, recent };
+  for (const { prev, prev2, recent, target } of pairs) {
+    const ctx = { prev, prev2, recent };
     score('next-word', predictor.predict('', LIMIT, ctx), target);
     const key = matchKey(target);
     if (key.length < 2) continue;
@@ -221,5 +225,30 @@ if (langs.length > 1) {
   const mixed = new Predictor(langs.map((l) => sources[l]));
   for (const lang of langs) {
     evalPairs(`mixed-${lang}`, mixed, pairsByLang[lang]);
+  }
+}
+
+// Trigram rows, only when the tables are built (they are generated,
+// large, and optional; see tools/build-trigrams.py).
+let TRI = {};
+try {
+  for (const lang of langs) {
+    TRI[lang] = (await import(`../trigrams-${lang}.js`)).TRIGRAMS;
+  }
+} catch {
+  TRI = null;
+}
+if (TRI) {
+  if (langs.length > 1) {
+    const mixedTri = new Predictor(
+      langs.map((l) => ({ ...sources[l], trigrams: TRI[l] })));
+    for (const lang of langs) {
+      evalPairs(`mixed-${lang}+tri`, mixedTri, pairsByLang[lang]);
+    }
+  } else {
+    const lang = langs[0];
+    evalPairs(`${lang}+tri`,
+      new Predictor([{ ...sources[lang], trigrams: TRI[lang] }]),
+      pairsByLang[lang]);
   }
 }
