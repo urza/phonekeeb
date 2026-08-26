@@ -12,12 +12,12 @@
 //    slots so each letter's direction from the QWERTY keyboard center
 //    best matches the slot's on-screen direction. Exact assignment by
 //    brute force (8! options per ring); empty slots cost nothing.
-// 4. Apply the hand-tuned swaps from TUNED_SWAPS below. Each trades
-//    some direction fit for stroke flow; the dated reasoning per swap
-//    is in layout-tuning.md.
 //
 // Run: node tools/generate-qwerty8pen.mjs
 // Paste the printed block into layouts.js (entry 'qwerty-8pen').
+// Only that entry: the urza-layout entry was seeded from this output
+// on 2026-08-26 and is hand-owned since (see layout-tuning.md), so a
+// regenerate must never touch it.
 
 import { FREQUENCY } from '../layouts.js';
 
@@ -125,32 +125,6 @@ for (let ring = 0; ring < 4; ring++) {
       console.log(`  ${slotNames[s].padEnd(6)} ${best[s]}  slot ${SPOKES[slotNames[s]]}°  qwerty ${angleOf(best[s]).toFixed(0)}°  off ${angDist(angleOf(best[s]), SPOKES[slotNames[s]]).toFixed(0)}°`);
     }
   }
-}
-
-// Step 4: hand-tuned swaps on top of the computed assignment. Keep
-// both letters of a pair in the same ring, so the ring rule (every
-// letter same or cheaper than in the original) stays true and the
-// unit test keeps passing. Reasoning per swap: layout-tuning.md.
-const TUNED_SWAPS = [
-  ['a', 's'], // "is" becomes a figure eight (entry 2026-08-26)
-];
-
-const findSlot = (ch) => {
-  for (const sector of ['N', 'E', 'S', 'W']) {
-    for (const direction of ['CW', 'CCW']) {
-      const ring = result[sector][direction].indexOf(ch);
-      if (ring !== -1) return { sector, direction, ring };
-    }
-  }
-  throw new Error(`tuned swap letter not in layout: ${ch}`);
-};
-for (const [a, b] of TUNED_SWAPS) {
-  const sa = findSlot(a);
-  const sb = findSlot(b);
-  if (sa.ring !== sb.ring) throw new Error(`tuned swap ${a}<->${b} crosses rings`);
-  result[sa.sector][sa.direction][sa.ring] = b;
-  result[sb.sector][sb.direction][sb.ring] = a;
-  console.log(`tuned swap: ${a} <-> ${b}`);
 }
 
 console.log('\nstatic: {');

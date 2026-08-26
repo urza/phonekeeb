@@ -1,10 +1,11 @@
 # Layout tuning log
 
-Hand-tuned changes to the letter layouts, newest first. Each entry
-records what changed, why, and what it cost, so future tuning has a
-trail to reason against. The qwerty-8pen swaps also live in
-`TUNED_SWAPS` in `tools/generate-qwerty8pen.mjs`, so a regenerate
-keeps them, and `tests/layouts-unit.mjs` locks the tuned slots.
+The dated trail of hand changes to `urza-layout`, newest first. Each
+entry records what changed, why, and what it cost, so future tuning
+has a trail to reason against. The `urza-layout` map in `layouts.js`
+is the source of truth; no script regenerates it. The `qwerty-8pen`
+entry stays pure generator output, the baseline to compare against.
+`tests/layouts-unit.mjs` locks the tuned slots.
 
 Vocabulary used in the reasoning (see the 8pen research notes in
 `CLAUDE.md`):
@@ -20,7 +21,7 @@ Vocabulary used in the reasoning (see the 8pen research notes in
 - When the next letter starts in the exit sector itself, the finger
   must double back. Call this a reversal, the worst case.
 
-## 2026-08-26: swap a and s (qwerty-8pen)
+## 2026-08-26: swap a and s
 
 - Before: a at S CW ring 1, s at W CCW ring 1.
 - After: s at S CW ring 1, a at W CCW ring 1.
@@ -38,3 +39,12 @@ Vocabulary used in the reasoning (see the 8pen research notes in
     generator's QWERTY-direction objective (s is now 58 degrees off,
     a is 32 degrees off; before it was the reverse).
   - Both letters stay in ring 1, so no gesture gets more crossings.
+
+## 2026-08-26: seed from the qwerty-8pen generator
+
+- `urza-layout` forked from the output of
+  `tools/generate-qwerty8pen.mjs`: rings from the original 8pen,
+  punctuation dropped, frequency promotion, QWERTY direction
+  matching per ring.
+- From this point the generator only maintains the `qwerty-8pen`
+  baseline. This layout evolves by hand, one logged entry per change.

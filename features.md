@@ -281,14 +281,19 @@ a short alphabet after hand edits.
   matching QWERTY) plus six empty reserved slots. Within each ring,
   slots go to the letters whose direction from the QWERTY keyboard
   center best matches the slot direction, derived by
-  `tools/generate-qwerty8pen.mjs`. On top of that computed assignment
-  sit hand-tuned swaps for stroke flow, currently one: a and s traded
-  ring-1 slots so the word "is" traces a figure eight (i exits the
-  center from N; s at S CW passes straight through it with reversed
-  rotation). The dated trail of these tweaks is `layout-tuning.md`.
-  Worst compromises: s and o at under 60 degrees off. A unit test
-  locks the ring-or-promoted rule, the letters-only rule, and the
-  tuned slots.
+  `tools/generate-qwerty8pen.mjs`. This layout stays pure script
+  output, the reproducible baseline for comparison; hand tuning
+  happens in `urza-layout`. Worst compromises: a and o at under 60
+  degrees off. A unit test locks the ring-or-promoted rule and the
+  letters-only rule.
+- `urza-layout`: the hand-owned layout and the default. Its map in
+  `layouts.js` is the source of truth; no script regenerates it.
+  Seeded 2026-08-26 from the qwerty-8pen generator output with one
+  change: a and s traded ring-1 slots, so the word "is" traces a
+  figure eight (i exits the center from N; s at S CW passes straight
+  through it with reversed rotation). Every hand tweak gets a dated
+  entry with its reasoning in `layout-tuning.md`, and a unit test
+  locks the tuned slots.
 - `original-8pen`: transcribed from a screenshot
   of the original app (`8pen.png` in the repo root). The geometry now
   matches the original directly, X arms and all, so the transcription
@@ -296,7 +301,7 @@ a short alphabet after hand edits.
   All 26 letters plus 6 punctuation marks (. , ' ? ! @) fill the 32
   slots exactly. The frequent marks sit innermost, and y sits at one
   crossing, unlike the frequency mode's ranking.
-- `qwerty-8pen` is the default on first load. The layout and language
+- `urza-layout` is the default on first load. The layout and language
   dropdown choices persist in the browser (localStorage) and survive
   reloads, like the theme.
 - Slots can hold punctuation. A typed mark ends the prediction word.
@@ -433,7 +438,7 @@ Saved in the browser (localStorage) and restored on load; the iOS
 equivalent is UserDefaults. Key, values, default:
 
 - `phonekeeb.theme`: theme id, default `auto`.
-- `phonekeeb.layout`: layout id, default `qwerty-8pen`.
+- `phonekeeb.layout`: layout id, default `urza-layout`.
 - `phonekeeb.language`: `en` or `cs`, default `en`.
 - `phonekeeb.settingsOpen`: `1`/`0`, default closed.
 - `phonekeeb.sectorColors`: `1`/`0`, default on.

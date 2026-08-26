@@ -71,10 +71,14 @@ check('qwerty-8pen e innermost W CW', letterAt(lq, 'W', 'CW', 1) === 'e', letter
 check('qwerty-8pen n innermost S CCW', letterAt(lq, 'S', 'CCW', 1) === 'n', letterAt(lq, 'S', 'CCW', 1));
 check('qwerty-8pen z outermost W CCW', letterAt(lq, 'W', 'CCW', 4) === 'z', letterAt(lq, 'W', 'CCW', 4));
 
-// Hand-tuned swap (layout-tuning.md, 2026-08-26): s takes S CW ring 1
-// so "is" traces a figure eight; a takes the freed W CCW ring 1 slot.
-// Guards against a regenerate that drops TUNED_SWAPS.
-check('qwerty-8pen s innermost S CW (tuned)', letterAt(lq, 'S', 'CW', 1) === 's', letterAt(lq, 'S', 'CW', 1));
-check('qwerty-8pen a innermost W CCW (tuned)', letterAt(lq, 'W', 'CCW', 1) === 'a', letterAt(lq, 'W', 'CCW', 1));
+// urza-layout: the hand-owned fork of qwerty-8pen (layout-tuning.md).
+// Locks the letter set and the tuned slots only; the rest may drift
+// as tuning continues, and each locked slot changes here in the same
+// change set as its log entry.
+const lu = buildLayout('urza-layout', 'en');
+check('urza-layout holds exactly the 26 letters', validateLayout(lu).letterCount === 26, `got ${validateLayout(lu).letterCount}`);
+check('urza-layout has no punctuation', allGlyphs(lu).every((g) => /\p{L}/u.test(g)), allGlyphs(lu).join(''));
+check('urza-layout s innermost S CW (tuned)', letterAt(lu, 'S', 'CW', 1) === 's', letterAt(lu, 'S', 'CW', 1));
+check('urza-layout a innermost W CCW (tuned)', letterAt(lu, 'W', 'CCW', 1) === 'a', letterAt(lu, 'W', 'CCW', 1));
 
 process.exit(failures ? 1 : 0);
