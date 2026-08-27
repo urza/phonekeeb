@@ -198,6 +198,17 @@ all. Only the top tier does.*
 CC-BY-NC-SA, so no commercial use. Both are Czech only, so English needs
 a second model or a multilingual one.*
 
+*The English half, measured 2026-08-27 (`prediction-game.md`, session 4).
+The literal equivalent of Czech-GPT-2-XL is GPT-2 XL itself, since the
+Czech model is that model adapted; it scores 7 of the 9 English game
+cases against the Czech adaptation's 5, and 0 of the 5 Czech ones. But
+one multilingual model beats keeping two. `Qwen3-1.7B-Base`, Apache-2.0
+and 3.4 GB in bfloat16, reads English AND beats Czech-GPT-2-XL on both
+technical Czech cases (rank 1 against 3, rank 3 against 4). It loses
+only the two colloquial spoken-Czech cases. Two models would also mean a
+language switch at the call site, which this engine rules out
+everywhere else.*
+
 *The privacy cost is the real objection, and
 `swiftkey_research/swiftkey-user-reviews-analysis.md` is fifteen years of
 users saying so. Their non-negotiable is network access that is visibly

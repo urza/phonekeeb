@@ -251,3 +251,39 @@ legal-document register (`zákona, předpisu`), both correctly genitive.
 Full-harness scores with cases 12 to 14 included: Czech-GPT-2-XL 10/14,
 CzeGPT-2 5/14, czech-gpt2-oscar 5/14, shipped engine 7/14. The earlier
 n/11 numbers are not comparable to these.
+
+### And the English side of the same idea
+
+`ideas.md` left one question open under "A big model beside the small
+one": Czech-GPT-2-XL is Czech only, so English needs a second model or
+a multilingual one. Measured 2026-08-27 on the same 14 cases, strip of
+6, same harness:
+
+| Model | English 9 | Czech 5 | total |
+|---|---|---|---|
+| Czech-GPT-2-XL-133k, 1.58B | 5 | 5 | 10/14 |
+| Qwen3-1.7B-Base, 2025, multilingual | 6 | 2 (+1 fold) | 9/14 |
+| GPT-2 XL, 1.5B, 2019 | 7 | 0 | 8/14 |
+
+`openai-community/gpt2-xl` is the literal equivalent: Czech-GPT-2-XL
+IS GPT-2 XL, 48 layers and 1600 hidden, adapted to Czech. It reads
+English better than the Czech adaptation does (7 of 9 against 5) and
+is useless in Czech, which is the expected shape.
+
+The better answer is one model instead of two. `Qwen3-1.7B-Base` beats
+Czech-GPT-2-XL on both technical Czech cases, `predikčního` at rank 1
+against 3 and `algoritmu` at rank 3 against 4, while also reading
+English. It loses cases 9 and 10, the two colloquial spoken-Czech ones
+(`zaplavat`, `kuře`), where the Czech-only model that trained on Czech
+web text still wins. Register again, on a smaller scale.
+
+So the split is the same one this project keeps meeting. A model
+trained on the target language's everyday speech wins at everyday
+speech; a modern multilingual model wins at everything technical and
+costs one model instead of two. Two models also mean a language switch
+at the call site, which the one-layout, one-model constraint rules out
+everywhere else in this engine.
+
+Sizes and speed on this machine, bfloat16: Qwen3-1.7B-Base 3.4 GB and
+1.4 to 4.1 s per strip, GPT-2 XL 3.1 GB and 1.8 to 7.2 s,
+Czech-GPT-2-XL 3.5 GB and 1.7 to 12.2 s.

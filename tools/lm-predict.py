@@ -67,8 +67,13 @@ class WordLM:
         # often than the model needs it as an id, and decoding inside the loop
         # dominated the runtime before this cache existed.
         ids = list(range(self.n_vocab))
-        self.piece = self.tok.convert_ids_to_tokens(ids)
-        self.text = [self.tok.convert_tokens_to_string([p]) for p in self.piece]
+        # A model whose output layer is padded past its real vocabulary (Qwen3
+        # rounds 151646 up to 151936 for tensor alignment) returns None for the
+        # unused ids. They decode to nothing and must never win a beam slot, so
+        # they become empty strings here and fail every test below.
+        self.piece = [p or "" for p in self.tok.convert_ids_to_tokens(ids)]
+        self.text = [self.tok.convert_tokens_to_string([p]) if p else ""
+                     for p in self.piece]
         # A byte-level BPE marks a word start with U+0120 ("Ġ"); some Czech
         # tokenizers use the sentencepiece "▁" instead. Accept both, and fall
         # back to a leading space in the decoded form.
