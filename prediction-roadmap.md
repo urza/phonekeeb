@@ -30,7 +30,8 @@ Measured on held-out subtitles, strip of 6 (hit@1 / hit@3):
 | 2-letter prefix | 61.4 / 75.0 | 57.1 / 70.6 |
 | corrupted prefix | 36.8 / 53.0 | 33.0 / 47.8 |
 
-Prediction game: 6 of 11. The LLM that played it live scored 8.
+Prediction game: 6 of 12. The LLM that played it live scored 8 of the
+first 11.
 
 ## The five layers, and which ones we have
 
@@ -87,7 +88,9 @@ ignores prefix length. With one typed letter there is no typing evidence
 yet, and 0.05 times an English giant still beats a small Czech word.
 
 **3. Go deeper on personalization.** This is where SwiftKey's reputation
-comes from, and where the user's own typing history becomes a moat. The
+comes from, and where the user's own typing history becomes a moat. Game
+case 12 is the argument in one line: a greeting is followed by a name,
+and no corpus holds either the greeting form or the nickname. The
 store itself is now well built, so two pieces remain. Seed the model from
 chat exports (`tools/build-personal.py`, still unwritten), then tune the
 blend weight, which has never been tuned against held-out data. The

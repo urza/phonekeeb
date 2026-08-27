@@ -146,6 +146,40 @@ shipped". Replay: 5/11 to 6/11 on the 6-chip strip.
 Fix 4 (prefix-scaled language floor, cause D) is the one improvement
 still open.
 
+## Update 2026-08-27: case 12, and a flaw in this harness
+
+Case 12 (`ahojky zebricko`, wanted `zebřičko`) is the first case no
+counting model can ever answer. Both halves are absent from the corpus:
+`ahojky` is not in the vocabulary at all, only `ahoj`, and no form of
+`zebřička` is among the 40000 Czech forms. Replay is now 6/12.
+
+Adding it exposed a bug in `tools/eval-game.mjs`. The hit test compared
+match keys on both sides, so the verbatim chip `zebricko` counted as a
+hit for `zebřičko`, because the two fold to the same key. They are not
+the same insert. The test now compares exact strings and reports a
+fold-only match as a near miss. No other case moved, so the flaw had
+been latent since the harness was written: every earlier hit was already
+spelled correctly, including `it's` in case 5.
+
+New cause, beyond A to E above:
+
+### Cause F: the word was never in any corpus
+
+Coined pet names, playful greeting forms, and personal nicknames do not
+appear in subtitles at any table size. Case 12 is the pure form of it,
+and cases 4 and 6 (`future is now`, `I love`) are the milder version.
+Two things reach cause F, and neither is a bigger table:
+
+- **The personal model**, from the second sighting, or from the first if
+  it is seeded from chat exports. A chat export holds both `ahojky` and
+  the nickname. This is now the strongest argument for the seeding work.
+- **A model that works below the word.** `zebřičko` is derivable from
+  `zebra`, which the vocabulary does have, by two productive Czech rules.
+  Measured with the harness of `czech-lm-research.md`: Czech-GPT-2-XL
+  puts `zebřičko` at rank 1, CzeGPT-2 at rank 2, czech-gpt2-oscar at
+  rank 3 with the wrong z. Context matters even here: without `ahojky`
+  in front, the XL model drops it from rank 1 to rank 8.
+
 ## Update 2026-08-27: the game replayed through language models
 
 `czech-lm-research.md` replays these same 11 exchanges through four Czech

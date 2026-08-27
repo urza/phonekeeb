@@ -107,4 +107,44 @@ keyboard app must reach for it with small local methods.
   the mixed strip: the prefix reading (kuře) beat the preposition
   reading (obědu).
 
+## Session 3 (2026-08-27)
 
+### 12
+- Input: `ahojky zebricko` (Czech)
+- Wanted: `zebřičko`, the vocative of `zebřička`, a coined pet name
+  from `zebra` ("hi, little zebra"). Short i, so not `žebříčko`.
+- Engine strip: `zebricko` (the verbatim chip alone). One letter
+  earlier, at `zebric`, it offered `žebříčku`.
+- Chosen: none, miss.
+
+Two separate failures in one exchange:
+
+- `ahojky` is not in the vocabulary at all. Only `ahoj` is. So the
+  strip had no context word to score against and the whole burden fell
+  on the prefix.
+- No form of `zebřička` exists in the 40000 Czech forms. The only word
+  whose stripped key starts with `zebric` is `žebříčku`.
+
+Lesson: a greeting is followed by a name. Subtitle corpora carry
+neither the playful greeting forms nor anyone's nickname, so no
+counting model can ever answer this exchange, at any table size. This
+one belongs to the personal model, and it is the clearest argument yet
+for seeding it from chat exports.
+
+A separate lesson about the word itself: `zebřičko` is derivable from
+`zebra`, which IS in the vocabulary, by two productive Czech rules
+(diminutive `-a` to `-ička` with r/ř palatalization, then vocative
+`-a` to `-o`). A model that knows Czech morphology, or one that works
+below the word, can reach it without ever having seen it. Measured
+2026-08-27 with the harness of `czech-lm-research.md`, strip of 8:
+
+```
+Czech-GPT-2-XL    ahojky |zebricko -> zebřičko, zebřičkové, ...     rank 1
+CzeGPT-2          ahojky |zebricko -> zebřičkové, zebřičko, ...     rank 2
+czech-gpt2-oscar  ahojky |zebricko -> žebříčkové, žebříčková,
+                                      žebřičko, ...                 rank 3, wrong z
+shipped engine    ahojky |zebricko -> zebricko                      miss
+```
+
+The greeting helps the big model: without any context it ranks
+`zebřičko` eighth, and with `ahojky` in front it ranks it first.
