@@ -13,6 +13,15 @@ input=$(cat)
 
 j() { printf '%s' "$input" | jq -r "$1"; }
 
+# ANSI colours. The escape byte comes from printf so this file stays plain text.
+esc=$(printf '\033')
+rst="$esc[0m"
+dim="$esc[2m"
+cyan="$esc[36m"
+green="$esc[32m"
+yellow="$esc[33m"
+red="$esc[31m"
+
 project=$(basename "$(j '.workspace.project_dir // .cwd // "?"')")
 
 # Branch of whatever directory the session is in - a linked worktree has its own
@@ -31,9 +40,22 @@ model=$(j '.model.display_name // "?"')
 effort=$(j '.effort.level // empty')
 pct=$(j '.context_window.used_percentage // empty')
 
-out="$project"
-[ -n "$branch" ] && out="$out > $branch"
-out="$out > $model"
-[ -n "$effort" ] && out="$out ($effort)"
-[ -n "$pct" ] && out=$(printf '%s > %.0f%% cntx' "$out" "$pct")
+# Context segment turns yellow at 70% and red at 90%, on the same rounded value
+# that gets printed, so the colour never disagrees with the number.
+pctcol="$green"
+if [ -n "$pct" ]; then
+    printf -v pctint '%.0f' "$pct"
+    if [ "$pctint" -ge 90 ]; then
+        pctcol="$red"
+    elif [ "$pctint" -ge 70 ]; then
+        pctcol="$yellow"
+    fi
+fi
+
+sep="$dim > $rst"
+out="$cyan$project$rst"
+[ -n "$branch" ] && out="$out$sep$green$branch$rst"
+out="$out$sep$model"
+[ -n "$effort" ] && out="$out $dim($effort)$rst"
+[ -n "$pct" ] && out=$(printf '%s%s%s%.0f%%%s%s cntx%s' "$out" "$sep" "$pctcol" "$pct" "$rst" "$dim" "$rst")
 printf '%s' "$out"
