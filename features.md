@@ -711,10 +711,11 @@ and symbol pad. They share a shape, and the rules below hold for both.
   left-hand anchor option is future work.
 - From 520 px of window width the page stops stretching: the body holds
   a 480 px column in the middle, with a hairline down each side. The
-  other three pages take the same column (without the lines, because
-  they scroll). A phone in portrait never reaches the query, so this
-  is a desktop-only rule, and what it shows on a PC is close to what a
-  phone gets.
+  practice and dictionary pages take the same column (without the
+  lines, because they scroll). The cards page keeps the full width: it
+  is a reference sheet, and its grid auto-fills, so a wide window shows
+  the whole alphabet at once. A phone in portrait never reaches the
+  query, so this is a desktop-only rule.
 
 ## Installable app (PWA)
 
@@ -868,7 +869,7 @@ Tuned constants, one place to read them all:
 | Suggestion row gap | bottom edge 4 px above the wheel rim |
 | Copy button | 48 x 40 px, 12 px above the canvas bottom, right edge on the wheel box; copied flash 900 ms |
 | Panel buttons | 48 x 40 px, edges on the wheel box's top and side, or the panel's bottom bar while it is open |
-| Desktop column | 480 px wide, centered, from a window 520 px wide |
+| Desktop column | 480 px wide, centered, from a window 520 px wide; not on the cards page |
 | Panel bar | 40 px tall keys, 60 px right slot for the button |
 | Emoji picker | 925 emoji, 10 categories, one continuous scroll; cells 44 px, columns auto-fill from 44 px, 2 px gap |
 | Emoji tabs | 11, recent first |

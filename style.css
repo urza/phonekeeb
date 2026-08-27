@@ -69,9 +69,10 @@ body {
    suggestion chips and the corner buttons drift far apart. The body
    background propagates to the whole viewport, so the two lines are what
    makes the column readable as a column.
-   cards.html, game.html and dictionary.html repeat this block in their
-   own <style>; keep the 480 in sync. Below the query the rule does
-   nothing, so a portrait phone is untouched. */
+   game.html and dictionary.html repeat this block in their own <style>;
+   keep the 480 in sync. cards.html deliberately has no copy: its card
+   grid is a reference sheet that should fill a wide window. Below the
+   query the rule does nothing, so a portrait phone is untouched. */
 @media (min-width: 520px) {
   body {
     max-width: 480px;
