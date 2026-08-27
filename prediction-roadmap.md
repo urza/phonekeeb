@@ -171,6 +171,14 @@ only engine to reach case 14. The middle tier costs 248 MB and ~350 ms
 locally and may need no network; only the top tier does. Direction 7
 covers part of that middle tier offline and cheaper still.
 
+Two specialist models, not one multilingual model (user decision,
+2026-08-27). Czech-GPT-2-XL answers Czech, GPT-2 XL answers English,
+and a layer above them merges. Measured on the 14 game cases, that pair
+scores 12/14 where the best single model scores 10/14, because each one
+wins its own language's everyday speech. The merge is not a language
+switch: `langPosterior()` already weighs both languages every keystroke
+for the n-gram tables, and the same weights apply one level up.
+
 Two things are settled, and the rest is open. It can never sit in the
 per-keystroke loop: 2.3 seconds per strip locally, and a round trip per
 letter even on a server GPU. And whatever it contributes and the user
