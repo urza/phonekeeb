@@ -52,6 +52,15 @@ that file before design work.
   keyboards, from HN 2010/2013, reviews, and the 8VIM discussions. Read
   it before any layout change that would weaken the QWERTY direction
   mnemonic, and before deciding what to build for beginners.
+- `swiftkey_research/` (three files, no phone twin yet) documents the
+  keyboard this project is really competing with: the engine
+  (`swiftkey-on-device-engine-deep-dive.md`, from TouchType's patents,
+  plus a recreation blueprint and the academic numbers), the product
+  and data-export story (`swiftkey-prediction-research.md`), and
+  fifteen years of user sentiment (`swiftkey-user-reviews-analysis.md`).
+  Read the deep dive before predictor work: it names the pipeline our
+  engine is a subset of (input model, candidate graph, context LM,
+  personal layer) and the public datasets to tune against.
 - `czech-lm-research.md` (phone twin: `czech-lm-research.html`) measures
   every candidate replacement for the prediction engine on the same
   held-out pairs and the same prediction game: the Czech GPT-2 models on
@@ -74,6 +83,15 @@ that file before design work.
   recommended option, or do all options behind flags when they are cheap.
 - After each completed change set: run the tests, then commit and push to
   `main`. The user reviews on GitHub Pages from a phone.
+- **Stage the exact files you edited, by name. Never `git add -A`.** The
+  working tree is mounted from the host, the user drops files into it from
+  the phone, and parallel sessions commit into it. `git add -A` on
+  2026-08-24 swept a user-dropped `ideas.md` into an unrelated commit, and
+  it happened again on 2026-08-27 (that time `git status` was clean of
+  foreign files, so nothing was swept, but the habit is the risk). Run
+  `git status` and `git log --oneline -3` before every commit and treat
+  anything unexpected as someone else's work: leave it unstaged, read it in
+  case it is meant as input, and say so in the reply.
 - Before each push that touches JS or CSS, bump every `?v=` number in
   `index.html` and `cards.html`, plus the `BUILD` constant in `sw.js`,
   to the same next value (grep for `?v=`). GitHub Pages caches assets

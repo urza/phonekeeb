@@ -88,6 +88,12 @@ LSTM), against a 164K vocabulary. The approach is sound at our scale.
   per-user learning; the neural side generalizes to unseen contexts.
 - Two-word chips shipped as "Double-Word Prediction" in SwiftKey 6.0.
 - Copilot features are a separate cloud call, not the prediction engine.
+- This summary is thin. `swiftkey_research/swiftkey-on-device-engine-deep-dive.md`
+  (2026-08-27) replaces it with the pipeline read out of TouchType's
+  patents: a per-keypress character distribution, a candidate graph with
+  insert/delete/boundary nodes, a trigram context model, and the personal
+  layer, scored as input probability times context probability. Read that
+  before predictor work.
 
 ### The pattern
 
@@ -532,6 +538,46 @@ version, so this file's table is not read as current:
 
 So the open tuning work moved: it is the completion scorer, not the
 vocabulary and not the tables' size.
+
+## What the SwiftKey research adds (2026-08-27)
+
+`swiftkey_research/` arrived the same day and overlaps this file. Four
+things in it change work already planned here.
+
+- **The λ tuning is no longer blocked on the user's chat exports.** The
+  Enron LM Personalization Dataset (44 users, https://osf.io/45p3j) is
+  public and is what Adhikary and Vertanen used at Interspeech 2023.
+  Their result is also the target to beat: personalizing a background LM
+  gave +9.9% relative keystroke savings and -36% relative word error
+  rate on simulated noisy typing. So the personalization plan's step 4
+  ("tune λ on held-out personal data once seeds exist") can start now,
+  against a public split, and `tools/build-personal.py` stops being a
+  prerequisite for it.
+- **Our engine's shape is right; its scoring is the weak part.** Samsung's
+  Op-Ngram (arXiv 2101.03967) ships stupid backoff plus pruning on
+  phones and beats a KenLM setup on speed, which is the same shape as
+  `prediction.js`. Read together with `czech-lm-research.md`, where KenLM
+  beat us on accuracy at the same byte budget, the conclusion is narrow:
+  keep stupid backoff, fix the successor cap and the backoff discount.
+- **A neural model belongs as a re-ranker, not a generator.** Both
+  SwiftKey's design and the recreation blueprint put the small NN on top
+  of the n-gram candidate set, for robustness and cold start. That is
+  exactly the slot the mini model of `czech-lm-research.md` fits, and the
+  blueprint's suggested size (1 to 10M parameters, int8, 1 to 10 MB)
+  brackets the 1.30M / 1.3 MB one that was measured.
+- **One model for several languages is a shipped, proven design.**
+  SwiftKey does up to 5 at once with one shared personal dictionary and
+  mid-sentence switching, which is the constraint this project already
+  chose. The warning that comes with it: a 2026 reviewer reports the
+  five-language mode "destroys the prediction capability", so keep the
+  mix at two and keep the language posterior measured.
+
+One caution for later: SwiftKey's term-boundary graph, which turns
+"calkmebac" into "call me back" without a space bar, is patented
+(Microsoft, via TouchType). This keyboard already types space two ways
+inside a stroke, so the same trick would fit it well. If it is ever
+built, design it from the general prior art (n-grams, edit distance,
+key-adjacency error models), not from their claims.
 
 ## Personalization plan (added 2026-08-25)
 
