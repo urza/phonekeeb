@@ -146,6 +146,30 @@ shipped". Replay: 5/11 to 6/11 on the 6-chip strip.
 Fix 4 (prefix-scaled language floor, cause D) is the one improvement
 still open.
 
+## Update 2026-08-27: the game replayed through language models
+
+`czech-lm-research.md` replays these same 11 exchanges through four Czech
+GPT-2 models and a KenLM n-gram. Scores: Czech-GPT-2-XL 7/11, this engine
+6/11, KenLM 4/11, the three 124M models 2 to 3 of 11. Seven exchanges are
+English, which a Czech-only model cannot answer, so only the XL total is
+comparable.
+
+What it says about the two open cases here:
+
+- **Case 9 (zaplavat) is a context case, not a ranking case.** Three of
+  the four transformers put `zaplavat` at rank 1 or 2, where every
+  counting model (this engine, KenLM at every size) answers with the
+  `zaplat*` payment cluster. No reweighting of static tables reaches it;
+  the answer needs the sense of "vykoupat a".
+- **Case 10 (kuře) needs more than the language floor.** Fix 4 (the
+  prefix-scaled floor) removes the English leak, but KenLM misses this
+  case too, so the Czech k-giants win on counts alone. The 124M models
+  answer with food and drink (kousek, kafe, kávu), and only the 1.58B
+  model reaches `kuře`, at rank 5.
+
+So both remaining Czech misses are semantic, not statistical. They are the
+right cases to stop chasing with table tuning.
+
 ## Notes
 
 - The game mixes two strip modes (completion vs. next word) and the

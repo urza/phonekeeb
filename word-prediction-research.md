@@ -505,6 +505,34 @@ words into the predictor in one batch blocked the main thread long
 enough to eat a stroke drawn during the load; the loader now feeds
 4000-word chunks with a frame between slices.
 
+## The untested rows are now tested (2026-08-27)
+
+Three rows of the options table above shipped with "untested" in them: the
+tiny custom LSTM, the browser LLM, and the iOS 26 Foundation Models route.
+`czech-lm-research.md` measures the first two, in Czech, on the held-out
+pairs of `tools/eval-prediction.mjs` and on the prediction game. Short
+version, so this file's table is not read as current:
+
+- **A pretrained Czech GPT-2 (124M) is worse than these tables at
+  next-word**, 10.0 / 18.3 against 17.3 / 31.3, and better at prefix
+  completion, 54.2 / 72.9 against 52.8 / 65.6. The cause is register: it
+  was trained on web crawl, and its per-word perplexity on held-out
+  subtitles is 3202 where a 1.86 MB KenLM trigram scores 1428. Scale does
+  not fix it; the 1.58B Czech-GPT-2-XL only ties on next-word.
+- **The "tiny custom model" row was right, and it was the best row.** A
+  1.30M-parameter word-level transformer over our own vocabulary, trained
+  on this corpus for 67 minutes of CPU time, ties these tables on
+  next-word and beats them by 5.2 / 10.8 on prefix-2, at 1.3 MB and
+  0.6 ms. Its output layer is the lexicon, so no beam search is needed.
+- **A KenLM trigram at our own byte budget beats the shipped ranking by
+  9 / 16 points of prefix-2.** That gap is in this engine's scoring, not
+  in its data: the mixed-language posterior costs under 0.7 points, the
+  typo slots cost 2.8 / 4.8, and the rest is the top-24 successor cap and
+  the flat backoff against real Kneser-Ney discounting.
+
+So the open tuning work moved: it is the completion scorer, not the
+vocabulary and not the tables' size.
+
 ## Personalization plan (added 2026-08-25)
 
 Status 2026-08-26: Component A (learning while typing) is shipped —

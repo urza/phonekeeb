@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Phonekeeb Czech LMs</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --ink: #1a212c; --muted: #576273;
+    --line: #dfe4eb; --accent: #2b5fe3; --link: #2154cf; --chip-bg: #eef1f6;
+    --warn-ink: #815409; --warn-bg: #faf1df; --warn-line: #e8d5a8;
+    --good: #1a7f4b; --bad: #b03a2e; --quote-line: #b9c4d4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a; --card: #181d24; --ink: #e7eaf0; --muted: #98a2b1;
+      --line: #2a313b; --accent: #5c86f5; --link: #93b0ff; --chip-bg: #232a33;
+      --warn-ink: #e3b76c; --warn-bg: #251e0f; --warn-line: #4a3d1e;
+      --good: #52c98a; --bad: #ec8377; --quote-line: #3c4756;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a; --card: #181d24; --ink: #e7eaf0; --muted: #98a2b1;
+    --line: #2a313b; --accent: #5c86f5; --link: #93b0ff; --chip-bg: #232a33;
+    --warn-ink: #e3b76c; --warn-bg: #251e0f; --warn-line: #4a3d1e;
+    --good: #52c98a; --bad: #ec8377; --quote-line: #3c4756;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.03rem; line-height: 1.55; margin: 0;
+  }
+  .wrap { max-width: 42.5rem; margin: 0 auto; padding: 2.2rem 1.15rem 3.5rem; }
+  .eyebrow {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(1.9rem, 6vw, 2.5rem); font-weight: 700;
+    letter-spacing: -.015em; line-height: 1.08; text-wrap: balance; margin: 0 0 .7rem;
+  }
+  .dek { font-size: 1.11rem; color: var(--muted); max-width: 34em; margin: 0 0 1.8rem; }
+  h2 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.28rem; font-weight: 700; letter-spacing: -.01em;
+    text-wrap: balance; margin: 2.6rem 0 .8rem;
+  }
+  h3 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.02rem; font-weight: 700; margin: 1.6rem 0 .4rem;
+  }
+  p { margin: .65rem 0; max-width: 65ch; }
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .mono { font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace; }
+
+  .tldr { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.05rem 1.25rem; margin: 1.6rem 0 0; }
+  .tldr ul { margin: 0; padding-left: 1.1rem; }
+  .tldr li { margin: .5rem 0; }
+  .tldr b { font-weight: 600; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .5rem .7rem; border-top: 1px solid var(--line); vertical-align: top; }
+  thead th { border-top: 0; font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
+  td.num { text-align: right; font-family: "Spline Sans Mono", monospace; font-size: .84rem; white-space: nowrap; }
+  td:first-child { font-weight: 600; }
+  tr.base td { color: var(--muted); }
+  tr.best td { background: color-mix(in srgb, var(--good) 9%, transparent); }
+
+  /* one replayed prediction-game case: the strip each engine produced */
+  .case { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .85rem 1rem; margin: 1.1rem 0; }
+  .case .in { font-family: "Spline Sans Mono", monospace; font-size: .84rem; color: var(--muted); margin: 0 0 .55rem; }
+  .case .in b { color: var(--ink); font-weight: 500; }
+  /* Label above chips, always. A flex row that only sometimes wraps put the
+     engine name beside short strips and above long ones, which read as two
+     different layouts inside one card. */
+  .row { margin: .55rem 0 0; padding-top: .5rem; border-top: 1px dashed var(--line); }
+  .row .eng { display: block; font-family: "Spline Sans Mono", monospace; font-size: .74rem; letter-spacing: .04em; color: var(--muted); }
+  .row .chips { font-size: .89rem; }
+  .row .chips .hit { color: var(--good); font-weight: 600; }
+  .verdict { font-family: "Spline Sans Mono", monospace; font-size: .72rem; margin-left: .35rem; white-space: nowrap; }
+  .verdict.y { color: var(--good); }
+  .verdict.n { color: var(--bad); opacity: .8; }
+
+  .warncard { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: .9rem 1.1rem; margin: 1.3rem 0; }
+  .warncard .tag { font-family: "Spline Sans Mono", monospace; font-size: .72rem; letter-spacing: .12em; color: var(--warn-ink); font-weight: 500; }
+  .warncard p { font-size: .95rem; margin: .4rem 0 0; }
+
+  ol.plan { padding-left: 1.25rem; margin: .8rem 0; }
+  ol.plan li { margin: .7rem 0; max-width: 62ch; }
+  ol.plan b { font-weight: 600; }
+  ul.need { padding-left: 1.1rem; margin: .4rem 0 0; font-size: .95rem; }
+  ul.need li { margin: .3rem 0; max-width: 62ch; }
+
+  .sources { border-top: 1px solid var(--line); margin-top: 2.6rem; padding-top: 1.2rem; }
+  .sources h2 { margin-top: 0; font-size: 1.05rem; }
+  .sources ul { padding-left: 1.1rem; margin: .5rem 0 0; font-size: .84rem; }
+  .sources li { margin: .3rem 0; }
+  .repo-note { font-size: .88rem; color: var(--muted); margin-top: 1.3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">Phonekeeb · researched 2026-08-27</p>
+<h1>Could a small Czech GPT-2 run the suggestion strip?</h1>
+<p class="dek">Four Czech models, a KenLM n-gram, and a mini model trained from scratch, all downloaded, wired to a real strip, and scored on the same 300 held-out pairs and the same prediction game.</p>
+
+<div class="tldr">
+  <ul>
+    <li><b>The 124M Czech GPT-2s lose next-word prediction to our 1.8 MB tables, by about half.</b> 10.0 / 18.3 against 17.3 / 31.3 (hit@1 / hit@3).</li>
+    <li><b>Scale does not fix it.</b> Czech-GPT-2-XL, 1.58B parameters, only ties: 17.3 / 28.3. They were all trained on web crawl and Wikipedia; the strip has to predict chat.</li>
+    <li><b>But on your own game sentences the XL model is the only engine that hits the target</b>, 7 of 11, and the only one that answers both Czech cases. It costs 2.3 seconds per strip.</li>
+    <li><b>The cheap winner is a mini model trained from scratch over our own word list.</b> 1.3 MB, 0.6 ms, already beats the shipped ranking on prefix completion after 67 minutes of CPU training.</li>
+    <li><b>The real finding is about our own code.</b> Two engines at the same byte budget beat <span class="mono">prediction.js</span> by 5 to 9 points of prefix-2 hit@1. That gap is the work list.</li>
+  </ul>
+</div>
+
+<h2>The scoreboard</h2>
+
+<p>300 held-out Czech pairs from the shipped eval harness, strip of six chips, hit@1 / hit@3. Every engine answered the same questions.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Engine</th><th>Weights</th><th class="num">next-word</th><th class="num">prefix-2</th></tr></thead>
+<tbody>
+<tr class="base"><td>shipped prediction.js</td><td>1.81 MB</td><td class="num">17.3 / 31.3</td><td class="num">52.8 / 65.6</td></tr>
+<tr><td>mini, from scratch</td><td>1.3 MB int8</td><td class="num">17.7 / 30.7</td><td class="num">58.0 / 76.4</td></tr>
+<tr><td>KenLM order 3</td><td>1.86 MB</td><td class="num">18.7 / 30.7</td><td class="num">61.8 / 81.6</td></tr>
+<tr class="best"><td>KenLM order 5</td><td>175.6 MB</td><td class="num">28.7 / 42.7</td><td class="num">71.5 / 89.6</td></tr>
+<tr><td>CzeGPT-2</td><td>248 MB</td><td class="num">10.0 / 18.3</td><td class="num">54.2 / 72.9</td></tr>
+<tr><td>czech-gpt2-oscar</td><td>248 MB</td><td class="num">12.0 / 18.0</td><td class="num">54.9 / 71.9</td></tr>
+<tr><td>gpt2-small-czech-cs</td><td>248 MB</td><td class="num">5.0 / 10.7</td><td class="num">41.0 / 58.3</td></tr>
+<tr><td>Czech-GPT-2-XL</td><td>3.46 GB</td><td class="num">17.3 / 28.3</td><td class="num">58.7 / 78.5</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Next-word is the strip's most valuable job on this keyboard, because a gesture letter costs more than a tap letter. Every pretrained model loses it. Restricting their chips to real dictionary words changes nothing, so they are not wasting slots on invented words: they are ranking real words in the wrong order for this register.</p>
+
+<h2>The register argument, as one number</h2>
+
+<p>Per-word perplexity on 400 held-out subtitle lines. Lower is better. Normalized per word, not per token, so models with different tokenizers stay comparable.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Model</th><th class="num">ppl / word</th></tr></thead>
+<tbody>
+<tr><td>KenLM order 5, 175.6 MB</td><td class="num">104</td></tr>
+<tr><td>KenLM order 3, 96.8 MB</td><td class="num">228</td></tr>
+<tr><td>KenLM order 3, 34.1 MB</td><td class="num">344</td></tr>
+<tr><td>Czech-GPT-2-XL, 1.58B</td><td class="num">799</td></tr>
+<tr><td>KenLM order 3, 5.56 MB</td><td class="num">932</td></tr>
+<tr class="best"><td>KenLM order 3, 1.86 MB</td><td class="num">1428</td></tr>
+<tr><td>czech-gpt2-oscar, 124M</td><td class="num">2899</td></tr>
+<tr><td>CzeGPT-2, 124M</td><td class="num">3202</td></tr>
+<tr><td>gpt2-small-czech-cs, 124M</td><td class="num">23094</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>A 1.86 MB table of subtitle counts models this text twice as well as a 124M-parameter transformer, and the 1.58B model needs about 1900 times the bytes to beat it. CzeGPT-2's own card reports perplexity 42 on its own web-text domain. That is a per-token number on cased, punctuated text, so it is not this number, but the distance between 42 at home and 3202 here is the whole study in one line.</p>
+
+<p>The three 124M rows also rank their training corpora exactly as expected: 21 GB of web crawl beats 5 GB of web text, and both beat 1 GB of Wikipedia by an order of magnitude. Wikipedia is the furthest thing from chat.</p>
+
+<h2>Your prediction game, replayed</h2>
+
+<p>The 11 exchanges of <span class="mono">prediction-game.md</span>. The LLM that played the game live scored 8 of 11, and that is the target. Seven exchanges are English, so a Czech-only model cannot score them; read the two Czech cases, not the totals.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Engine</th><th class="num">game</th></tr></thead>
+<tbody>
+<tr class="base"><td>the live LLM (target)</td><td class="num">8 / 11</td></tr>
+<tr class="best"><td>Czech-GPT-2-XL</td><td class="num">7 / 11</td></tr>
+<tr><td>shipped prediction.js</td><td class="num">6 / 11</td></tr>
+<tr><td>KenLM order 3 and 5</td><td class="num">4 / 11</td></tr>
+<tr><td>CzeGPT-2</td><td class="num">3 / 11</td></tr>
+<tr><td>czech-gpt2-oscar</td><td class="num">3 / 11</td></tr>
+<tr><td>gpt2-small-czech-cs</td><td class="num">2 / 11</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="case">
+  <p class="in">case 9 &nbsp; paja se šla vykoupat a <b>|zapla</b> &nbsp;→&nbsp; wanted <b>zaplavat</b></p>
+  <div class="row"><span class="eng">shipped</span><span class="chips">zaplatit, zaplatila, zaplatil, zaplaceno…</span><span class="verdict n">miss</span></div>
+  <div class="row"><span class="eng">KenLM o3</span><span class="chips">zaplatil, zaplatit, zaplatím, zaplatí…</span><span class="verdict n">miss</span></div>
+  <div class="row"><span class="eng">spital</span><span class="chips">zaplatit, zaplatila, zaplatí, zaplatil…</span><span class="verdict n">miss</span></div>
+  <div class="row"><span class="eng">CzeGPT-2</span><span class="chips">zaplatit, <span class="hit">zaplavat</span>, zaplatila…</span><span class="verdict y">hit@2</span></div>
+  <div class="row"><span class="eng">oscar</span><span class="chips"><span class="hit">zaplavat</span>, zaplatit, zaplavala…</span><span class="verdict y">hit@1</span></div>
+  <div class="row"><span class="eng">XL</span><span class="chips"><span class="hit">zaplavat</span>, zaplavala, zaplatila…</span><span class="verdict y">hit@1</span></div>
+</div>
+
+<p>Your own analysis file named this case: a valid word can still be a prefix, and the right answer needs the sense of the sentence. After "vykoupat a" a parallel infinitive is likely. Frequency puts the <span class="mono">zaplat*</span> payment cluster first, and every counting model does exactly that. The transformers read the context instead.</p>
+
+<div class="case">
+  <p class="in">case 10 &nbsp; mam hlad dam si <b>|k</b> &nbsp;→&nbsp; wanted <b>kuře</b></p>
+  <div class="row"><span class="eng">shipped</span><span class="chips">když, k, kdo, kde…</span><span class="verdict n">miss</span></div>
+  <div class="row"><span class="eng">KenLM o3</span><span class="chips">k, každý, když, kvůli, ke, koupit</span><span class="verdict n">miss</span></div>
+  <div class="row"><span class="eng">CzeGPT-2</span><span class="chips">k, kousek, koupit, kafe, kus, kávu</span><span class="verdict n">miss</span></div>
+  <div class="row"><span class="eng">oscar</span><span class="chips">k, koupit, ke, kafe, kávu, kousek</span><span class="verdict n">miss</span></div>
+  <div class="row"><span class="eng">XL</span><span class="chips">kousek, kafe, kuřecí, k, <span class="hit">kuře</span>, kus</span><span class="verdict y">hit@5</span></div>
+</div>
+
+<p>The counting models answer with Czech function words that start with k. The 124M models answer with food and drink: they understood "mám hlad", they just never reach <span class="mono">kuře</span>. Only the 1.58B model reaches it. This is the one place in the study where parameter count clearly buys the right answer.</p>
+
+<div class="warncard">
+  <span class="tag">WATCH OUT</span>
+  <p>Two of the small models score a hit on case 5 that is not a hit. They offer "its" where you wanted "it's". It folds to the same match key, so the harness counts it, but the insert would be wrong. They also invent words: <span class="mono">smoo</span> gives "smool, smoop, smoola". An open-vocabulary LM has no lexicon, so a real port needs a lexicon-constrained decode.</p>
+</div>
+
+<h2>What each one costs</h2>
+
+<p>Ryzen 9 9950X, one strip at a time, idle machine. The transformer numbers are the cost of a whole strip, not one token: six forward passes over a batch of 24 beams, because a strip needs whole words and a typed prefix constrains the word, not the subword tokens.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Engine</th><th>Weights</th><th class="num">per strip</th></tr></thead>
+<tbody>
+<tr class="best"><td>mini, from scratch</td><td>1.3 MB int8</td><td class="num">0.6 ms</td></tr>
+<tr class="base"><td>shipped prediction.js</td><td>1.81 MB</td><td class="num">4.0 ms</td></tr>
+<tr><td>KenLM order 3</td><td>1.86 MB</td><td class="num">6.7 ms</td></tr>
+<tr><td>the three 124M models</td><td>248 MB</td><td class="num">324 – 369 ms</td></tr>
+<tr><td>Czech-GPT-2-XL</td><td>3.46 GB</td><td class="num">2326 ms</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The budget this project inherited from Gboard's paper is about 20 ms per keystroke. Two options clear it. The pretrained ones miss it by one to two orders of magnitude.</p>
+
+<h2>The mini model</h2>
+
+<p>A word-level transformer over our own Czech word list, sized on Gboard's published federated model: 3 layers, 96 hidden, 24 words of context, 10,000-word vocabulary, 1.30M parameters. Trained on the same subtitle corpus with the same held-out lines, for 67 minutes on six CPU threads.</p>
+
+<p>Its output layer <i>is</i> the lexicon. One forward pass scores every candidate word, a typed prefix is a mask over that vector, and the model cannot invent a non-word. No beam search, no latency multiplier. That is why it answers in 0.6 ms where a 124M model needs 350.</p>
+
+<p>It ties the shipped tables on next-word and beats them by 5.2 and 10.8 points on prefix completion, and it was still improving when the run stopped, at 15.4M training tokens, which is 8% of the corpus. This is a floor. One consumer GPU would run the same schedule in minutes and see a hundred times more text in an afternoon.</p>
+
+<h2>What each option would need</h2>
+
+<h3>Pretrained Czech GPT-2, 124M</h3>
+<ul class="need">
+  <li>A word-level decoder on top, ported. It sits on the critical path of every keystroke.</li>
+  <li>int8 weights (about 124 MB) plus CoreML, ONNX Runtime, or llama.cpp.</li>
+  <li>Fine-tuning on conversational Czech, or the register problem stays. And once you fine-tune on our corpus anyway, the mini model does the same job for 1/200th of the weights.</li>
+  <li>A second model for English. All four are Czech-only.</li>
+  <li>A usable licence. CzeGPT-2 is CC-BY-NC-SA: no commercial use.</li>
+  <li>An iOS extension gets roughly 48 to 60 MB of memory, so int8 weights alone do not fit. The containing app or an OS-hosted model is the only route.</li>
+</ul>
+
+<h3>Czech-GPT-2-XL, 1.58B</h3>
+<ul class="need">
+  <li>All of the above, plus int4 weights (about 790 MB) and a device with room for them outside the extension.</li>
+  <li>2.3 seconds per strip. A phone NPU improves that, but not by the two orders of magnitude a per-keystroke strip needs. This is a phrase-level feature.</li>
+  <li>On iOS the honest form of this option is not this model. It is the iOS 26 Foundation Models framework: the OS hosts a ~3B multilingual model and its memory does not count against the extension.</li>
+</ul>
+
+<h3>KenLM</h3>
+<ul class="need">
+  <li>A pruned tier: 1.86 MB matches today's budget, 5.56 MB is the cheapest real jump.</li>
+  <li>The C++ library mmap-loaded, or a trie reader in Swift. KenLM is LGPL, which constrains static linking in an App Store binary.</li>
+  <li>Our one-edit candidate branch moved over, or typo recovery stays at zero.</li>
+  <li>A mixed Czech-English corpus, or two models behind the language posterior we already have.</li>
+  <li>No new runtime, no GPU, no change to the keyboard's shape. Also the least interesting option, because the mini model reaches the same place in a smaller file.</li>
+</ul>
+
+<h3>The mini model</h3>
+<ul class="need">
+  <li>A GPU for training. A proper run over the whole corpus is an afternoon on a rented card.</li>
+  <li>A joint Czech and English vocabulary and corpus, which is what the one-layout constraint already asks for.</li>
+  <li>int8 weights and a small inference kernel. A 3-layer, 96-wide transformer is a few hundred lines of Swift, or one small CoreML model.</li>
+  <li>It replaces the scorer, not the candidate generator, so the typo branch, the personal model, and the verbatim chip all survive.</li>
+  <li>It fits the extension memory budget with room to spare. None of the pretrained options do.</li>
+</ul>
+
+<h2>What to do next</h2>
+
+<ol class="plan">
+  <li><b>Retune the completion scorer.</b> Two independent engines at our own byte budget beat <span class="mono">prediction.js</span> by 5 to 9 points of prefix-2 hit@1 and 11 to 16 of hit@3. Suspects in order: the top-24 successor cap, the flat backoff against real Kneser-Ney discounting, and the two typo slots (which cost 2.8 / 4.8, now measured). The existing eval harness decides it.</li>
+  <li><b>Train the mini model properly.</b> It is the one neural shape that fits a keyboard, it already ties the tables after 15M training tokens on a CPU, and it weighs 1.3 MB. Next: a joint en+cs vocabulary and a full GPU run, scored by the same harness.</li>
+  <li><b>Keep the big model for phrase-level features only.</b> Czech-GPT-2-XL answered <span class="mono">zaplavat</span> and <span class="mono">kuře</span> and 7 of 11 game cases. That is the quality target, at seconds per strip. On iOS the route to it is Foundation Models, not a bundled GPT-2.</li>
+</ol>
+
+<p>The two Czech game cases stay on the record as the thing counting cannot do. When the strip has to know that "vykoupat a" wants another infinitive, only the transformers got it right.</p>
+
+<div class="sources">
+<h2>Sources</h2>
+<ul>
+  <li><a href="https://huggingface.co/MU-NLPC/CzeGPT-2">MU-NLPC/CzeGPT-2</a> · <a href="https://doi.org/10.1109/ACCESS.2024.3371689">its IEEE Access paper</a></li>
+  <li><a href="https://huggingface.co/lchaloupsky/czech-gpt2-oscar">lchaloupsky/czech-gpt2-oscar</a> · <a href="https://dspace.cuni.cz/handle/20.500.11956/176356">the thesis behind it</a></li>
+  <li><a href="https://huggingface.co/spital/gpt2-small-czech-cs">spital/gpt2-small-czech-cs</a></li>
+  <li><a href="https://huggingface.co/BUT-FIT/Czech-GPT-2-XL-133k">BUT-FIT/Czech-GPT-2-XL-133k</a> · <a href="https://www.fit.vut.cz/research/project/1629/.en">SemANT project</a></li>
+  <li><a href="https://huggingface.co/BUT-FIT/CSTinyLlama-1.2B">BUT-FIT/CSTinyLlama-1.2B</a>, Apache-2.0, if the big-model route is ever taken</li>
+  <li><a href="https://kheafield.com/code/kenlm/">KenLM</a> · <a href="https://kheafield.com/code/kenlm/structures/">trie structures</a> · <a href="https://aclanthology.org/W13-2201/">modified Kneser-Ney estimation</a></li>
+  <li><a href="https://github.com/karpathy/nanoGPT">nanoGPT</a></li>
+  <li><a href="https://arxiv.org/abs/1811.03604">Gboard's federated LSTM</a>, the 1.4 MB / 10k-vocabulary reference point</li>
+  <li><a href="https://opus.nlpl.eu/legacy/OpenSubtitles-v2018.php">OPUS OpenSubtitles 2018</a></li>
+</ul>
+<p class="repo-note">Text twin of <span class="mono">czech-lm-research.md</span>. Researched 2026-08-27. Harnesses: <span class="mono">tools/lm-predict.py</span>, <span class="mono">tools/kenlm-predict.py</span>, <span class="mono">tools/train-mini-lm.py</span>, <span class="mono">tools/lm-perplexity.py</span>, <span class="mono">tools/dump-eval-pairs.mjs</span>, <span class="mono">tools/build-kenlm-corpus.py</span>.</p>
+</div>
+
+</div>
+</body>
+</html>

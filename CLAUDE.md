@@ -52,6 +52,15 @@ that file before design work.
   keyboards, from HN 2010/2013, reviews, and the 8VIM discussions. Read
   it before any layout change that would weaken the QWERTY direction
   mnemonic, and before deciding what to build for beginners.
+- `czech-lm-research.md` (phone twin: `czech-lm-research.html`) measures
+  every candidate replacement for the prediction engine on the same
+  held-out pairs and the same prediction game: the Czech GPT-2 models on
+  Hugging Face, a KenLM n-gram, and a mini model trained from scratch.
+  Harnesses: `tools/lm-predict.py`, `tools/kenlm-predict.py`,
+  `tools/train-mini-lm.py`, `tools/lm-perplexity.py`,
+  `tools/dump-eval-pairs.mjs`, `tools/build-kenlm-corpus.py`. Read it
+  before any change to the prediction engine's shape, and before
+  reaching for a pretrained language model.
 - `ios-deployment-research.md` (phone twin: `ios-deployment-research.html`)
   documents the path from web prototype to a real iPhone: sideloading
   without the App Store (free Apple ID, 7-day builds), TestFlight, App
