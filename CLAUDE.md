@@ -27,9 +27,13 @@ that file before design work.
 - `layouts.js` and `themes.js` are data registries. Each is the single
   file to edit for its concern; dropdowns, validation, and tests read
   from them. Contrast floors for themes live in `tests/themes-unit.mjs`.
-- Three pages, each with its own entry script: `index.html`/`main.js`
-  (the keyboard), `cards.html`/`cards.js` (the study cards), and
-  `game.html`/`game.js` (the recall drill). Shared pieces:
+- Four pages, each with its own entry script: `index.html`/`main.js`
+  (the keyboard), `cards.html`/`cards.js` (the study cards),
+  `game.html`/`game.js` (the recall drill), and
+  `dictionary.html`/`dictionary.js` (inspect and edit what the
+  keyboard learned). The dictionary page keeps every mutation in
+  `PersonalModel` (`prediction.js`) so the editing rules port to Swift
+  with the model; the page only decides what to show. Shared pieces:
   `wheel-svg.js` draws one gesture as an SVG for both teaching pages,
   and `qwerty-map.js` holds the QWERTY mnemonic table used by the
   game's hint and by `tools/generate-qwerty8pen.mjs`. A new page needs

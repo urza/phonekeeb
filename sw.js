@@ -9,7 +9,7 @@
 //   revalidates GitHub Pages' 10-minute HTTP cache. An online launch
 //   therefore gets the newest index (and with it the newest ?v= set)
 //   right away; the cached copy is served only when the network fails.
-const BUILD = 30;
+const BUILD = 31;
 const CACHE = `phonekeeb-b${BUILD}`;
 
 // Everything a launch needs, pinned to this build. The trigram tables
@@ -21,10 +21,12 @@ const ASSETS = [
   './index.html',
   './cards.html',
   './game.html',
+  './dictionary.html',
   `./style.css?v=${BUILD}`,
   `./main.js?v=${BUILD}`,
   `./cards.js?v=${BUILD}`,
   `./game.js?v=${BUILD}`,
+  `./dictionary.js?v=${BUILD}`,
   `./wheel-svg.js?v=${BUILD}`,
   `./qwerty-map.js?v=${BUILD}`,
   `./gesture-decoder.js?v=${BUILD}`,

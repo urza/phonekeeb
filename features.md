@@ -295,8 +295,94 @@ weight to the glide targets the language model expects next.
   (every 20th word, plus leaving or hiding the page). Settings:
   "Learn my typing" (default on, stops future learning only) and
   "Forget learned words" (immediate, permanent).
+- Personal trigrams (2026-08-27): three words typed in a row also store
+  a (word1 word2 -> word3) count, under the same rule the strip uses to
+  address the static trigram tables (spaces alone separate the three).
+  The start-of-message token never leads one, because first words
+  already have their own bigram level under it. The personal chain is
+  now trigram, then bigram, then unigram, with the 0.4 backoff applied
+  only where a level that exists misses the word; with no second
+  context word the chain starts at the bigram and scores exactly as it
+  did before.
+- Time decay (2026-08-27): every 30 days since the last sweep, all
+  counts halve once. The 50000-token limit only fires for heavy
+  typists, so this retires words a light typist stopped using: "old"
+  means old in time, not in keystrokes. Repeated halving is
+  exponential forgetting, so a word you keep typing is re-incremented
+  and stays, while a word you dropped decays away. A long absence
+  applies the sweeps it missed, capped at 24 (past every real count).
+  A clock moved backwards never sweeps. The sweep runs at load and at
+  every learn.
+- The user's own decisions (2026-08-27): past the counts, the store
+  holds a blocked list, a pinned list, and a bounded history of the
+  last 500 committed words. They exist because editing a count does
+  not survive on its own. Deleting a learned typo is undone by typing
+  it twice more, so a delete blocks the word: never suggested from any
+  table, never learned again. Blocking is also the only way to stop
+  the static list offering a corpus word. Pinning holds a word at a
+  floor count of 3 that decay cannot take below, and pinning a word
+  never typed is how one is added by hand. The verbatim chip is
+  deliberately exempt from the block list: it echoes what was just
+  typed rather than proposing anything.
 - Planned: seeding the personal model from chat exports
   (tools/build-personal.py in the research doc).
+
+## Learned words page (dictionary.html)
+
+Everything the keyboard learned, readable and editable. Reached from
+"Learned words" in the settings. A separate page, not a settings
+panel: the settings block already costs half the touch area, and a
+full page load is also the synchronisation mechanism. index.html
+flushes its write-behind buffer on pagehide, this page reads the store
+fresh, and going back re-reads it, so the two pages need no live sync.
+(index.html also re-reads on a back/forward-cache restore, or its next
+flush would undo the edits.) Every mutation happens in PersonalModel,
+which stays DOM-free and ports to Swift; the page only decides what to
+show.
+
+- Search sits above the tabs and outside them, because finding one bad
+  word is the main reason the page gets opened.
+- **Recent** is the default view, since "it just learned something
+  wrong" is the common reason to open it. Consecutive commits render
+  as one line of text, so the feed reads like what was actually typed;
+  a run breaks after 5 minutes of silence, at a day boundary, or when
+  a word does not follow the one before it. Grouped by local date with
+  Today and Yesterday named. A search keeps whole runs, never single
+  words, because removing the context would make them unreadable.
+- **Words** lists learned words by count, with a bar that makes weight
+  readable without reading the numbers. Filters: All, Typos, Pinned,
+  Blocked. Blocked words live only in that filter, which is also where
+  unblocking is. Searching for a word the store lacks offers to add it.
+- **Typos** is a review queue, not a search job. A learned word the
+  static vocabulary does not know, typed at most 3 times, at least 3
+  letters, and within one edit of a common word is flagged with the
+  word it was probably meant to be. "One edit" includes a swap of two
+  neighbouring letters, because that is the typo the check exists for
+  (teh for the, thsi for this): plain edit distance scores a swap as
+  two edits and would miss it. One tap per word, or one tap for all.
+- **Phrases** lists the pairs and triples flat, sorted by count, not
+  as a tree of heads. A flat list is far easier to scan on a phone.
+  The start-of-message token shows as a named marker.
+- Tapping any row, or any word in the feed, expands one detail panel
+  in place. No swipe actions: swipe is invisible and fires by accident
+  on a page scrolled with a thumb. The panel shows the count, when the
+  word was last seen, the typo note, and the pairs before and after
+  it, each pair deletable on its own (a bad pair does not always mean
+  a bad word). Actions are Delete, Pin, and Unblock.
+- Every edit is undoable from a toast for 6 seconds, including a bulk
+  typo delete. The undo snapshot is the whole store serialized, a few
+  milliseconds per tap, in exchange for an undo that cannot drift out
+  of step with the model.
+- The gear panel holds the store's size, Copy JSON, Download, Import
+  file, Clear history, Forget everything, and an Advanced section with
+  the raw JSON editable by hand. Import and hand-editing are why every
+  field of a loaded store is sanitized: junk counts are dropped and a
+  broken container degrades to empty instead of throwing.
+- Views cap at 300 rows with a line saying how many were left out;
+  search reaches the tail. An expanded word shows at most 8 pairs per
+  direction.
+- The page follows the device light or dark setting only, like the
+  cards and practice pages.
 
 ## Layouts
 
@@ -566,9 +652,18 @@ equivalent is UserDefaults. Key, values, default:
 - `phonekeeb.learn`: `1`/`0`, default on (learn from typing).
 - `phonekeeb.trigrams`: `1`/`0`, default on (download and use the
   trigram tables).
-- `phonekeeb.personal`: the personal model's counts as JSON
-  (`{v, uni, bi}`); absent until something is learned, removed by
-  "Forget learned words". Never leaves the device.
+- `phonekeeb.personal`: the personal model as JSON, absent until
+  something is learned and removed by "Forget learned words". Never
+  leaves the device. Shape v2:
+  `{v: 2, day, uni: {word: count}, seen: {word: day}, bi: {head:
+  {word: count}}, tri: {"w1 w2": {word: count}}, blocked: [word],
+  pinned: [word], log: [[word, prev, timestamp]]}`. `day` is the whole
+  UTC day of the last decay sweep. `seen` is the day each word was
+  last learned. `log` is the last 500 committed words, the only field
+  holding text rather than counts, which is why it is bounded and why
+  "Clear history" exists separately from "Forget everything". A v1
+  store (`{v: 1, uni, bi}`) loads unchanged, arrives with the new
+  fields empty, and is written back as v2.
 
 Typed text and the caret are not persisted. Every save is wrapped so a
 storage failure (private browsing) never breaks the feature itself.
@@ -640,8 +735,15 @@ Tuned constants, one place to read them all:
 | Personal blend | 0.3 x personal + 0.7 x static |
 | Personal enrollment | out-of-vocabulary words need 2 sightings |
 | Personal decay | halve all counts past 50000 learned tokens |
+| Personal time decay | halve everything once per 30 days since the last sweep; at most 24 catch-up sweeps |
+| Pinned floor count | 3 (above the enrollment threshold, so a pin also adds a word) |
+| Learned history | last 500 committed words, as (word, previous word, timestamp) |
 | Personal save | every 20th learned word, plus pagehide/hidden |
 | Learned word length cap | 24 characters |
+| Typo suspect | not in the static vocabulary, count <= 3, length >= 3, one edit (swap included) from a known word |
+| Dictionary rows | 300 per view, 8 pairs per expanded word |
+| Dictionary undo | 6 seconds, whole-store snapshot |
+| Feed run break | 5 minutes of silence, a day boundary, or a broken word chain |
 | Arm length | 0.44 x min canvas dimension |
 | Wheel anchor | bottom, 12 px margin; right on touch, x-centered with a mouse |
 | South drag targets | E = ?, N = !, W = ,; center circle counts as N |

@@ -60,29 +60,132 @@ const PERSONAL_MIN_COUNT = 2; // sightings before an out-of-vocabulary
 //   offers it, so one-off typos do not enroll themselves
 const DECAY_LIMIT = 50000; // learned tokens before all counts halve,
 //   so old habits fade and the store stays bounded
+const DECAY_DAYS = 30; // days between time sweeps. The token limit above
+//   only fires for heavy typists; this one retires words that a light
+//   typist stopped using, so "old" means old in time, not in keystrokes.
+//   Repeated halving is exponential forgetting: a word you keep typing
+//   is re-incremented and stays, one you dropped decays to nothing.
+const MAX_SWEEPS = 24; // catch-up halvings after a long pause. 2^24 is
+//   past every real count, so more sweeps could not change anything.
+const PIN_COUNT = 3; // floor count a pinned word holds. Above
+//   PERSONAL_MIN_COUNT on purpose, so pinning a brand-new word enrolls
+//   it at once: pinning is also how the dictionary page adds a word.
+const LOG_LIMIT = 500; // committed words kept for the history view.
+//   Bounded because this is the one field that holds text rather than
+//   counts, so it is the one that must not grow without a limit.
+const DAY_MS = 86400000;
+
+// Whole days since the epoch. UTC, so a day boundary can fall inside
+// the user's evening. Only the decay sweep reads this, and sweeps 30
+// days apart do not care which hour they land on; the history view
+// groups by the local date of each timestamp instead.
+export function dayNumber(now = Date.now()) {
+  return Math.floor(now / DAY_MS);
+}
+
+// Are these two whole words within one edit? Substitution, insertion,
+// deletion, and a swap of two neighbouring letters all count. The swap
+// is in because it is the typo this check exists to catch: "teh" for
+// "the" is a swap, and plain edit distance scores it as two edits and
+// would miss it.
+//
+// withinOneEditPrefix below compares a typed prefix against a
+// candidate; this compares two complete words, for the dictionary
+// page's "looks like a typo of ..." check. It lives here beside its
+// sibling and free of the DOM, so the Swift port finds both together.
+export function withinOneEdit(a, b) {
+  if (a === b) return true;
+  const [s, l] = a.length <= b.length ? [a, b] : [b, a];
+  if (l.length - s.length > 1) return false;
+  let i = 0;
+  while (i < s.length && s[i] === l[i]) i++;
+  if (i === s.length) return l.length === s.length + 1; // one char appended
+  if (s.length === l.length) {
+    let same = true;
+    for (let j = i + 1; j < s.length; j++) if (s[j] !== l[j]) { same = false; break; }
+    if (same) return true; // one substitution at i
+    if (i + 1 < s.length && s[i] === l[i + 1] && s[i + 1] === l[i]) {
+      for (let j = i + 2; j < s.length; j++) if (s[j] !== l[j]) return false;
+      return true; // two neighbours swapped at i
+    }
+    return false;
+  }
+  for (let j = i; j < s.length; j++) if (s[j] !== l[j + 1]) return false;
+  return true; // one char inserted into l at i
+}
+
+// A plain object, or an empty one. Every field of a stored model goes
+// through this pair of helpers. The store is an import target now (the
+// dictionary page accepts a JSON file), so a hand-edited or truncated
+// file has to degrade to an empty model instead of throwing.
+function asObject(v) {
+  return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+}
+
+function countMap(obj) {
+  const out = new Map();
+  for (const [k, v] of Object.entries(asObject(obj))) {
+    const n = Math.floor(Number(v));
+    if (k && Number.isFinite(n) && n > 0) out.set(k, n);
+  }
+  return out;
+}
+
+function nestedCountMap(obj) {
+  const out = new Map();
+  for (const [k, v] of Object.entries(asObject(obj))) {
+    const succ = countMap(v);
+    if (k && succ.size) out.set(k, succ);
+  }
+  return out;
+}
 
 // The head that stands for "start of a message" in the personal
 // bigrams: it predicts first words, where the strip is weakest. Not a
 // typeable character, so it can never collide with a real word.
 export const SENT_START = '\u0001';
 
-// The user's own unigram+bigram counts, learned while typing and
-// persisted by main.js (localStorage; UserDefaults on iOS). Pure and
-// DOM-free like the Predictor; Maps inside so real words such as
-// "constructor" can never collide with object prototypes.
+// A context key folded to its match key, so a gesture-typed "dekuji"
+// finds a stored "děkuji". SENT_START is not a word and folds to
+// itself. A trigram context is two words joined by a space, and a
+// learned word never holds one (the learn rule in main.js admits
+// letters and apostrophes only), so the space is a safe seam to fold
+// around, and it is also what tells the two levels apart by key alone.
+function foldKey(key) {
+  if (key === SENT_START) return key;
+  const cut = key.indexOf(' ');
+  if (cut < 0) return matchKey(key);
+  return `${matchKey(key.slice(0, cut))} ${matchKey(key.slice(cut + 1))}`;
+}
+
+// The user's own counts, learned while typing and persisted by main.js
+// (localStorage; UserDefaults on iOS). Pure and DOM-free like the
+// Predictor; Maps inside so real words such as "constructor" can never
+// collide with object prototypes.
+//
+// Past the counts the store also holds the user's decisions about them,
+// which dictionary.html writes: a blocked list, a pinned list, and a
+// bounded history of recent commits. The two lists exist because an
+// edit to a count does not survive on its own. Delete a learned typo
+// and typing it twice more brings it back, so blocking is what makes a
+// deletion stick, and pinning is what makes a rare word stay.
 export class PersonalModel {
-  // data: the toJSON() shape { v: 1, uni: {w: c}, bi: {head: {w: c}} },
-  // or null/invalid for an empty model.
+  // data: the toJSON() shape at the end of this class, a v1 store
+  // (counts only), or null/invalid for an empty model.
   constructor(data) {
-    const ok = data && data.v === 1
-      && typeof data.uni === 'object' && typeof data.bi === 'object';
-    this.uni = new Map(ok ? Object.entries(data.uni) : []);
-    this.bi = new Map();
-    if (ok) {
-      for (const [h, succ] of Object.entries(data.bi)) {
-        this.bi.set(h, new Map(Object.entries(succ)));
-      }
-    }
+    const d = data && (data.v === 1 || data.v === 2) ? data : null;
+    this.uni = countMap(d?.uni);
+    this.bi = nestedCountMap(d?.bi);
+    // A v1 store has none of the fields below. They arrive empty, and
+    // the model then behaves exactly as it did before the upgrade.
+    this.tri = nestedCountMap(d?.tri);
+    this.seen = countMap(d?.seen); // word -> day it was last learned
+    this.blocked = new Set(Array.isArray(d?.blocked) ? d.blocked : []);
+    this.pinned = new Set(Array.isArray(d?.pinned) ? d.pinned : []);
+    this.log = (Array.isArray(d?.log) ? d.log : [])
+      .filter((e) => Array.isArray(e) && typeof e[0] === 'string')
+      .slice(-LOG_LIMIT);
+    this.day = Number.isFinite(d?.day) ? d.day : dayNumber();
     this.version = 0; // bumped on every change; the Predictor watches it
     this.rebuildIndex();
   }
@@ -92,68 +195,247 @@ export class PersonalModel {
     for (const c of this.uni.values()) this.total += c;
     this.biTotals = new Map();
     this.headByKey = new Map();
-    for (const [h, succ] of this.bi) {
-      let t = 0;
-      for (const c of succ.values()) t += c;
-      this.biTotals.set(h, t);
-      const k = h === SENT_START ? h : matchKey(h);
-      if (!this.headByKey.has(k)) this.headByKey.set(k, h);
+    this.triTotals = new Map();
+    this.ctxByKey = new Map();
+    for (const [level, totals, index] of this.levels()) {
+      for (const [key, succ] of level) {
+        let t = 0;
+        for (const c of succ.values()) t += c;
+        totals.set(key, t);
+        const fold = foldKey(key);
+        if (!index.has(fold)) index.set(fold, key);
+      }
     }
   }
 
-  // One committed word. prev: the word before it (null when none),
-  // atStart: the word opens a message/line, learned under SENT_START.
-  learn(word, prev, atStart) {
+  // The two successor levels, each with its totals and its folded
+  // index. They differ only in the shape of the key, so every walk over
+  // both goes through this rather than repeating itself.
+  levels() {
+    return [
+      [this.bi, this.biTotals, this.headByKey],
+      [this.tri, this.triTotals, this.ctxByKey],
+    ];
+  }
+
+  // One committed word. ctx.prev is the word before it and ctx.prev2
+  // the one before that (null when absent, both already lowercased);
+  // ctx.atStart marks a word that opens a message or line, learned
+  // under SENT_START. ctx.now is the injection point for the tests.
+  learn(word, ctx = {}) {
+    const { prev = null, prev2 = null, atStart = false, now = Date.now() } = ctx;
+    if (this.blocked.has(word)) return; // a blocked word never comes back
+    this.ageIfDue(now);
     this.uni.set(word, (this.uni.get(word) ?? 0) + 1);
+    this.seen.set(word, dayNumber(now));
     this.total += 1;
     const head = atStart ? SENT_START : prev;
-    if (head) {
-      let succ = this.bi.get(head);
-      if (!succ) this.bi.set(head, (succ = new Map()));
-      succ.set(word, (succ.get(word) ?? 0) + 1);
-      this.biTotals.set(head, (this.biTotals.get(head) ?? 0) + 1);
-      const k = head === SENT_START ? head : matchKey(head);
-      if (!this.headByKey.has(k)) this.headByKey.set(k, head);
+    if (head && !this.blocked.has(head)) this.addPair(this.bi, head, word);
+    // A trigram context needs two real words, so SENT_START never leads
+    // one: first words already have the bigram level under that token.
+    if (prev && prev2 && !this.blocked.has(prev) && !this.blocked.has(prev2)) {
+      this.addPair(this.tri, `${prev2} ${prev}`, word);
     }
+    this.log.push([word, prev ?? '', now]);
+    if (this.log.length > LOG_LIMIT) this.log.splice(0, this.log.length - LOG_LIMIT);
     if (this.total > DECAY_LIMIT) this.decay();
     this.version++;
+  }
+
+  // One successor count, plus the index entries that address it.
+  addPair(level, key, word) {
+    const [, totals, index] = this.levels().find(([l]) => l === level);
+    let succ = level.get(key);
+    if (!succ) level.set(key, (succ = new Map()));
+    succ.set(word, (succ.get(word) ?? 0) + 1);
+    totals.set(key, (totals.get(key) ?? 0) + 1);
+    const fold = foldKey(key);
+    if (!index.has(fold)) index.set(fold, key);
   }
 
   // Halve everything, drop what reaches zero: old habits fade and the
   // store stays bounded (word-prediction-research.md, personalization).
   decay() {
+    this.halve();
+    this.version++;
+  }
+
+  // A pinned word stops at its floor instead of fading. Pinning says
+  // "keep this", and decay must not overrule the user.
+  halve() {
     for (const [w, c] of this.uni) {
-      if (c >= 2) this.uni.set(w, c >> 1);
-      else this.uni.delete(w);
+      const n = Math.max(c >> 1, this.pinned.has(w) ? PIN_COUNT : 0);
+      if (n >= 1) this.uni.set(w, n);
+      else { this.uni.delete(w); this.seen.delete(w); }
     }
-    for (const [h, succ] of this.bi) {
-      for (const [w, c] of succ) {
-        if (c >= 2) succ.set(w, c >> 1);
-        else succ.delete(w);
+    for (const [level] of this.levels()) {
+      for (const [key, succ] of level) {
+        for (const [w, c] of succ) {
+          if (c >= 2) succ.set(w, c >> 1);
+          else succ.delete(w);
+        }
+        if (!succ.size) level.delete(key);
       }
-      if (!succ.size) this.bi.delete(h);
     }
     this.rebuildIndex();
   }
 
-  // Stupid backoff inside the personal store: the start/previous-word
-  // conditional when seen, else BACKOFF times the personal unigram.
-  // prevKey arrives match-key folded; heads index by their fold.
-  prob(word, prevKey, atStart) {
+  // Time decay: one halving per DECAY_DAYS elapsed since the last
+  // sweep. Called from learn() and from load, so the store also ages
+  // while the keyboard sits unused, which the token limit cannot do.
+  ageIfDue(now = Date.now()) {
+    const today = dayNumber(now);
+    let sweeps = 0;
+    while (this.day + DECAY_DAYS <= today && sweeps < MAX_SWEEPS) {
+      this.halve();
+      this.day += DECAY_DAYS;
+      sweeps++;
+    }
+    // A store from long ago, or one met by a clock moved backwards,
+    // settles on today instead of sweeping again at the next call.
+    if (this.day > today || this.day + DECAY_DAYS <= today) this.day = today;
+    if (sweeps) this.version++;
+  }
+
+  // Stupid backoff inside the personal store: the trigram context, then
+  // the start/previous-word bigram, then the unigram. Keys arrive
+  // match-key folded; the levels index by their fold. A level that is
+  // simply absent is not a miss, so with no prev2 the chain starts at
+  // the bigram and scores exactly as it did before trigrams existed.
+  prob(word, ctx = {}) {
     if (!this.total) return 0;
+    const { prevKey = '', prev2Key = '', atStart = false } = ctx;
+    let mult = 1;
+    if (prevKey && prev2Key) {
+      const c = this.ctxByKey.get(`${prev2Key} ${prevKey}`);
+      if (c !== undefined) {
+        const n = this.tri.get(c)?.get(word);
+        if (n) return n / this.triTotals.get(c);
+        mult = BACKOFF; // a known personal context that lacks the word
+      }
+    }
     const head = atStart ? SENT_START : (prevKey ? this.headByKey.get(prevKey) : undefined);
     if (head !== undefined) {
       const c = this.bi.get(head)?.get(word);
-      if (c) return c / this.biTotals.get(head);
+      if (c) return mult * (c / this.biTotals.get(head));
     }
     const u = this.uni.get(word);
-    return u ? BACKOFF * (u / this.total) : 0;
+    return u ? mult * BACKOFF * (u / this.total) : 0;
+  }
+
+  // --- Editing. Every method below exists for dictionary.html. ---
+
+  // Remove a word and everything that mentions it. The history is
+  // scrubbed too: a word still readable in the feed after a delete
+  // looks like a delete that failed.
+  forget(word) {
+    this.uni.delete(word);
+    this.seen.delete(word);
+    this.pinned.delete(word);
+    this.bi.delete(word);
+    for (const ctx of [...this.tri.keys()]) {
+      const cut = ctx.indexOf(' ');
+      if (ctx.slice(0, cut) === word || ctx.slice(cut + 1) === word) this.tri.delete(ctx);
+    }
+    for (const [level] of this.levels()) {
+      for (const succ of level.values()) succ.delete(word);
+    }
+    this.log = this.log.filter((e) => e[0] !== word && e[1] !== word);
+    this.prune();
+    this.version++;
+  }
+
+  // One successor pair, addressed by its stored key. A bigram head is a
+  // single word and a trigram context is two words with a space between
+  // them, so the key alone says which level owns it (see foldKey).
+  forgetPair(key, word) {
+    (key.includes(' ') ? this.tri : this.bi).get(key)?.delete(word);
+    this.prune();
+    this.version++;
+  }
+
+  prune() {
+    for (const [level] of this.levels()) {
+      for (const [key, succ] of level) if (!succ.size) level.delete(key);
+    }
+    this.rebuildIndex();
+  }
+
+  // Never suggest this word again, from any table, and never learn it.
+  // This is what makes a delete permanent: a bare forget() is undone by
+  // typing the word twice more.
+  block(word) {
+    this.forget(word);
+    this.blocked.add(word);
+    this.version++;
+  }
+
+  unblock(word) {
+    this.blocked.delete(word);
+    this.version++;
+  }
+
+  // Keep this word, and enroll it when it is new. Pinning a word the
+  // user never typed is how the dictionary page adds one by hand.
+  pin(word, now = Date.now()) {
+    this.blocked.delete(word);
+    this.pinned.add(word);
+    if ((this.uni.get(word) ?? 0) < PIN_COUNT) this.setCount(word, PIN_COUNT, now);
+    this.version++;
+  }
+
+  unpin(word) {
+    this.pinned.delete(word);
+    this.version++;
+  }
+
+  // The raw count edit behind the dictionary's Advanced section. A
+  // count below one forgets the word, which is the only sane reading.
+  setCount(word, n, now = Date.now()) {
+    const c = Math.floor(Number(n));
+    if (!Number.isFinite(c) || c < 1) { this.forget(word); return; }
+    this.uni.set(word, c);
+    if (!this.seen.has(word)) this.seen.set(word, dayNumber(now));
+    this.total = 0;
+    for (const v of this.uni.values()) this.total += v;
+    this.version++;
+  }
+
+  clearLog() {
+    this.log = [];
+    this.version++;
+  }
+
+  // The header numbers on the dictionary page.
+  stats() {
+    let pairs = 0;
+    for (const succ of this.bi.values()) pairs += succ.size;
+    let triples = 0;
+    for (const succ of this.tri.values()) triples += succ.size;
+    return {
+      words: this.uni.size, pairs, triples, tokens: this.total,
+      blocked: this.blocked.size, pinned: this.pinned.size,
+      events: this.log.length,
+    };
   }
 
   toJSON() {
-    const bi = {};
-    for (const [h, succ] of this.bi) bi[h] = Object.fromEntries(succ);
-    return { v: 1, uni: Object.fromEntries(this.uni), bi };
+    const pack = (level) => {
+      const out = {};
+      for (const [key, succ] of level) out[key] = Object.fromEntries(succ);
+      return out;
+    };
+    return {
+      v: 2,
+      day: this.day,
+      uni: Object.fromEntries(this.uni),
+      seen: Object.fromEntries(this.seen),
+      bi: pack(this.bi),
+      tri: pack(this.tri),
+      blocked: [...this.blocked],
+      pinned: [...this.pinned],
+      log: this.log,
+    };
   }
 }
 
@@ -304,7 +586,8 @@ export class Predictor {
     this.personalVersion = this.personal.version;
     this.personalEntries = [];
     for (const [word, count] of this.personal.uni) {
-      if (count >= PERSONAL_MIN_COUNT && !this.known.has(word)) {
+      if (count >= PERSONAL_MIN_COUNT && !this.known.has(word)
+        && !this.personal.blocked.has(word)) {
         this.personalEntries.push({ word, key: matchKey(word), p: {} });
       }
     }
@@ -362,7 +645,8 @@ export class Predictor {
     const succ = this.langs.map((l) => (prevKey ? l.heads.get(prevKey) : undefined));
     // context.prev2 is the word before prev, set only when the three
     // are separated by spaces alone; it addresses the trigram tables.
-    const ctx2 = prev2 && prevKey ? `${matchKey(prev2.toLowerCase())} ${prevKey}` : '';
+    const prev2Key = prev2 ? matchKey(prev2.toLowerCase()) : '';
+    const ctx2 = prev2Key && prevKey ? `${prev2Key} ${prevKey}` : '';
     const succ2 = this.langs.map((l) => (ctx2 ? l.heads2.get(ctx2) : undefined));
     // The miss discount is cross-language: when ANY language knows the
     // context, a language without it takes CTX_MISS on that level too.
@@ -375,10 +659,18 @@ export class Predictor {
     const triKnown = succ2.some(Boolean);
     this.syncPersonalEntries();
     const pers = this.personal?.total ? this.personal : null;
+    const personalCtx = { prevKey, prev2Key, atStart: start };
+    // Blocked words never surface, whichever table holds them: blocking
+    // a corpus word is the only way to stop the static list offering
+    // it, so this check cannot live inside the personal model. Read
+    // from this.personal, not from pers: a store that holds nothing but
+    // block decisions still has to enforce them.
+    const blocked = this.personal?.blocked.size ? this.personal.blocked : null;
 
     const scored = [];
     for (const list of [this.entries, this.personalEntries]) {
       for (const e of list) {
+        if (blocked?.has(e.word)) continue;
         let mult = 1;
         if (!e.key.startsWith(p)) {
           // Typo hypotheses: one edit inside the prefix, admitted at a
@@ -405,7 +697,7 @@ export class Predictor {
         // words are their language, so no prior scales them down.
         if (pers) {
           base = (1 - PERSONAL_WEIGHT) * base
-            + PERSONAL_WEIGHT * pers.prob(e.word, prevKey, start);
+            + PERSONAL_WEIGHT * pers.prob(e.word, personalCtx);
         }
         const score = mult * base;
         if (score > 0) scored.push([score, e.word, mult !== 1]);
@@ -429,7 +721,9 @@ export class Predictor {
 
     // Verbatim guarantee: the literal typed word takes the last slot
     // when it did not earn one, so an out-of-vocabulary word is always
-    // acceptable as typed.
+    // acceptable as typed. Deliberately exempt from the block list: it
+    // echoes what the user just typed rather than proposing anything,
+    // and a blocked word would otherwise become hard to type at all.
     const typed = prefix.toLowerCase();
     if (typed.length >= 2 && !out.some((w) => w.toLowerCase() === typed)) {
       if (out.length >= limit) out.pop();

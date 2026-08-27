@@ -40,12 +40,19 @@ const predictor = new Predictor([
 // server. A broken or absent store degrades to an empty model.
 const PERSONAL_KEY = 'phonekeeb.personal';
 const LEARN_KEY = 'phonekeeb.learn';
-let personal;
-try {
-  personal = new PersonalModel(JSON.parse(localStorage.getItem(PERSONAL_KEY) ?? 'null'));
-} catch {
-  personal = new PersonalModel(null);
+function loadPersonal() {
+  let model;
+  try {
+    model = new PersonalModel(JSON.parse(localStorage.getItem(PERSONAL_KEY) ?? 'null'));
+  } catch {
+    model = new PersonalModel(null);
+  }
+  // Time decay runs at load as well as at learn, so a store ages even
+  // through a long pause in typing.
+  model.ageIfDue();
+  return model;
 }
+let personal = loadPersonal();
 predictor.setPersonal(personal);
 let learnEnabled = true;
 try { learnEnabled = localStorage.getItem(LEARN_KEY) !== '0'; } catch {}
@@ -63,6 +70,20 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && personalDirty) savePersonal();
 });
 
+// dictionary.html edits the same store. Coming back here is normally a
+// fresh load, which re-reads it, but the back/forward cache can restore
+// this page with the old model still in memory; the next write-behind
+// flush would then undo every edit made on that page. Re-reading on a
+// restored show is the whole fix, and it is safe because pagehide above
+// already flushed before the freeze.
+window.addEventListener('pageshow', (e) => {
+  if (!e.persisted) return;
+  personalDirty = 0;
+  personal = loadPersonal();
+  predictor.setPersonal(personal);
+  renderSuggestions();
+});
+
 // A word is learned when a separator lands right behind it: the text
 // before the caret ends in word-then-one-non-word-character. Derived
 // from the text like syncCurrentWord, so every commit path (space,
@@ -75,8 +96,12 @@ function maybeLearnCommittedWord() {
   if (!m || m[1].length > 24) return;
   const rest = before.slice(0, -m[1].length - 1);
   const prev = rest.match(/([\p{L}'’]+) *$/u)?.[1]?.toLowerCase() ?? null;
+  // The word before prev, only when spaces alone separate all three.
+  // Same rule renderSuggestions uses to address the trigram tables, so
+  // the personal trigrams are learned under the context that reads them.
+  const prev2 = rest.match(/([\p{L}'’]+) +[\p{L}'’]+ *$/u)?.[1]?.toLowerCase() ?? null;
   const atStart = /(?:^|\n)\s*$/.test(rest);
-  personal.learn(m[1].toLowerCase(), prev, atStart);
+  personal.learn(m[1].toLowerCase(), { prev, prev2, atStart });
   personalDirty++;
   if (personalDirty >= 20) savePersonal();
 }
