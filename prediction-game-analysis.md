@@ -204,6 +204,37 @@ What it says about the two open cases here:
 So both remaining Czech misses are semantic, not statistical. They are the
 right cases to stop chasing with table tuning.
 
+## Update 2026-08-27: session 4 splits cause A in two
+
+Cases 13 and 14 (`zkouška nového predik`, wanted `predikčního`, then
+`algoritmu`) both miss, and neither is a ranking failure. Replay is now
+7/14. Full exchange and strips in `prediction-game.md`, session 4. What
+they add is that cause A, vocabulary, has two distinct halves:
+
+- **Topical register.** No form of `predikce`, `prediktor` or
+  `predikční` exists in the 40000 Czech forms, because subtitles are
+  people talking and nobody in a film discusses prediction algorithms.
+  The English tail does carry `prediction`, so this is Czech-side and
+  topical, not a size problem. A bigger subtitle corpus adds nothing
+  here; a different register would.
+- **Inflection coverage.** `algoritmus` is in the vocabulary and
+  `algoritmu`, the genitive the sentence needs, is not. One lemma, one
+  case form short. This is cause F's neighbour rather than its twin: the
+  lemma IS in the corpus, only the form is missing, so a morphological
+  tier or a bigger Czech tail could reach it.
+
+Two engine behaviors worth recording from the same replay, because both
+argue against blaming the scorer:
+
+- After `nového` the strip is `světa, přítele, o, roku, v, života`, all
+  genitive masculine and neuter. The agreement is right. The engine knew
+  the shape of the answer and lacked the word.
+- `zkouška` is in the vocabulary and still carries no context: no pair
+  headed by it clears the floor of 20, so its next-word strip is the
+  same generic `to | se | je | a | na | jsem` an unknown word gets. For
+  the strip, rare-but-known and unknown behave alike. Anything that
+  lowers the pair floor for rare heads would show up here first.
+
 ## Notes
 
 - The game mixes two strip modes (completion vs. next word) and the

@@ -31,7 +31,7 @@ Measured on held-out subtitles, strip of 6 (hit@1 / hit@3):
 | 2-letter prefix | 65.2 / 78.0 | 59.7 / 73.8 |
 | corrupted prefix | 37.1 / 55.7 | 32.8 / 49.3 |
 
-Prediction game: 7 of 12 (case 7, "I w" to "would", entered at rank 4
+Prediction game: 7 of 14 (case 7, "I w" to "would", entered at rank 4
 with the 2026-08-27 smoothing). The LLM that played it live scored 8 of
 the first 11.
 
@@ -141,6 +141,11 @@ bucket only when the ranked tiers come up empty. A true morphological
 generator is the expensive alternative and measured badly: 4.8% precision
 on the diminutive rule, because our list carries no part of speech. Full
 numbers: `word-prediction-research.md`, "The out-of-vocabulary tail".
+
+Game case 14 sharpened the argument on 2026-08-27: `algoritmus` is in
+the vocabulary and `algoritmu`, the genitive the sentence needed, is
+not. A missing case form of a word we already have is the cheapest
+thing this tier fixes, and no cap sweep or scorer change can reach it.
 
 **8. A big model beside the small one, optional and off by default.**
 User idea, 2026-08-27, recorded in `ideas.md`. A general second opinion

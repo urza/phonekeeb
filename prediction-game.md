@@ -148,3 +148,70 @@ shipped engine    ahojky |zebricko -> zebricko                      miss
 
 The greeting helps the big model: without any context it ranks
 `zebřičko` eighth, and with `ahojky` in front it ranks it first.
+
+## Session 4 (2026-08-27)
+
+Played right after the completion scorer shipped (per-context backoff
+weights, caps 32 and 8). The user typed one Czech sentence about the
+keyboard itself.
+
+### 13
+- Input: `zkouška nového predik`
+- Suggestions: 1. prediktoru 2. prediktivního 3. predikčního
+  4. prediktora 5. predikce
+- Chosen: 3 (predikčního), hit at rank 3. `predikce` was ranked last
+  despite being the commoner word, because `nového` is genitive
+  masculine/neuter and `predikce` is feminine.
+
+### 14
+- Input: `zkouška nového predikčního`
+- Suggestions: 1. modelu 2. algoritmu 3. systému 4. enginu
+  5. nástroje
+- Chosen: 2 (algoritmu), hit at rank 2.
+
+### 15
+- Input: `zkouška nového predikčního algoritmu`
+- Suggestions: 1. proběhla 2. v 3. na 4. dopadla 5. je
+- Chosen: none; the user closed the session here.
+
+## Session 4 summary (2026-08-27)
+
+- 2 exchanges answered: 2 hits, at ranks 3 and 2.
+- The shipped engine misses both. Replayed with
+  `node tools/eval-game.mjs` (cases 13 and 14 are in it now):
+
+```
+#13 "zkouška nového predik"       strip: predik
+#14 "zkouška nového predikčního"  strip: to | se | je | a | na | jsem
+```
+
+Neither miss is a ranking failure. Both are cause A, vocabulary, in
+two flavors this game had not separated before:
+
+- **Topical register.** No form of `predikce`, `prediktor` or
+  `predikční` is in the 40000 Czech forms. Subtitles are people
+  talking, and people in films do not discuss prediction algorithms.
+  The English tail does carry `prediction` and `predictable`, so the
+  gap is Czech-side and topical, not a size problem. Typing `pred`
+  reaches `před, prezidenta, předtím, představit, předpokládám`:
+  the neighbourhood is full, the word is simply not in it.
+- **Inflection coverage.** `algoritmus` IS in the vocabulary;
+  `algoritmu`, the genitive the sentence needs, is not. One lemma,
+  one case form short. This is the Czech half of the extension tier
+  doing its job and still missing, which no cap sweep can fix.
+
+Two things the engine got right and the strip never showed:
+
+- After `nového` it offers `světa, přítele, o, roku, v, života`:
+  genitive masculine and neuter nouns. The agreement is correct. The
+  engine knew the shape of the answer and lacked the word.
+- A known word can still carry no context. `zkouška` is in the
+  vocabulary, yet its next-word strip is the same generic
+  `to | se | je | a | na | jsem` as an unknown word's, because no pair
+  headed by it clears the floor of 20. For the strip, rare-but-known
+  and unknown behave alike.
+
+Exchange 15 was never answered, so it is not in the harness. Worth
+noting anyway: its strip is byte-identical to 14's, because `algoritmu`
+is out of vocabulary too, so the context contributes nothing either
+time.

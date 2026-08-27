@@ -34,6 +34,8 @@ const CASES = [
   { n: 10, input: 'mam hlad dam si k', prefix: 'k', prev: 'si', prev2: 'dam', recent: ['mam', 'hlad', 'dam', 'si'], want: 'kuře' },
   { n: 11, input: 'smoo', prefix: 'smoo', prev: '', prev2: '', recent: [], want: 'smooth' },
   { n: 12, input: 'ahojky zebricko', prefix: 'zebricko', prev: 'ahojky', prev2: '', recent: ['ahojky'], want: 'zebřičko' },
+  { n: 13, input: 'zkouška nového predik', prefix: 'predik', prev: 'nového', prev2: 'zkouška', recent: ['zkouška', 'nového'], want: 'predikčního' },
+  { n: 14, input: 'zkouška nového predikčního', prefix: '', prev: 'predikčního', prev2: 'nového', recent: ['zkouška', 'nového', 'predikčního'], want: 'algoritmu' },
 ];
 
 const predictor = new Predictor([
