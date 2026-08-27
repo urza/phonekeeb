@@ -140,10 +140,11 @@ mask over that vector. That is the whole argument for the from-scratch arm.
   (`word-prediction-research.md`, "Extension vocabulary shipped"), so the
   smaller pool is not what makes the mini model look good.
 - All four pretrained models are reported in bfloat16, which this machine
-  (Ryzen 9 9950X, AVX512-BF16) runs 2 to 20 times faster than float32. The
-  game replay and the pair eval were run both ways for CzeGPT-2 and for the
-  XL model: same game score, same strips up to tie order, pair rates within
-  0.3 points.
+  (Ryzen 9 9950X, AVX512-BF16) runs 2 to 20 times faster than float32.
+  Float32 was checked against it before the switch: the game replay agreed
+  for CzeGPT-2 and for the XL model (same score, same strips up to tie
+  order), and the pair eval agreed for CzeGPT-2 and czech-gpt2-oscar within
+  0.3 points in every cell.
 - The `--cap` rows restrict a transformer's chips to words the shipped
   lexicon knows. It is a post-filter over the beam output, not a
   lexicon-constrained decode, so those rows are a lower bound.
