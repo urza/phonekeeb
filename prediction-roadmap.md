@@ -124,7 +124,16 @@ stays the generator and the fallback.
 order. A gesture letter costs more than a tap letter, so a chip that
 inserts two words saves more here than on any other keyboard.
 
-**7. Word-boundary inference.** Typing a phrase without committing
+**7. A tail lexicon tier.** Cheapest fix for cause F on real Czech
+words, and it needs no linguistics. The aspell expansion we already
+download is 3.14M forms and contains the word game case 12 wanted. Fold
+the `ne` and `nej` prefixes, bucket the rest by three letters, fetch one
+bucket only when the ranked tiers come up empty. A true morphological
+generator is the expensive alternative and measured badly: 4.8% precision
+on the diminutive rule, because our list carries no part of speech. Full
+numbers: `word-prediction-research.md`, "The out-of-vocabulary tail".
+
+**8. Word-boundary inference.** Typing a phrase without committing
 spaces, then splitting it. Valuable here because space is a gesture.
 Microsoft holds patents on their version, so it needs its own design from
 the general prior art.

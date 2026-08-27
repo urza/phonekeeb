@@ -539,6 +539,69 @@ version, so this file's table is not read as current:
 So the open tuning work moved: it is the completion scorer, not the
 vocabulary and not the tables' size.
 
+## The out-of-vocabulary tail, measured (2026-08-27)
+
+Game case 12 asked whether a morphological generator could reach a word
+no corpus holds. Measuring first changed the answer.
+
+**Where the 9% goes.** Of held-out Czech tokens outside the shipped
+40000 forms:
+
+| | share of all tokens |
+|---|---|
+| real Czech words the aspell expansion knows | 3.7% |
+| in neither list: names, English, single letters, junk | 5.2% |
+
+So a little under half the tail is words we could simply have shipped.
+Caveat: subtitles under-represent names badly, and chat is the real
+target, so the second row is larger in use than it looks here.
+
+**The generator's output already exists.** The aspell Czech expansion
+that `tools/build-wordlists.py` already downloads is **3,141,344 forms**,
+and it contains `zebřičko`, `zebřička`, `žabičko` and `kočičko`. We ship
+40000 of them, 1.3%, ranked by corpus frequency. Case 12 failed because
+of what we shipped, not because the word was underivable.
+
+Sizes: 44.8 MB raw, 8.3 MB gzipped, **1.2 MB front-coded then gzipped**,
+which is less than one of the trigram tables. A DAFSA would be smaller
+still.
+
+**Two prefix rules fold a third of it away.** 41% of the list starts with
+the negation `ne`, and 87% of those have their positive form in the list
+as well. The superlative `nej` accounts for another 153000. Both are
+prefixes on existing forms rather than stem surgery, so their precision
+is near perfect. Folding them leaves 2.02M forms.
+
+**Stem-changing rules are the hard ones, for a measurable reason.** Our
+vocabulary is a flat list of forms with counts: no lemma, no gender, no
+part of speech. The two rules case 12 needs were tested against the
+shipped list:
+
+- Diminutive `-a` to `-ička` with r/ř palatalization: **4.8%** of the
+  generated forms are real. The good ones are exactly right (cesta ->
+  cestička, hvězda -> hvězdička, voda -> vodička, zebra -> zebřička).
+  They drown in verbs: byla -> bylička, měla -> mělička, řekla ->
+  řeklička.
+- Vocative `-a` to `-o`: would add 2534 forms, and the sample reads
+  sakro, zítro, tedo, zrovno, včero, docelo.
+
+Raising that precision needs part-of-speech and gender tags. For Czech
+the tagged resource is MorfFlex / MorphoDiTa, which is CC-BY-NC-SA: the
+same non-commercial blocker as CzeGPT-2.
+
+**The cheap design that fixes it.** A tail lexicon tier that fires only
+when the ranked tiers return nothing, which is exactly the state case 12
+reached. After folding `ne` and `nej`, bucket the list by the first three
+match-key letters: 3878 buckets, median 115 forms, largest 415 KB
+gzipped. Fetch one bucket on demand. No DAFSA, no build step, plain files
+on GitHub Pages and one mmap on iOS. Ranking inside the tail can stay
+crude, because the tier only shows when nothing else would.
+
+**What it still will not fix.** `ahojky` is not in aspell, and neither
+are `čauky` or `ahojda`. The expansion holds standard Czech only, and
+colloquial greeting forms sit outside it. Half of case 12 stays personal
+model territory whatever the lexicon does.
+
 ## What the SwiftKey research adds (2026-08-27)
 
 `swiftkey_research/` arrived the same day and overlaps this file. Four
