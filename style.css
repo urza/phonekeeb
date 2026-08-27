@@ -31,7 +31,7 @@
 /* The `hidden` attribute is a UA rule of `display: none`, and every
    `display` rule in this file is more specific than it. Elements that
    JS hides that way need this, or they stay on screen: #suggestions,
-   #copyText, #emojiPicker and .emoji-page all set a display. */
+   #copyText, .pad-panel and .pad-row all set a display. */
 [hidden] {
   display: none !important;
 }
@@ -270,16 +270,16 @@ main {
   display: block;
 }
 
-/* Emoji button: the copy button's twin. It sits in the wheel's other
-   free corner pocket, top-right of the disk's bounding box, so its top
-   edge meets that box the way the copy button's bottom edge meets it.
-   `bottom` is set from main.js (placeEmojiButton), because it depends
-   on the arm length and because the button moves down to the picker's
-   tab row while the picker is open. */
-#emojiToggle {
+/* The two panel toggles: the emoji button and the number-and-symbol
+   button. Each is a copy-button twin parked in one of the wheel's free
+   corner pockets, top-right and top-left of the disk's bounding box, so
+   its top edge meets that box the way the copy button's bottom edge
+   meets the bottom. Position comes from main.js (placeCornerButtons):
+   it depends on the arm length, and an open panel moves its button down
+   to the panel's bottom bar. */
+.pad-toggle {
   position: absolute;
-  right: 12px;
-  z-index: 4; /* above #emojiPicker: the same button closes it */
+  z-index: 4; /* above the panel: the same button closes it */
   width: 48px;
   height: 40px;
   display: flex;
@@ -290,33 +290,42 @@ main {
   /* --bg over the --panel canvas, same reason as the copy button. */
   background: var(--bg);
   color: var(--fg);
+  font-size: 13px;
+  font-weight: 600;
 }
 
-#emojiToggle .back {
+/* The emoji button keeps the right edge in both of its positions, so it
+   is the one anchor that does not need JS. The symbol button crosses
+   the screen when its pad opens, so main.js owns both of its sides. */
+#emojiToggle {
+  right: 12px;
+}
+
+.pad-toggle .back {
   display: none;
 }
 
-/* Open: the smiley becomes the wheel it takes you back to. */
-#emojiToggle[aria-expanded='true'] {
+/* Open: the icon becomes the wheel it takes you back to. */
+.pad-toggle[aria-expanded='true'] {
   border-color: var(--trail);
   color: var(--trail);
 }
 
-#emojiToggle[aria-expanded='true'] .icon {
+.pad-toggle[aria-expanded='true'] .icon {
   display: none;
 }
 
-#emojiToggle[aria-expanded='true'] .back {
+.pad-toggle[aria-expanded='true'] .back {
   display: block;
 }
 
-/* The picker covers the canvas instead of replacing it. Hiding the
-   canvas would resize it to zero and drag the decoder's center through
-   a resize cycle; an overlay leaves the wheel untouched underneath and
+/* A panel covers the canvas instead of replacing it. Hiding the canvas
+   would resize it to zero and drag the decoder's center through a
+   resize cycle; an overlay leaves the wheel untouched underneath and
    swallows every pointer event on its own.
    It starts at the canvas top edge, so the canvas (which still draws
-   its HUD line) is hidden completely. */
-#emojiPicker {
+   its HUD line) is hidden completely. Only one panel is ever open. */
+.pad-panel {
   position: absolute;
   left: 0;
   right: 0;
@@ -328,27 +337,27 @@ main {
   background: var(--panel);
 }
 
-.emoji-grid {
+.pad-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   /* Containing block for the sticky headings, and the box the section
      offsets in emoji-picker.js are measured against. */
   position: relative;
-  /* Momentum scrolling inside the picker. The body sets
+  /* Momentum scrolling inside the panel. The body sets
      overscroll-behavior: none for gestures; this box wants normal
      touch scrolling instead. */
   touch-action: pan-y;
   /* No top padding: a sticky heading pins to the padding edge, so any
-     padding here becomes a band that scrolling emoji show through
+     padding here becomes a band that scrolling cells show through
      above the heading. The headings carry their own top space. */
   padding: 0 8px 4px;
 }
 
-/* One continuous scroll, so the category name has to travel with its
-   emoji. Sticky keeps it at the top edge for as long as its section
+/* One continuous scroll, so the section name has to travel with its
+   cells. Sticky keeps it at the top edge for as long as its section
    lasts, which is also what tells you where the scroll has got to. */
-.emoji-heading {
+.pad-heading {
   position: sticky;
   top: 0;
   z-index: 1;
@@ -362,7 +371,7 @@ main {
   background: var(--panel);
 }
 
-.emoji-page {
+.pad-row {
   display: grid;
   /* auto-fill, not fixed columns: the same cell size gives 8 columns on
      a phone and more on a desktop window, with no breakpoint. */
@@ -370,44 +379,97 @@ main {
   gap: 2px;
 }
 
-.emoji-cell {
+.pad-cell {
   height: 44px; /* full touch target; the glyph alone is not one */
   font-size: 28px;
   line-height: 1;
   border: 0;
   border-radius: 8px;
   background: none;
+  color: var(--fg);
   padding: 0;
   cursor: pointer;
 }
 
-.emoji-cell:active {
+/* The symbol rows are keys, so they need room to breathe that the
+   emoji grid's 2 px does not give. The narrower minimum buys back the
+   column that the gaps cost: 8 keys per row on a phone, which is what
+   the section sizes are written for, instead of 7 with a ragged tail. */
+#symbolPad .pad-row {
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  gap: 6px;
+  padding-bottom: 2px;
+}
+
+.pad-cell:active {
   background: var(--line);
 }
 
 .emoji-empty {
-  /* Spans the whole grid: it is the empty state of the recent page, not
-     a cell in it. */
+  /* Spans the whole grid: it is the empty state of the recent section,
+     not a cell in it. */
   grid-column: 1 / -1;
   margin: 12px 4px;
   font-size: 13px;
   color: var(--muted);
 }
 
-/* Tabs at the bottom, as on the iPhone keyboard: the thumb reaches the
-   bottom edge, and the top-right corner is taken by the emoji button. */
-.emoji-tabs {
+/* The numeric keypad, above the bar. Bordered keys, unlike the
+   borderless symbol cells: it is a keypad, and it should look like one.
+   Centered by default; a touch screen pushes it under the right thumb,
+   the same reason the wheel hugs the right edge there. */
+.pad-keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 6px 8px;
+}
+
+@media (pointer: coarse) {
+  .pad-keys {
+    margin-right: 0;
+  }
+}
+
+/* Each panel's bottom bar: the emoji picker's category tabs, the symbol
+   pad's edit keys. The thumb reaches the bottom edge most easily. */
+.pad-bar {
   display: flex;
+  gap: 4px;
   border-top: 1px solid var(--line);
-  /* No safe-area inset here: the picker lives inside <main>, and the
+  /* No safe-area inset here: the panel lives inside <main>, and the
      body's padding-bottom already holds the whole page above the home
      indicator. The copy button needs its own inset only because it is
      position: fixed and escapes that padding.
-     The right padding is the emoji button's slot: while the picker is
-     open the button parks at the end of this row, and a tab under it
+     The right padding is the toggle button's slot: while the panel is
+     open the button parks at the end of this bar, and anything under it
      would be unreachable. */
   padding: 2px 60px 2px 4px;
   background: var(--bg);
+}
+
+.pad-key {
+  height: 44px;
+  font-size: 20px;
+  line-height: 1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  padding: 0;
+  cursor: pointer;
+}
+
+.pad-bar .pad-key {
+  flex: 1;
+  height: 40px;
+}
+
+.pad-key:active {
+  background: var(--line);
 }
 
 .emoji-tab {

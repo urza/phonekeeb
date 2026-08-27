@@ -9,7 +9,7 @@
 //   revalidates GitHub Pages' 10-minute HTTP cache. An online launch
 //   therefore gets the newest index (and with it the newest ?v= set)
 //   right away; the cached copy is served only when the network fails.
-const BUILD = 33;
+const BUILD = 34;
 const CACHE = `phonekeeb-b${BUILD}`;
 
 // Everything a launch needs, pinned to this build. The trigram tables
@@ -35,6 +35,7 @@ const ASSETS = [
   // what makes the picker work offline the first time it is opened.
   `./emoji-picker.js?v=${BUILD}`,
   `./emoji-data.js?v=${BUILD}`,
+  `./symbols-pad.js?v=${BUILD}`,
   `./gesture-decoder.js?v=${BUILD}`,
   `./layout.js?v=${BUILD}`,
   `./layouts.js?v=${BUILD}`,

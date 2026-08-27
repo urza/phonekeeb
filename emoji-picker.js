@@ -4,9 +4,9 @@
 // tap through onPick and lets the caller decide what that means, the
 // same split wheel-svg.js keeps.
 //
-// The caller places the returned element and styles it (see
-// #emojiPicker in style.css). This module owns only the contents and
-// the recently-used list.
+// The caller places the returned element; the .pad-* classes in
+// style.css style it, shared with the number and symbol pad. This
+// module owns only the contents and the recently-used list.
 import { EMOJI_CATEGORIES } from './emoji-data.js';
 
 // Recently used emoji, newest first, on this device only. The picker is
@@ -35,13 +35,14 @@ export function createEmojiPicker({ onPick }) {
 
   const el = document.createElement('div');
   el.id = 'emojiPicker';
+  el.className = 'pad-panel';
   el.hidden = true;
 
   const grid = document.createElement('div');
-  grid.className = 'emoji-grid';
+  grid.className = 'pad-scroll';
 
   const tabs = document.createElement('div');
-  tabs.className = 'emoji-tabs';
+  tabs.className = 'pad-bar';
   tabs.setAttribute('role', 'tablist');
 
   // Tabs sit below the grid, as on the iPhone keyboard: the thumb
@@ -57,7 +58,7 @@ export function createEmojiPicker({ onPick }) {
     for (const emoji of emojis) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'emoji-cell';
+      b.className = 'pad-cell';
       b.dataset.emoji = emoji;
       b.textContent = emoji;
       frag.append(b);
@@ -70,15 +71,15 @@ export function createEmojiPicker({ onPick }) {
   // paid once on the first open of a session.
   for (const cat of all) {
     const section = document.createElement('section');
-    section.className = 'emoji-section';
+    section.className = 'pad-section';
     section.dataset.category = cat.id;
 
     const heading = document.createElement('h2');
-    heading.className = 'emoji-heading';
+    heading.className = 'pad-heading';
     heading.textContent = cat.label;
 
     const page = document.createElement('div');
-    page.className = 'emoji-page';
+    page.className = 'pad-row';
     if (cat.id !== RECENT.id) fill(page, cat.emojis);
 
     section.append(heading, page);

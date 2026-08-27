@@ -71,7 +71,10 @@ sections) or, in an unassigned sector, silence:
 - Right (E): backspace.
 - Bottom (S): enter.
 - Top (N): nothing on a tap; the sector hosts the caret glide.
-- Left (W): reserved for a number and symbol layer.
+- Left (W): still reserved. The number and symbol layer it was held for
+  shipped as a corner button instead (see "Numbers and symbols pad"):
+  not everything deserves a gesture, and a grid is what a phone user
+  already knows.
 
 The E and S taps follow the 8VIM successor project's assignment. The
 original 8pen had no function taps.
@@ -568,32 +571,48 @@ on combined en+cs statistics. Git history keeps them.
   same-scheme panel. A settings checkbox turns the colors off, and the
   choice persists.
 
+## Panels over the wheel
+
+Two panels can take the wheel's place: the emoji picker and the number
+and symbol pad. They share a shape, and the rules below hold for both.
+
+- Each has a button parked in one of the wheel's free corner pockets,
+  emoji top-right and numbers top-left. Both are copy-button twins:
+  same 48 x 40 px size, border and 12 px inset. Their top edge meets
+  the top of the disk's bounding box, the way the copy button's bottom
+  edge meets the bottom, so all three sit the same distance from the
+  rim.
+- A panel covers the canvas; it does not replace it. Hiding the canvas
+  would resize it to zero and move the decoder's center through a
+  resize cycle. The overlay leaves the wheel untouched underneath and
+  swallows every pointer event by itself.
+- One panel at a time. Opening one closes the other, and pressing an
+  open panel's own button closes it.
+- While a panel is open, the suggestion strip, the copy button and the
+  other panel's button are hidden. Suggestions mean nothing there, the
+  copy button sits exactly where the panel's bottom bar goes, and the
+  other button would float over the grid with nothing to open.
+- The open panel's button drops to the right end of that bottom bar,
+  which reserves a 60 px slot for it, so it can cover neither a cell
+  nor a bar key. Its icon becomes a wheel, and it then closes the
+  panel.
+- The contents scroll as one list, with a heading per section that
+  sticks to the top edge for as long as its section lasts. That
+  heading is also what tells you where the scroll has got to.
+- A key types at the caret and leaves the panel open, so a run of them
+  takes one open. What it types ends the current word for prediction
+  and disarms the double-tap period, the same as punctuation.
+- Each panel's module loads on the first press of its button, not at
+  startup. The service worker precaches both, so they work offline on
+  their first open.
+
 ## Emoji picker
 
-- A button opens an emoji picker in place of the wheel. It is the copy
-  button's twin: same 48 x 40 px size, border and 12 px right inset, in
-  the wheel's other free corner pocket. Its top edge meets the top of
-  the disk's bounding box, the way the copy button's bottom edge meets
-  the bottom, so both sit the same distance from the rim.
-- While the picker is open the button drops to the right end of the
-  category tab row, where it cannot cover an emoji cell. The tab row
-  reserves that slot, so no tab hides under it. The smiley icon becomes
-  a wheel icon, and the button then closes the picker.
-- The picker covers the canvas; it does not replace it. Hiding the
-  canvas would resize it to zero and move the decoder's center through
-  a resize cycle. The overlay leaves the wheel untouched underneath and
-  swallows every pointer event by itself.
-- While the picker is open, the suggestion strip and the copy button
-  are hidden. Word suggestions mean nothing during emoji picking, and
-  the copy button sits exactly where the category tabs go.
 - 925 emoji in ten categories (smileys, people, animals, nature, food,
   activities, travel, objects, symbols, flags), plus a recently-used
-  section first. It is one continuous scroll, not one page per
-  category: the scroll runs from the recent section to the flags with
-  no switching. Each section carries a heading that sticks to the top
-  edge for as long as its section lasts, which is also what tells you
-  where the scroll has got to.
-- Tabs sit along the bottom edge, in thumb reach, one per section. A
+  section first. The scroll runs from the recent section to the flags
+  with no switching.
+- Tabs sit along the bottom bar, in thumb reach, one per section. A
   tab jumps the scroll to its section, and scrolling by hand lights the
   tab of the section at the top edge. The last section is the exception
   that needs care: a jump to it stops short of its offset, because
@@ -601,11 +620,7 @@ on combined en+cs statistics. Git history keeps them.
   active tab itself rather than leaving it to the scroll handler.
 - There is no search field: a text field would open the phone's own
   keyboard over a keyboard prototype.
-- A tap types the emoji at the caret and leaves the picker open, so a
-  row of emoji takes one open. The emoji ends the current word for
-  prediction and disarms the double-tap period, the same as
-  punctuation. The learner ignores it: an emoji is not a word
-  character.
+- The learner ignores emoji: an emoji is not a word character.
 - The recently-used list holds 16 emoji (two rows), newest first, in
   `localStorage` on this device only. The picker opens scrolled to it
   once it has content; a first run opens at smileys instead, past the
@@ -613,14 +628,42 @@ on combined en+cs statistics. Git history keeps them.
 - That section is rebuilt on open, never on a pick. Rebuilding it as
   you pick would move every category down the scroll, under a finger
   that is picking a second emoji.
-- The picker module and its emoji table (~35 kB) load on the first
-  press of the button, not at startup. The service worker precaches
-  them, so the picker works offline on its first open.
 - Data path: `emojis/EmojiData.cs` (the upstream source, from another
   project of the author's) to `emoji-data.js`, by
   `tools/convert-emoji.py`. The same `.cs` file holds 907 search
   keywords; the converter emits them (`--keywords`) only when a search
   field exists to use them.
+
+## Numbers and symbols pad
+
+- The button reads "123" and sits in the wheel's top-left corner
+  pocket, level with the emoji button in the top-right one.
+- Three parts, top to bottom: a scroll of symbol keys, a numeric
+  keypad, and the bottom bar.
+- 67 symbols in five sections: punctuation (16), brackets (8), math
+  (16), money (6) and signs (21). Punctuation and math are sized to
+  fill exactly two rows of eight on a phone, so no key is left alone
+  on a third. Both Czech quote marks („ “) and both English ones (“ ”)
+  are there: one keyboard serves both languages, which is the same
+  rule the letter layout follows.
+- The keys are bordered, unlike the emoji picker's borderless cells. A
+  symbol is a small mark, and without a key around it the grid reads
+  as scattered glyphs rather than something to press.
+- A key types a string, not a character: the Kč key types two.
+- The keypad is three columns: 1-9, then the two decimal separators
+  around the zero. English writes 3.14 and Czech writes 3,14, so both
+  are there. It is centered, and pushed under the right thumb on a
+  touch screen, the same reason the wheel hugs the right edge there.
+- The bottom bar holds backspace, space and enter. The wheel carries
+  all three (center tap, East tap, South tap), but they are
+  unreachable while the pad covers it, and a number is rarely the last
+  thing typed.
+- The pad always opens at the top of its scroll. Unlike the emoji
+  picker there is no recent section to return to, and the punctuation
+  is what most presses are after.
+- The pad repeats the wheel's own South-drag punctuation (? ! ,) on
+  purpose: it is where a user who has not learned those drags comes
+  looking.
 
 ## Phone-keyboard page layout
 
@@ -638,12 +681,14 @@ on combined en+cs statistics. Git history keeps them.
   exists, otherwise the whole text, and flashes a check mark in the
   trail accent for 0.9 s. With nothing to copy it does nothing. The
   selection is read at pointer down, before the click can collapse it.
-- An emoji button sits in the wheel's other free corner pocket,
-  top-right of the disk's bounding box (see "Emoji picker"). Its
-  distance from the bottom follows the arm length, so main.js places
-  it in `resize()`. The picker below it starts at the canvas top edge,
-  which the CSS derives from the typed-text box's height, kept in one
-  variable (`--output-h`) that the box and the picker both read.
+- Two more buttons sit in the wheel's other free corner pockets, at the
+  top-left and top-right of the disk's bounding box: numbers and emoji
+  (see "Panels over the wheel"). Their distance from the bottom follows
+  the arm length, and the left one's horizontal position does too, so
+  main.js places both in `resize()`. A panel under them starts at the
+  canvas top edge, which the CSS derives from the typed-text box's
+  height, kept in one variable (`--output-h`) that the box and the
+  panels both read.
 - The top bar holds only the name, Clear, and a Settings toggle. The
   hint text and all controls (layout, theme, dead zone) sit
   inside the collapsed settings block, so the touch area keeps most of
@@ -745,7 +790,7 @@ storage failure (private browsing) never breaks the feature itself.
   layout rules, theme and sector-color contrast) and Playwright
   end-to-end flows (hello in one stroke, prediction chips, function
   taps, delete glide with undelete, double-tap period, caret glide,
-  letter-cards smoke, emoji picker).
+  letter-cards smoke, emoji picker, number and symbol pad).
 - `tools/eval-prediction.mjs`: the prediction quality harness. It
   scores the real `Predictor` on held-out subtitle lines (every 100th
   line of an 80 MB dump prefix, cached in `tools/corpus/`), reporting
@@ -813,10 +858,13 @@ Tuned constants, one place to read them all:
 | South drag targets | E = ?, N = !, W = ,; center circle counts as N |
 | Suggestion row gap | bottom edge 4 px above the wheel rim |
 | Copy button | 48 x 40 px, 12 px corner inset; copied flash 900 ms |
-| Emoji button | 48 x 40 px, 12 px inset; top edge on the wheel box's top edge, or the tab row while the picker is open |
-| Emoji picker | 925 emoji, 10 categories, one continuous scroll; grid cells 44 px, columns auto-fill from 44 px |
-| Emoji tabs | 11 (recent first), 40 px tall, along the bottom edge; 60 px right slot for the button |
+| Panel buttons | 48 x 40 px, 12 px inset; top edge on the wheel box's top edge, or the panel's bottom bar while it is open |
+| Panel bar | 40 px tall keys, 60 px right slot for the button |
+| Emoji picker | 925 emoji, 10 categories, one continuous scroll; cells 44 px, columns auto-fill from 44 px, 2 px gap |
+| Emoji tabs | 11, recent first |
 | Emoji scroll-to-tab tolerance | 4 px |
+| Symbol pad | 67 symbols in 5 sections; keys 44 px, columns auto-fill from 38 px, 6 px gap |
+| Numeric keypad | 3 columns, 1-9 then . 0 , ; block max width 320 px, right-aligned on a touch screen |
 | Recently used emoji | 16, newest first, localStorage |
 
 Pixel values were tuned on a ~390 px wide phone viewport; on iOS

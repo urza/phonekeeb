@@ -86,7 +86,7 @@ assert(covered, 'the picker does not cover the wheel center');
 // not cover a tab: the tab row reserves its slot.
 const inRow = await page.evaluate(() => {
   const b = document.getElementById('emojiToggle').getBoundingClientRect();
-  const row = document.querySelector('.emoji-tabs').getBoundingClientRect();
+  const row = document.querySelector('.pad-bar').getBoundingClientRect();
   const hit = [...document.querySelectorAll('.emoji-tab')].some((t) => {
     const r = t.getBoundingClientRect();
     return r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top;
@@ -99,8 +99,8 @@ assert(!inRow.hit, 'the open button covers a category tab');
 // Ten categories plus the recently-used one: one tab and one section
 // each, all present at once because the grid is a single scroll.
 assert(await page.locator('.emoji-tab').count() === 11, 'expected 11 tabs');
-assert(await page.locator('.emoji-section').count() === 11, 'expected 11 sections');
-assert(await page.locator('.emoji-cell').count() === 925, 'expected 925 emoji cells');
+assert(await page.locator('.pad-section').count() === 11, 'expected 11 sections');
+assert(await page.locator('.pad-cell').count() === 925, 'expected 925 emoji cells');
 
 // First run: the recent section is empty, so the picker opens at
 // smileys instead of on an empty band.
@@ -111,9 +111,9 @@ assert(
 
 // Scrolling alone moves the active tab: no tab was pressed here.
 const animalsTop = await page.evaluate(() => {
-  const grid = document.querySelector('.emoji-grid');
-  const first = document.querySelector('.emoji-section');
-  const animals = document.querySelector('.emoji-section[data-category="animals"]');
+  const grid = document.querySelector('.pad-scroll');
+  const first = document.querySelector('.pad-section');
+  const animals = document.querySelector('.pad-section[data-category="animals"]');
   grid.scrollTop = animals.offsetTop - first.offsetTop;
   return grid.scrollTop;
 });
@@ -127,9 +127,9 @@ await page.waitForFunction(
 // A tab jumps the scroll to its section.
 await page.locator('.emoji-tab[data-category="food"]').click();
 const jumped = await page.evaluate(() => {
-  const grid = document.querySelector('.emoji-grid');
-  const first = document.querySelector('.emoji-section');
-  const food = document.querySelector('.emoji-section[data-category="food"]');
+  const grid = document.querySelector('.pad-scroll');
+  const first = document.querySelector('.pad-section');
+  const food = document.querySelector('.pad-section[data-category="food"]');
   return Math.abs(grid.scrollTop - (food.offsetTop - first.offsetTop)) < 4;
 });
 assert(jumped, 'the food tab did not scroll to the food section');
@@ -139,17 +139,17 @@ assert(
 );
 
 // Picks land in the text and leave the picker open.
-await page.locator('.emoji-cell[data-emoji="🐶"]').click();
+await page.locator('.pad-cell[data-emoji="🐶"]').click();
 assert(await picker.isVisible(), 'the picker closed after a pick; it must stay open');
 let text = await page.locator('#output').innerText();
 assert(text === '🐶', `expected the emoji in the output, got ${JSON.stringify(text)}`);
 
 // The recent section must NOT rebuild on a pick: that would move every
 // category down the scroll under a finger picking a second emoji.
-const recentNow = await page.locator('.emoji-section[data-category="recent"] .emoji-cell').count();
+const recentNow = await page.locator('.pad-section[data-category="recent"] .pad-cell').count();
 assert(recentNow === 0, `the recent section rebuilt mid-session (${recentNow} cells)`);
 
-await page.locator('.emoji-cell[data-emoji="🐱"]').click();
+await page.locator('.pad-cell[data-emoji="🐱"]').click();
 text = await page.locator('#output').innerText();
 assert(text === '🐶🐱', `expected two emoji, got ${JSON.stringify(text)}`);
 
@@ -164,7 +164,7 @@ assert(await copyButton.isVisible(), 'copy button did not come back');
 // first, exactly once each, and the scroll lands on them.
 await toggle.click();
 await picker.waitFor({ state: 'visible' });
-const recent = await page.locator('.emoji-section[data-category="recent"] .emoji-cell')
+const recent = await page.locator('.pad-section[data-category="recent"] .pad-cell')
   .evaluateAll((els) => els.map((e) => e.dataset.emoji));
 assert(recent.join('') === '🐱🐶', `unexpected recent section: ${JSON.stringify(recent)}`);
 assert(
@@ -194,7 +194,7 @@ assert(
   await page.locator('.emoji-tab.active').getAttribute('data-category') === 'recent',
   'a later open should land on the recent page',
 );
-const kept = await page.locator('.emoji-section[data-category="recent"] .emoji-cell')
+const kept = await page.locator('.pad-section[data-category="recent"] .pad-cell')
   .evaluateAll((els) => els.map((e) => e.dataset.emoji));
 assert(kept.join('') === '🐱🐶', `recent list lost on reload: ${JSON.stringify(kept)}`);
 

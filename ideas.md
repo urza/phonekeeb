@@ -220,8 +220,15 @@ continuous scroll across ten categories plus a recently-used section,
 and tabs along the bottom edge. Data comes from the user's own C#
 project (`emojis/EmojiData.cs`). It follows the note above
 rather than the W-sector tap: not everything deserves a gesture, and a
-grid is what a phone user already knows. Symbols and the numberpad
-stay open; the same button pattern would carry them.*
+grid is what a phone user already knows.*
+
+*Numbers and symbols shipped the same day: a "123" button in the
+wheel's top-left corner pocket, the mirror of the emoji one, opens a
+pad with 67 symbols in five sections, a three-column numeric keypad,
+and a bar carrying backspace, space and enter. Both panels share one
+shape (`.pad-*` in `style.css`), so a clipboard panel is now a third
+module and a third corner. The W-sector tap that was reserved for this
+layer stays reserved.*
 
 ### Harper for grammar and dictionaries
 > for english could we use harper? its opensource and its engine for

@@ -19,6 +19,7 @@ const sectorColorsEl = document.getElementById('sectorColors');
 const clearButton = document.getElementById('clearText');
 const copyButton = document.getElementById('copyText');
 const emojiToggle = document.getElementById('emojiToggle');
+const symbolToggle = document.getElementById('symbolToggle');
 const learnTypingEl = document.getElementById('learnTyping');
 const forgetTypingEl = document.getElementById('forgetTyping');
 const forceReloadEl = document.getElementById('forceReload');
@@ -264,25 +265,34 @@ function resize() {
   // push the strip up over the output box. 88 = the strip's two-row
   // height in style.css; keep in sync.
   suggestionsEl.style.bottom = `${Math.min(2 * armLength + WHEEL_MARGIN + 4, rect.height - 88)}px`;
-  placeEmojiButton();
+  placeCornerButtons();
   draw();
 }
 
-// The emoji button follows the surface under it. With the wheel up it
-// parks in the disk's top-right corner pocket, mirroring the copy
-// button in the bottom-right one: its top edge meets the top of the
-// wheel's bounding box, as the copy button's bottom edge meets the
-// bottom. With the picker up it drops to the end of the category tab
-// row, where it cannot cover an emoji cell.
-// The open state is read off the button, not off the emojiOpen variable
-// below: resize() calls this during startup, before that variable's
-// declaration is reached.
-const EMOJI_BUTTON_H = 40; // keep in sync with #emojiToggle in style.css
-function placeEmojiButton() {
-  const open = emojiToggle.getAttribute('aria-expanded') === 'true';
-  emojiToggle.style.bottom = open
-    ? '2px' // the tab row's own padding, so the button lines up with the tabs
-    : `${2 * armLength + WHEEL_MARGIN - EMOJI_BUTTON_H}px`;
+// The two panel buttons follow the surface under them. With the wheel
+// up they park in the disk's free corner pockets, emoji top-right and
+// symbols top-left, mirroring the copy button in the bottom-right one:
+// their top edge meets the top of the wheel's bounding box, as the copy
+// button's bottom edge meets the bottom. With a panel up, that panel's
+// button drops to the end of its bottom bar, where it cannot cover a
+// cell or a tab.
+// The open state is read off each button, not off the openPanel
+// variable below: resize() calls this during startup, before that
+// variable's declaration is reached.
+const CORNER_BUTTON_H = 40; // keep in sync with .pad-toggle in style.css
+function placeCornerButtons() {
+  const parked = `${2 * armLength + WHEEL_MARGIN - CORNER_BUTTON_H}px`;
+  for (const button of [emojiToggle, symbolToggle]) {
+    button.style.bottom = button.getAttribute('aria-expanded') === 'true'
+      ? '2px' // the bar's own padding, so the button lines up with its keys
+      : parked;
+  }
+  // The emoji button keeps the right edge in both places. The symbol
+  // button crosses the screen: parked it hugs the wheel's left side,
+  // open it takes the same reserved slot at the right end of the bar.
+  const symbolsUp = symbolToggle.getAttribute('aria-expanded') === 'true';
+  symbolToggle.style.left = symbolsUp ? 'auto' : `${center.x - armLength}px`;
+  symbolToggle.style.right = symbolsUp ? '12px' : 'auto';
 }
 
 function rebuildLayout() {
@@ -931,48 +941,84 @@ copyButton.addEventListener('click', async () => {
   copyFlashTimer = setTimeout(() => copyButton.classList.remove('copied'), 900);
 });
 
-// Emoji picker. Everything about it is lazy: emoji-picker.js and its
-// 925-entry table are ~35 kB that a session which never opens the
-// picker should not pay for at startup.
+// The two panels that cover the wheel: the emoji picker and the number
+// and symbol pad. One at a time, and each is lazy. The emoji module and
+// its 925-entry table are ~35 kB that a session which never opens the
+// picker should not pay for at startup; the symbol pad follows the same
+// pattern for consistency, though it is much smaller.
 //
-// The picker covers the canvas rather than replacing it (see
-// #emojiPicker in style.css), so the wheel and the decoder's center
-// stay exactly as they were while it is open.
+// A panel covers the canvas rather than replacing it (see .pad-panel in
+// style.css), so the wheel and the decoder's center stay exactly as
+// they were while it is open.
 let emojiPicker = null;
-let emojiOpen = false;
+let symbolsPad = null;
+let openPanel = null; // null | 'emoji' | 'symbols'
 
-function insertEmoji(emoji) {
-  insertAtCaret(emoji);
-  // An emoji is not a word character: the prediction prefix ends here,
-  // and a period must not appear from a space tapped before it.
+// What every panel key does to the text. Panels type strings; they do
+// not know about words, prediction or the caret.
+function typeFromPanel(text) {
+  insertAtCaret(text);
+  // A panel character ends the current word for prediction, and a
+  // period must not appear from a space tapped before it.
   lastSpaceTapAt = 0;
   syncCurrentWord();
   renderSuggestions();
   renderOutput();
 }
 
-async function setEmojiOpen(open) {
-  if (open && !emojiPicker) {
-    const { createEmojiPicker } = await import('./emoji-picker.js');
-    emojiPicker = createEmojiPicker({ onPick: insertEmoji });
-    // Right after the button, so the button stays later in the DOM and
-    // keeps painting above the picker it opens.
-    emojiToggle.after(emojiPicker.el);
-  }
-  emojiOpen = open;
-  if (emojiPicker) emojiOpen ? emojiPicker.open() : emojiPicker.close();
-  // Word suggestions mean nothing while picking emoji, and the copy
-  // button sits exactly where the category tabs go.
-  suggestionsEl.hidden = emojiOpen;
-  copyButton.hidden = emojiOpen;
-  emojiToggle.setAttribute('aria-expanded', String(emojiOpen));
-  emojiToggle.setAttribute('aria-label', emojiOpen ? 'Back to the keyboard' : 'Emoji');
-  emojiToggle.title = emojiOpen ? 'Keyboard' : 'Emoji';
-  // After the attribute above: that is what placeEmojiButton reads.
-  placeEmojiButton();
+function editFromPanel(action) {
+  if (action === 'backspace') deleteBeforeCaret(1);
+  else if (action === 'space') insertAtCaret(' ');
+  else if (action === 'enter') insertAtCaret('\n');
+  lastSpaceTapAt = 0;
+  // A backspace can uncover a word, so the prefix is re-read like any
+  // other edit.
+  syncCurrentWord();
+  renderSuggestions();
+  renderOutput();
 }
 
-emojiToggle.addEventListener('click', () => setEmojiOpen(!emojiOpen));
+async function setPanel(name) {
+  // Pressing the open panel's own button closes it.
+  const next = name === openPanel ? null : name;
+  if (next === 'emoji' && !emojiPicker) {
+    const { createEmojiPicker } = await import('./emoji-picker.js');
+    emojiPicker = createEmojiPicker({ onPick: typeFromPanel });
+    // Right after the button, so the button stays later in the DOM and
+    // keeps painting above the panel it opens.
+    emojiToggle.after(emojiPicker.el);
+  }
+  if (next === 'symbols' && !symbolsPad) {
+    const { createSymbolsPad } = await import('./symbols-pad.js');
+    symbolsPad = createSymbolsPad({ onInsert: typeFromPanel, onAction: editFromPanel });
+    symbolToggle.after(symbolsPad.el);
+  }
+  openPanel = next;
+  if (emojiPicker) openPanel === 'emoji' ? emojiPicker.open() : emojiPicker.close();
+  if (symbolsPad) openPanel === 'symbols' ? symbolsPad.open() : symbolsPad.close();
+  // An open panel owns the whole keyboard area. Word suggestions mean
+  // nothing there, the copy button sits exactly where the panel's
+  // bottom bar goes, and the other panel's button would float over the
+  // grid with nothing to open.
+  suggestionsEl.hidden = openPanel !== null;
+  copyButton.hidden = openPanel !== null;
+  emojiToggle.hidden = openPanel === 'symbols';
+  symbolToggle.hidden = openPanel === 'emoji';
+  markToggle(emojiToggle, openPanel === 'emoji', 'Emoji');
+  markToggle(symbolToggle, openPanel === 'symbols', 'Numbers and symbols');
+  // After the attributes above: aria-expanded is what the placement
+  // reads.
+  placeCornerButtons();
+}
+
+function markToggle(button, open, closedLabel) {
+  button.setAttribute('aria-expanded', String(open));
+  button.setAttribute('aria-label', open ? 'Back to the keyboard' : closedLabel);
+  button.title = open ? 'Keyboard' : closedLabel;
+}
+
+emojiToggle.addEventListener('click', () => setPanel('emoji'));
+symbolToggle.addEventListener('click', () => setPanel('symbols'));
 
 // The hint and all controls collapse behind the settings toggle so the
 // canvas keeps most of the phone screen. Toggling resizes the canvas;
