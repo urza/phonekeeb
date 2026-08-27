@@ -28,7 +28,7 @@ import { GestureDecoder } from './gesture-decoder.js';
 import { SECTORS, DIRECTIONS } from './layout.js';
 import { LAYOUTS, DEFAULT_LAYOUT, buildLayout, FREQUENCY } from './layouts.js';
 import { SECTOR_COLORS } from './themes.js';
-import { cardSvg } from './wheel-svg.js';
+import { cardSvg, strokePoints, VIEW } from './wheel-svg.js';
 import { QWERTY_ROWS, QWERTY_KEYS, qwertyAngle, slotAngle, fitDegrees } from './qwerty-map.js';
 
 const $ = (id) => document.getElementById(id);
@@ -48,10 +48,17 @@ let layoutId = DEFAULT_LAYOUT;
 let state = null;      // { step, level, letters: {ch: {box, seen, right, wrong, times}} }
 let pool = [];         // letters currently drilled
 let current = null;    // { letter, slot }
-let phase = 'idle';    // idle | asking | revealed
+// idle | asking | revealed | tracing | traced.
+// tracing/traced are the after-a-miss practice step: the correct
+// stroke is laid over the pad and the learner draws along it. Doing
+// the motion is what builds the memory; watching it does not. It is
+// deliberately unscored, so it can be repeated as often as wanted
+// without inflating the boxes.
+let phase = 'idle';
 let askedAt = 0;
 let usedHint = false;
 let answered = null;   // what the decoder committed, for the verdict line
+let ghost = null;      // the stroke to trace, in canvas coordinates
 
 // --- persistence -----------------------------------------------------
 // Progress is per layout: the muscle memory for one letter map says
@@ -154,7 +161,19 @@ function resize() {
   // wheel rather than assume the canvas middle.
   canvas.dataset.center = `${center.x},${center.y}`;
   canvas.dataset.arm = String(armLength);
+  ghost = computeGhost();
   drawPad();
+}
+
+// The reveal card's stroke, mapped onto the live pad. Scaled about the
+// wheel centre by (pad arm / card arm), so the path a learner traces is
+// the same curve the card shows.
+function computeGhost() {
+  if (!current || !(phase === 'tracing' || phase === 'traced')) return null;
+  const k = armLength / VIEW.ARM;
+  const { sector, direction, crossings } = current.slot;
+  return strokePoints(sector, direction, crossings)
+    .map(([x, y]) => [center.x + (x - VIEW.C) * k, center.y + (y - VIEW.C) * k]);
 }
 
 function css(name) {
@@ -181,8 +200,43 @@ function drawPad() {
   ctx.arc(center.x, center.y, deadZoneRadius, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Deliberately NO letters on the pad. Showing the map would turn the
-  // drill back into copying, which is the part that is already easy.
+  // Deliberately NO letters on the pad while asking. Showing the map
+  // would turn the drill back into copying, which is the part that is
+  // already easy. The ghost below appears only AFTER a miss, when the
+  // answer is known anyway and the point is the motion.
+  if (ghost && ghost.length > 1) {
+    ctx.strokeStyle = css('--accent');
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    // A path to follow, not a filled blob: a one-crossing loop is only
+    // ~20px across on a phone, so a wide stroke swallows it whole.
+    ctx.globalAlpha = 0.38;
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(ghost[0][0], ghost[0][1]);
+    for (const [x, y] of ghost.slice(1)) ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Start dot and arrowhead. Direction is half of what a letter is,
+    // so a path without them is only half the answer.
+    ctx.fillStyle = css('--accent');
+    ctx.beginPath();
+    ctx.arc(ghost[0][0], ghost[0][1], 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    const [ax, ay] = ghost[ghost.length - 3] ?? ghost[0];
+    const [bx, by] = ghost[ghost.length - 1];
+    const len = Math.hypot(bx - ax, by - ay) || 1;
+    const ux = (bx - ax) / len;
+    const uy = (by - ay) / len;
+    ctx.beginPath();
+    ctx.moveTo(bx + ux * 9, by + uy * 9);
+    ctx.lineTo(bx - uy * 7, by + ux * 7);
+    ctx.lineTo(bx + uy * 7, by - ux * 7);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   if (trail.length > 1) {
     ctx.strokeStyle = css('--accent') || muted;
@@ -201,8 +255,12 @@ const toLocal = (e) => {
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 };
 
+// Asking and both trace phases accept a stroke; 'traced' stays open so
+// the motion can be repeated as many times as the learner wants.
+const drawable = () => phase === 'asking' || phase === 'tracing' || phase === 'traced';
+
 canvas.addEventListener('pointerdown', (e) => {
-  if (phase !== 'asking') return;
+  if (!drawable()) return;
   canvas.setPointerCapture(e.pointerId);
   const { x, y } = toLocal(e);
   trail = [{ x, y }];
@@ -212,7 +270,7 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 
 canvas.addEventListener('pointermove', (e) => {
-  if (phase !== 'asking' || !canvas.hasPointerCapture(e.pointerId)) return;
+  if (!drawable() || !canvas.hasPointerCapture(e.pointerId)) return;
   const { x, y } = toLocal(e);
   trail.push({ x, y });
   const res = decoder.pointerMove(x, y);
@@ -220,7 +278,10 @@ canvas.addEventListener('pointermove', (e) => {
   // Returning to the center commits, exactly as on the keyboard. Grade
   // the first letter and stop there, so a wandering finger cannot rack
   // up extra answers.
-  if (res.committed?.type === 'letter') grade(res.committed);
+  if (res.committed?.type === 'letter') {
+    if (phase === 'asking') grade(res.committed);
+    else gradeTrace(res.committed);
+  }
   e.preventDefault();
 });
 
@@ -228,8 +289,14 @@ canvas.addEventListener('pointerup', (e) => {
   if (!canvas.hasPointerCapture(e.pointerId)) return;
   const { x, y } = toLocal(e);
   const res = decoder.pointerUp(x, y);
-  if (phase === 'asking' && res.committed?.type === 'letter') grade(res.committed);
-  else if (phase === 'asking') { trail = []; drawPad(); } // a space or a stray tap: no answer, try again
+  if (res.committed?.type === 'letter') {
+    if (phase === 'asking') grade(res.committed);
+    else if (drawable()) gradeTrace(res.committed);
+  } else if (drawable()) {
+    // A space or a stray tap is not an answer. Clear and wait.
+    trail = [];
+    drawPad();
+  }
 });
 
 // Prevent the browser's own scroll/zoom gestures from eating the
@@ -271,6 +338,36 @@ function grade(committed) {
   phase = 'revealed';
   save();
   render();
+}
+
+// The trace step is unscored on purpose: the answer was already given
+// away, so credit here would be meaningless, and the learner should be
+// free to repeat the motion without consequence. It only says whether
+// the stroke matched, so the practice is honest.
+function gradeTrace(committed) {
+  const want = current.slot;
+  const ok = !committed.capital
+    && committed.sector === want.sector
+    && committed.direction === want.direction
+    && committed.crossings === want.crossings;
+  phase = ok ? 'traced' : 'tracing';
+  $('promptNote').textContent = ok
+    ? `that is the motion for ${current.letter} — again, or Next`
+    : 'not quite, follow the highlighted path';
+  if (!ok) { trail = []; drawPad(); }
+}
+
+function startTrace() {
+  if (phase !== 'revealed') return;
+  phase = 'tracing';
+  trail = [];
+  decoder.reset();
+  ghost = computeGhost();
+  $('feedback').className = 'feedback idle';
+  $('feedback').innerHTML = '';
+  $('promptNote').textContent = 'trace the highlighted path';
+  $('traceBtn').hidden = true;
+  drawPad();
 }
 
 // --- rendering -------------------------------------------------------
@@ -348,6 +445,7 @@ function render() {
     $('hintBtn').disabled = false;
     $('showBtn').disabled = false;
     $('nextBtn').hidden = true;
+    $('traceBtn').hidden = true;
   } else if (phase === 'revealed') {
     const { committed, gotLetter, exact } = answered;
     $('promptNote').textContent = '';
@@ -371,6 +469,9 @@ function render() {
     $('hintBtn').disabled = true;
     $('showBtn').disabled = true;
     $('nextBtn').hidden = false;
+    // Offered only after a miss. A learner who drew it right has
+    // already made the motion, so tracing would just be busywork.
+    $('traceBtn').hidden = exact;
     $('nextBtn').focus({ preventScroll: true });
   }
   renderStats();
@@ -403,6 +504,7 @@ function ask() {
   askedAt = Date.now();
   phase = 'asking';
   trail = [];
+  ghost = null;
   decoder.reset();
   drawPad();
   render();
@@ -426,6 +528,7 @@ $('hintBtn').addEventListener('click', () => {
   $('hintBtn').disabled = true;
   $('promptNote').textContent = 'shown, draw it anyway';
 });
+$('traceBtn').addEventListener('click', startTrace);
 $('showBtn').addEventListener('click', () => {
   if (phase === 'asking') grade(null);
 });

@@ -100,6 +100,7 @@ check('reveal card is shown', await page.locator('.reveal svg').count() === 1);
 check('QWERTY hint is shown', await page.locator('svg.qhint').count() === 1);
 check('Next button appears', await page.locator('#nextBtn').isVisible());
 await checkVisible('the right-answer panel is on screen');
+check('no trace offered after a right answer', await page.locator('#traceBtn').isHidden());
 
 // --- 2. a wrong answer ----------------------------------------------
 await page.click('#nextBtn');
@@ -120,7 +121,33 @@ check(`"${second.letter}" drawn wrong grades as wrong`,
   await page.locator('.verdict').textContent());
 await checkVisible('the wrong-answer panel is on screen');
 
-// --- 3. giving up ----------------------------------------------------
+// --- 3. tracing after a miss -----------------------------------------
+// The point of the trace step is motor practice, so it must accept the
+// stroke and must NOT score it: credit for a stroke whose answer was
+// just given away would make the boxes meaningless.
+check('trace is offered after a miss', await page.locator('#traceBtn').isVisible());
+await page.click('#traceBtn');
+await page.waitForSelector('#feedback.idle', { state: 'attached' });
+check('tracing clears the answer panel off the pad',
+  (await page.locator('#feedback').getAttribute('class')).includes('idle'));
+check('tracing prompts for the path',
+  (await page.locator('#promptNote').textContent()).includes('trace'),
+  await page.locator('#promptNote').textContent());
+
+const beforeTrace = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem('phonekeeb.game.v1'))['urza-layout']);
+
+await draw(strokeFor(second.slot.sector, second.slot.direction, second.slot.crossings));
+check('a correct trace is confirmed',
+  (await page.locator('#promptNote').textContent()).includes('that is the motion'),
+  await page.locator('#promptNote').textContent());
+
+const afterTrace = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem('phonekeeb.game.v1'))['urza-layout']);
+check('tracing does not score', JSON.stringify(beforeTrace) === JSON.stringify(afterTrace),
+  `${JSON.stringify(beforeTrace.letters[second.letter])} -> ${JSON.stringify(afterTrace.letters[second.letter])}`);
+
+// --- 4. giving up ----------------------------------------------------
 // Its own grading branch (a null commit), and the one that keeps the
 // boxes honest, so it is worth locking.
 await page.click('#nextBtn');
@@ -133,7 +160,7 @@ check('"Show me" is not scored as right', await page.locator('#feedback.ok').cou
   await page.locator('.verdict').textContent());
 await checkVisible('the "Show me" panel is on screen');
 
-// --- 4. progress is counted and persisted ---------------------------
+// --- 5. progress is counted and persisted ---------------------------
 check('three answers counted', (await page.locator('#step').textContent()).startsWith('3 '),
   await page.locator('#step').textContent());
 
@@ -148,13 +175,13 @@ check('a recall time was recorded', (saved?.letters?.[first.letter]?.times ?? []
 check('"Show me" recorded no time', (saved?.letters?.[third.letter]?.times ?? []).length === 0,
   JSON.stringify(saved?.letters?.[third.letter]));
 
-// --- 5. progress survives a reload ----------------------------------
+// --- 6. progress survives a reload ----------------------------------
 await page.reload();
 await page.selectOption('#layoutMode', 'urza-layout');
 check('progress reloads', (await page.locator('#step').textContent()).startsWith('3 '),
   await page.locator('#step').textContent());
 
-// --- 6. the pad teaches nothing away --------------------------------
+// --- 7. the pad teaches nothing away --------------------------------
 // The whole point of the drill is that the map is hidden. If a letter
 // ever gets painted on the pad, the exercise is worthless.
 const padHasText = await page.evaluate(() => {

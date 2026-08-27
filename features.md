@@ -423,6 +423,17 @@ on combined en+cs statistics. Git history keeps them.
   never teach an association the generator did not build.
 - **Show me** reveals the answer and counts as a miss, so a stuck
   learner is never trapped and the boxes stay honest.
+- **Trace it**, offered after a miss only (a learner who drew it right
+  has already made the motion). It clears the answer panel and lays the
+  correct stroke over the pad as a path to follow: the card's own curve
+  scaled about the wheel centre by pad arm / card arm, at 38% opacity
+  and 8 px wide, with a start dot and an arrowhead. Direction is half
+  of what a letter is, so a path without them is half an answer.
+  Drawing along it says whether the stroke matched, and the learner can
+  repeat it as often as they like. It is **deliberately unscored**: the
+  answer was already given away, so credit would be meaningless, and
+  the practice must cost nothing to repeat. Doing the motion is what
+  builds the memory; watching it does not.
 - The answer panel (verdict, reveal card, hint) is drawn **over the
   pad**, not below it. Stacked below, on a phone it fell past the fold
   and answering looked like nothing happening; the pad is dead space

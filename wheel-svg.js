@@ -16,6 +16,12 @@ import { FIRST_ARM, landingSector } from './layout.js';
 export const SIZE = 200;
 const C = SIZE / 2;
 const ARM = 90; // arm length
+
+// The frame `strokePoints` returns points in, so a caller can map them
+// onto a differently sized wheel: scale by (their arm / ARM) about C.
+// game.js uses this to lay the stroke over its live pad as a path to
+// trace.
+export const VIEW = { C, ARM };
 const DEAD = 22; // center circle radius
 const R_INNER = DEAD + 13; // ring 1 = 1 crossing
 const R_STEP = (ARM - R_INNER - 6) / 3; // rings 2..4
