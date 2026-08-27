@@ -143,19 +143,32 @@ predictor structure can grow into.*
 *Note (2026-08-27): the measurements say where it fits and where it
 does not. Full numbers in `czech-lm-research.md`.*
 
-*It must not touch next-word ranking. On held-out subtitles the 124M
-models score about half our tables there, and even the 1.58B model only
-ties. That is the register problem, and a remote call does not fix it.*
+*Correction (2026-08-27, later the same day, after the user pushed
+back). The first version of this note said the big model is for unknown
+words only. That reads the measurement too narrowly. What the numbers
+show is a split by TASK, not by vocabulary.*
 
-*What it uniquely gives is cause F from
-`prediction-game-analysis.md`: a word no corpus ever held. Game case 12
-is the proof. `zebřičko` exists in no table at any size, and the XL model
-puts it first, because it composes the word from pieces instead of
-looking it up. So the trigger should be narrow and evidence-based: fire
-only when the local strip is weak, meaning no exact-prefix candidate
-scores above a floor, or the verbatim chip is all there is. That state is
-rare, which keeps the cost and the latency rare too. And when it fires,
-let the big model ADD candidates, not just reorder ours.*
+*Where it loses: per-keystroke next-word ranking on held-out
+subtitles. The 124M models score about half our tables there, and even
+the 1.58B model only ties. That is the register problem, and a remote
+call does not fix it. Frequency questions are already answered well by
+counting, and counting is free.*
+
+*Where it wins: everything that needs meaning. The XL model scored 7 of
+11 on the prediction game and answered both Czech cases that our tables
+cannot reach at any size. Game cases 9 and 10 sit in the roadmap's
+"stop revisiting" list for exactly this reason. A counting model cannot
+know that "vykoupat a" wants another infinitive, that a question wants
+an answer form, or that the sentence turned to a new topic three words
+ago. The big model carries the whole context, not a two-word window.
+Unknown words (cause F, game case 12) are one case of this, not the
+whole of it.*
+
+*So the scope is general. It is a second opinion on the strip, wherever
+the local engine is uncertain, and it may add candidates or reorder
+ours. The trigger is a confidence question, not a vocabulary question.
+Weak local strip is one trigger. A long context the n-gram window
+cannot see is another. Detail is open work.*
 
 *Never per keystroke. 2.3 s per strip locally on 14 desktop cores, and
 even a server GPU leaves a round trip per letter. Fire on a word

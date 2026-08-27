@@ -127,17 +127,32 @@ on the diminutive rule, because our list carries no part of speech. Full
 numbers: `word-prediction-research.md`, "The out-of-vocabulary tail".
 
 **8. A big model beside the small one, optional and off by default.**
-User idea, 2026-08-27, recorded in `ideas.md`. Not for next-word ranking,
-where the measurements say it loses. For cause F only: a word no corpus
-ever held. Trigger it when the local strip is weak, let it add
-candidates, and feed whatever the user accepts into the personal model,
-so the call is needed once per new word rather than forever.
+User idea, 2026-08-27, recorded in `ideas.md`. A general second opinion
+on the strip, not a fix for one cause. It runs in parallel with the
+local engine, over the network or on a system-hosted model, and it is
+absent by design when there is no network.
 
-Directions 7 and 8 are the two attacks on cause F, and they split by
-what the word is. Direction 7 covers real dictionary forms that our
-tiers cut, offline and free. Direction 8 covers what no dictionary
-holds: names, nicknames and coinages. Build 7 first, because it is
-cheaper and it shrinks how often 8 has to fire.
+The measurements split by task, not by vocabulary. The big model loses
+at per-keystroke next-word ranking, where frequency decides and counting
+is already good and free. It wins wherever meaning decides. The XL model
+scored 7 of 11 on the game and answered both Czech cases our tables
+cannot reach at any size, which is why game cases 9 and 10 are in the
+"stop revisiting" list below. It reads the whole context, where the
+n-gram reads a two-word window. Unknown words are one case of that
+advantage, not the boundary of it.
+
+Two things are settled, and the rest is open. It can never sit in the
+per-keystroke loop: 2.3 seconds per strip locally, and a round trip per
+letter even on a server GPU. And whatever it contributes and the user
+accepts goes into the personal model, so it teaches the small engine
+instead of becoming a permanent dependency.
+
+Directions 7 and 8 overlap only on cause F, and there they split by
+what the word is. Direction 7 covers real dictionary forms our tiers
+cut, offline and free. Direction 8 covers what no dictionary holds:
+names, nicknames and coinages. Build 7 first for that overlap, because
+it is cheaper and it shrinks how often 8 has to fire. Everything else
+in 8 is its own axis.
 
 **9. Word-boundary inference.** Typing a phrase without committing
 spaces, then splitting it. Valuable here because space is a gesture.
@@ -153,6 +168,8 @@ meaning, and only a 1.5B model reached them.
 ## The one honest ceiling
 
 Counting models rank words by how often they followed. They cannot know
-that "vykoupat a" wants another infinitive. That knowledge costs seconds
-per strip today. On iOS the route to it is the system-hosted model at
+that "vykoupat a" wants another infinitive. No amount of table tuning
+reaches that, so directions 1, 3 and 7 all stop below it. Direction 8 is
+the only route past it, and the price is that the knowledge costs
+seconds per strip today. On iOS the route is the system-hosted model at
 phrase level, not a bundled GPT-2, and not the per-keystroke strip.
