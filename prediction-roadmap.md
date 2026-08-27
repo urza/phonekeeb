@@ -79,9 +79,12 @@ Numbers and method: `czech-lm-research.md`, `word-prediction-research.md`,
 
 **1. Fix the completion scorer.** Cheapest and best evidenced. Two
 independent engines beat us at the same byte budget, so the loss is in
-how we score, not in what we store. Levers in order: the top-24 successor
-cap, real Kneser-Ney discounting instead of the flat backoff, and
-interpolation instead of backoff. `tools/eval-prediction.mjs` decides it.
+how we score, not in what we store. Staged plan:
+`completion-scorer-plan.md` (2026-08-27). Order of work: per-context
+backoff mass from build-time discounting, then interpolation instead
+of backoff, then the successor cap sweep, in that order because
+smoothing changes what the tail is worth. `tools/eval-prediction.mjs`
+decides every stage.
 
 **2. Close the last game-analysis item.** The language floor still
 ignores prefix length. With one typed letter there is no typing evidence
