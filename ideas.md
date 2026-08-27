@@ -214,10 +214,11 @@ numberpad stay open. The same day added South punctuation drags
 (S to E = ?, S to N = !, S to W = comma), the first gesture
 punctuation the double-space note above pointed toward.*
 
-*Emoji shipped 2026-08-27: a button in the opposite corner (top-right
-of the canvas) opens an emoji picker over the wheel, with 925 emoji in
-ten category tabs plus a recently-used tab. Data comes from the user's
-own C# project (`emojis/EmojiData.cs`). It follows the note above
+*Emoji shipped 2026-08-27: a button in the wheel's other free corner
+pocket opens an emoji picker over the wheel, with 925 emoji in one
+continuous scroll across ten categories plus a recently-used section,
+and tabs along the bottom edge. Data comes from the user's own C#
+project (`emojis/EmojiData.cs`). It follows the note above
 rather than the W-sector tap: not everything deserves a gesture, and a
 grid is what a phone user already knows. Symbols and the numberpad
 stay open; the same button pattern would carry them.*

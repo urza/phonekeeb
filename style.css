@@ -270,14 +270,15 @@ main {
   display: block;
 }
 
-/* Emoji button: the copy button's twin in the canvas's top-right
-   corner. Absolute inside <main>, not fixed like the copy button,
-   because it anchors to the canvas top edge, which moves when the
-   settings block opens. */
+/* Emoji button: the copy button's twin. It sits in the wheel's other
+   free corner pocket, top-right of the disk's bounding box, so its top
+   edge meets that box the way the copy button's bottom edge meets it.
+   `bottom` is set from main.js (placeEmojiButton), because it depends
+   on the arm length and because the button moves down to the picker's
+   tab row while the picker is open. */
 #emojiToggle {
   position: absolute;
   right: 12px;
-  top: calc(var(--output-h) + 12px);
   z-index: 4; /* above #emojiPicker: the same button closes it */
   width: 48px;
   height: 40px;
@@ -314,17 +315,13 @@ main {
    a resize cycle; an overlay leaves the wheel untouched underneath and
    swallows every pointer event on its own.
    It starts at the canvas top edge, so the canvas (which still draws
-   its HUD line) is hidden completely. The padding is the emoji button's
-   band, 12 px gap + 40 px button: the grid begins below it, and because
-   the grid scrolls inside its own box, no emoji cell ever passes under
-   the button. */
+   its HUD line) is hidden completely. */
 #emojiPicker {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
   top: var(--output-h);
-  padding-top: 52px;
   z-index: 3;
   display: flex;
   flex-direction: column;
@@ -335,11 +332,34 @@ main {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* Containing block for the sticky headings, and the box the section
+     offsets in emoji-picker.js are measured against. */
+  position: relative;
   /* Momentum scrolling inside the picker. The body sets
      overscroll-behavior: none for gestures; this box wants normal
      touch scrolling instead. */
   touch-action: pan-y;
-  padding: 8px 8px 4px;
+  /* No top padding: a sticky heading pins to the padding edge, so any
+     padding here becomes a band that scrolling emoji show through
+     above the heading. The headings carry their own top space. */
+  padding: 0 8px 4px;
+}
+
+/* One continuous scroll, so the category name has to travel with its
+   emoji. Sticky keeps it at the top edge for as long as its section
+   lasts, which is also what tells you where the scroll has got to. */
+.emoji-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 6px 4px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--panel);
 }
 
 .emoji-page {
@@ -382,8 +402,11 @@ main {
   /* No safe-area inset here: the picker lives inside <main>, and the
      body's padding-bottom already holds the whole page above the home
      indicator. The copy button needs its own inset only because it is
-     position: fixed and escapes that padding. */
-  padding: 2px 4px;
+     position: fixed and escapes that padding.
+     The right padding is the emoji button's slot: while the picker is
+     open the button parks at the end of this row, and a tab under it
+     would be unreachable. */
+  padding: 2px 60px 2px 4px;
   background: var(--bg);
 }
 

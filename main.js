@@ -264,7 +264,25 @@ function resize() {
   // push the strip up over the output box. 88 = the strip's two-row
   // height in style.css; keep in sync.
   suggestionsEl.style.bottom = `${Math.min(2 * armLength + WHEEL_MARGIN + 4, rect.height - 88)}px`;
+  placeEmojiButton();
   draw();
+}
+
+// The emoji button follows the surface under it. With the wheel up it
+// parks in the disk's top-right corner pocket, mirroring the copy
+// button in the bottom-right one: its top edge meets the top of the
+// wheel's bounding box, as the copy button's bottom edge meets the
+// bottom. With the picker up it drops to the end of the category tab
+// row, where it cannot cover an emoji cell.
+// The open state is read off the button, not off the emojiOpen variable
+// below: resize() calls this during startup, before that variable's
+// declaration is reached.
+const EMOJI_BUTTON_H = 40; // keep in sync with #emojiToggle in style.css
+function placeEmojiButton() {
+  const open = emojiToggle.getAttribute('aria-expanded') === 'true';
+  emojiToggle.style.bottom = open
+    ? '2px' // the tab row's own padding, so the button lines up with the tabs
+    : `${2 * armLength + WHEEL_MARGIN - EMOJI_BUTTON_H}px`;
 }
 
 function rebuildLayout() {
@@ -950,6 +968,8 @@ async function setEmojiOpen(open) {
   emojiToggle.setAttribute('aria-expanded', String(emojiOpen));
   emojiToggle.setAttribute('aria-label', emojiOpen ? 'Back to the keyboard' : 'Emoji');
   emojiToggle.title = emojiOpen ? 'Keyboard' : 'Emoji';
+  // After the attribute above: that is what placeEmojiButton reads.
+  placeEmojiButton();
 }
 
 emojiToggle.addEventListener('click', () => setEmojiOpen(!emojiOpen));

@@ -36,6 +36,33 @@ const copyButton = page.locator('#copyText');
 // Closed at load, and the module is not fetched until it is needed.
 assert(await picker.count() === 0, 'picker exists before the button is pressed');
 
+// Geometry of the parked button: it sits in the wheel's top-right
+// corner pocket, mirroring the copy button in the bottom-right one.
+// Its top edge meets the top of the disk's bounding box, it keeps the
+// same 12 px right inset, and it stays clear of the disk itself.
+const parked = await page.evaluate(() => {
+  const c = document.getElementById('stage');
+  const box = c.getBoundingClientRect();
+  const [cx, cy] = c.dataset.center.split(',').map(Number);
+  // Same anchor math as resize() in main.js: the disk is tangent to
+  // the canvas bottom at a 12 px margin.
+  const arm = box.height - 12 - cy;
+  const b = document.getElementById('emojiToggle').getBoundingClientRect();
+  const wheel = { x: box.left + cx, y: box.top + cy };
+  // Nearest point of the button box to the wheel center.
+  const dx = wheel.x - Math.max(b.left, Math.min(wheel.x, b.right));
+  const dy = wheel.y - Math.max(b.top, Math.min(wheel.y, b.bottom));
+  return {
+    arm,
+    topGap: b.top - (box.top + cy - arm),
+    rightGap: box.right - b.right,
+    clearance: Math.hypot(dx, dy) - arm,
+  };
+});
+assert(Math.abs(parked.topGap) < 1.5, `button top is ${parked.topGap}px off the wheel box top`);
+assert(Math.abs(parked.rightGap - 12) < 1.5, `button right inset is ${parked.rightGap}px, want 12`);
+assert(parked.clearance > 0, `button overlaps the wheel disk by ${-parked.clearance}px`);
+
 await toggle.click();
 await picker.waitFor({ state: 'visible' });
 assert(await toggle.getAttribute('aria-expanded') === 'true', 'button not marked expanded');
@@ -55,45 +82,76 @@ const covered = await page.evaluate(() => {
 });
 assert(covered, 'the picker does not cover the wheel center');
 
-// Ten categories plus the recently-used tab.
-assert(await page.locator('.emoji-tab').count() === 11, 'expected 11 tabs');
+// Open, the button drops to the end of the category tab row. It must
+// not cover a tab: the tab row reserves its slot.
+const inRow = await page.evaluate(() => {
+  const b = document.getElementById('emojiToggle').getBoundingClientRect();
+  const row = document.querySelector('.emoji-tabs').getBoundingClientRect();
+  const hit = [...document.querySelectorAll('.emoji-tab')].some((t) => {
+    const r = t.getBoundingClientRect();
+    return r.left < b.right && r.right > b.left && r.top < b.bottom && r.bottom > b.top;
+  });
+  return { inside: b.top >= row.top - 1 && b.bottom <= row.bottom + 1, hit };
+});
+assert(inRow.inside, 'the open button is not aligned with the tab row');
+assert(!inRow.hit, 'the open button covers a category tab');
 
-// First run: the recent page is empty, so the picker opens on smileys.
+// Ten categories plus the recently-used one: one tab and one section
+// each, all present at once because the grid is a single scroll.
+assert(await page.locator('.emoji-tab').count() === 11, 'expected 11 tabs');
+assert(await page.locator('.emoji-section').count() === 11, 'expected 11 sections');
+assert(await page.locator('.emoji-cell').count() === 925, 'expected 925 emoji cells');
+
+// First run: the recent section is empty, so the picker opens at
+// smileys instead of on an empty band.
 assert(
   await page.locator('.emoji-tab.active').getAttribute('data-category') === 'smileys',
-  'a first open should land on smileys, not on an empty recent page',
+  'a first open should land on smileys, not on an empty recent section',
 );
 
-// Pick from a second category, to prove the tabs switch the grid.
-await page.locator('.emoji-tab[data-category="animals"]').click();
-const dog = page.locator('.emoji-page:not([hidden]) .emoji-cell[data-emoji="🐶"]');
-await dog.click();
+// Scrolling alone moves the active tab: no tab was pressed here.
+const animalsTop = await page.evaluate(() => {
+  const grid = document.querySelector('.emoji-grid');
+  const first = document.querySelector('.emoji-section');
+  const animals = document.querySelector('.emoji-section[data-category="animals"]');
+  grid.scrollTop = animals.offsetTop - first.offsetTop;
+  return grid.scrollTop;
+});
+assert(animalsTop > 0, 'the animals section is not below the top of the scroll');
+await page.waitForFunction(
+  () => document.querySelector('.emoji-tab.active')?.dataset.category === 'animals',
+  null,
+  { timeout: 2000 },
+);
 
+// A tab jumps the scroll to its section.
+await page.locator('.emoji-tab[data-category="food"]').click();
+const jumped = await page.evaluate(() => {
+  const grid = document.querySelector('.emoji-grid');
+  const first = document.querySelector('.emoji-section');
+  const food = document.querySelector('.emoji-section[data-category="food"]');
+  return Math.abs(grid.scrollTop - (food.offsetTop - first.offsetTop)) < 4;
+});
+assert(jumped, 'the food tab did not scroll to the food section');
+assert(
+  await page.locator('.emoji-tab.active').getAttribute('data-category') === 'food',
+  'the food tab is not active after its own press',
+);
+
+// Picks land in the text and leave the picker open.
+await page.locator('.emoji-cell[data-emoji="🐶"]').click();
 assert(await picker.isVisible(), 'the picker closed after a pick; it must stay open');
 let text = await page.locator('#output').innerText();
 assert(text === '🐶', `expected the emoji in the output, got ${JSON.stringify(text)}`);
 
-// A second pick appends, and the visible grid must not have reshuffled
-// under the finger: the cat is still where the animals page put it.
-await page.locator('.emoji-page:not([hidden]) .emoji-cell[data-emoji="🐱"]').click();
+// The recent section must NOT rebuild on a pick: that would move every
+// category down the scroll under a finger picking a second emoji.
+const recentNow = await page.locator('.emoji-section[data-category="recent"] .emoji-cell').count();
+assert(recentNow === 0, `the recent section rebuilt mid-session (${recentNow} cells)`);
+
+await page.locator('.emoji-cell[data-emoji="🐱"]').click();
 text = await page.locator('#output').innerText();
 assert(text === '🐶🐱', `expected two emoji, got ${JSON.stringify(text)}`);
-
-// Both picks reach the recent page, newest first, exactly once each.
-await page.locator('.emoji-tab[data-category="recent"]').click();
-const recent = await page.locator('.emoji-page:not([hidden]) .emoji-cell')
-  .evaluateAll((els) => els.map((e) => e.dataset.emoji));
-assert(
-  recent[0] === '🐱' && recent[1] === '🐶' && recent.length === 2,
-  `unexpected recent page: ${JSON.stringify(recent)}`,
-);
-
-// Exactly one page is visible. A stale page left in the DOM would show
-// a second grid under the current one.
-assert(
-  await page.locator('.emoji-page:not([hidden])').count() === 1,
-  'more than one emoji page is visible',
-);
 
 // Close: the wheel comes back and typing still works.
 await toggle.click();
@@ -101,6 +159,20 @@ await picker.waitFor({ state: 'hidden' });
 assert(await toggle.getAttribute('aria-expanded') === 'false', 'button still marked expanded');
 assert(await suggestions.isVisible(), 'suggestion strip did not come back');
 assert(await copyButton.isVisible(), 'copy button did not come back');
+
+// Reopening is when the recent section rebuilds: both picks, newest
+// first, exactly once each, and the scroll lands on them.
+await toggle.click();
+await picker.waitFor({ state: 'visible' });
+const recent = await page.locator('.emoji-section[data-category="recent"] .emoji-cell')
+  .evaluateAll((els) => els.map((e) => e.dataset.emoji));
+assert(recent.join('') === '🐱🐶', `unexpected recent section: ${JSON.stringify(recent)}`);
+assert(
+  await page.locator('.emoji-tab.active').getAttribute('data-category') === 'recent',
+  'a reopen with picks behind it should land on the recent section',
+);
+await toggle.click();
+await picker.waitFor({ state: 'hidden' });
 
 // A center tap types a space, which proves the canvas takes gestures
 // again after the overlay is gone.
@@ -122,7 +194,7 @@ assert(
   await page.locator('.emoji-tab.active').getAttribute('data-category') === 'recent',
   'a later open should land on the recent page',
 );
-const kept = await page.locator('.emoji-page:not([hidden]) .emoji-cell')
+const kept = await page.locator('.emoji-section[data-category="recent"] .emoji-cell')
   .evaluateAll((els) => els.map((e) => e.dataset.emoji));
 assert(kept.join('') === '🐱🐶', `recent list lost on reload: ${JSON.stringify(kept)}`);
 

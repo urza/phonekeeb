@@ -1,7 +1,8 @@
-// The emoji picker: a grid of emoji with category tabs, modelled on the
-// iPhone one. It knows nothing about gestures or about the text being
-// edited; it reports a tap through onPick and lets the caller decide
-// what that means, the same split wheel-svg.js keeps.
+// The emoji picker: one continuous scroll through every category, with
+// tabs that jump to a category and follow the scroll back. It knows
+// nothing about gestures or about the text being edited; it reports a
+// tap through onPick and lets the caller decide what that means, the
+// same split wheel-svg.js keeps.
 //
 // The caller places the returned element and styles it (see
 // #emojiPicker in style.css). This module owns only the contents and
@@ -9,14 +10,14 @@
 import { EMOJI_CATEGORIES } from './emoji-data.js';
 
 // Recently used emoji, newest first, on this device only. The picker is
-// useless without it: nobody hunts through 925 emoji for the same three
-// they always send.
+// useless without it: nobody scrolls through 925 emoji for the same
+// three they always send.
 const RECENT_KEY = 'phonekeeb.emojiRecent';
-// Two rows on a phone at the current cell size. More would push the
-// third row half off screen and turn the shortcut back into a hunt.
+// Two rows at the current cell size. This section sits at the top of
+// the scroll, so a taller one would push every category down.
 const RECENT_MAX = 16;
 
-const RECENT_TAB = { id: 'recent', label: 'Recently used', icon: '🕘' };
+const RECENT = { id: 'recent', label: 'Recently used', icon: '🕘' };
 
 function loadRecent() {
   try {
@@ -44,71 +45,46 @@ export function createEmojiPicker({ onPick }) {
   tabs.setAttribute('role', 'tablist');
 
   // Tabs sit below the grid, as on the iPhone keyboard: the thumb
-  // reaches the bottom edge, and a tab row at the top would collide
-  // with the emoji button in the corner above.
+  // reaches the bottom edge of the screen most easily.
   el.append(grid, tabs);
 
-  const all = [RECENT_TAB, ...EMOJI_CATEGORIES];
+  const all = [RECENT, ...EMOJI_CATEGORIES];
+  const sections = new Map();
   let activeId = null;
 
-  // Built grids are kept and re-shown, not rebuilt: 925 buttons across
-  // ten categories is enough DOM that rebuilding on every tab switch
-  // stutters, and building all of it up front delays the first open.
-  const built = new Map();
-
-  function buildGrid(id) {
-    const page = document.createElement('div');
-    page.className = 'emoji-page';
-    const emojis = id === RECENT_TAB.id
-      ? recent
-      : EMOJI_CATEGORIES.find((c) => c.id === id).emojis;
+  function fill(page, emojis) {
+    const frag = document.createDocumentFragment();
     for (const emoji of emojis) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'emoji-cell';
       b.dataset.emoji = emoji;
       b.textContent = emoji;
-      page.append(b);
+      frag.append(b);
     }
-    if (id === RECENT_TAB.id && !emojis.length) {
-      const empty = document.createElement('p');
-      empty.className = 'emoji-empty';
-      empty.textContent = 'Emoji you pick appear here.';
-      page.append(empty);
-    }
-    return page;
+    page.replaceChildren(frag);
   }
 
-  // Drops a built page. The node must leave the DOM with the map entry:
-  // the visibility loop below only touches pages the map still knows
-  // about, so an orphan left behind would stay on screen under its
-  // replacement.
-  function drop(id) {
-    built.get(id)?.remove();
-    built.delete(id);
-  }
-
-  function select(id) {
-    // The recent page is the one that goes stale, so it is rebuilt on
-    // every visit. Rebuilding it right after a pick instead would
-    // reshuffle the grid under a finger that is picking a second emoji.
-    if (id === RECENT_TAB.id) drop(id);
-    if (!built.has(id)) {
-      const page = buildGrid(id);
-      built.set(id, page);
-      grid.append(page);
-    }
-    for (const [key, page] of built) page.hidden = key !== id;
-    for (const tab of tabs.children) {
-      const on = tab.dataset.category === id;
-      tab.classList.toggle('active', on);
-      tab.setAttribute('aria-selected', String(on));
-    }
-    activeId = id;
-    grid.scrollTop = 0;
-  }
-
+  // Every category is built once, up front: with one continuous scroll
+  // there is no tab switch left to build on, and 925 buttons is a cost
+  // paid once on the first open of a session.
   for (const cat of all) {
+    const section = document.createElement('section');
+    section.className = 'emoji-section';
+    section.dataset.category = cat.id;
+
+    const heading = document.createElement('h2');
+    heading.className = 'emoji-heading';
+    heading.textContent = cat.label;
+
+    const page = document.createElement('div');
+    page.className = 'emoji-page';
+    if (cat.id !== RECENT.id) fill(page, cat.emojis);
+
+    section.append(heading, page);
+    grid.append(section);
+    sections.set(cat.id, { section, page });
+
     const tab = document.createElement('button');
     tab.type = 'button';
     tab.className = 'emoji-tab';
@@ -119,9 +95,63 @@ export function createEmojiPicker({ onPick }) {
     tabs.append(tab);
   }
 
+  function renderRecent() {
+    const { page } = sections.get(RECENT.id);
+    fill(page, recent);
+    if (!recent.length) {
+      const empty = document.createElement('p');
+      empty.className = 'emoji-empty';
+      empty.textContent = 'Emoji you pick appear here.';
+      page.append(empty);
+    }
+  }
+
+  function setActive(id) {
+    if (id === activeId) return;
+    activeId = id;
+    for (const tab of tabs.children) {
+      const on = tab.dataset.category === id;
+      tab.classList.toggle('active', on);
+      tab.setAttribute('aria-selected', String(on));
+    }
+  }
+
+  // Scroll offset of a section inside the grid. Measured against the
+  // first section rather than used raw: offsetTop is counted from the
+  // grid's border box, which the grid's own top padding shifts.
+  function offsetOf(id) {
+    const first = sections.get(all[0].id).section;
+    return sections.get(id).section.offsetTop - first.offsetTop;
+  }
+
+  function syncActiveToScroll() {
+    let id = all[0].id;
+    // The last section whose heading has reached the top edge wins.
+    // The 4 px tolerance covers sub-pixel layout, which can leave a
+    // heading a hair short of the offset it was scrolled to.
+    for (const cat of all) {
+      if (offsetOf(cat.id) <= grid.scrollTop + 4) id = cat.id;
+    }
+    setActive(id);
+  }
+
+  let scrollRaf = null;
+  grid.addEventListener('scroll', () => {
+    if (scrollRaf !== null) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = null;
+      syncActiveToScroll();
+    });
+  });
+
   tabs.addEventListener('click', (e) => {
     const id = e.target.dataset?.category;
-    if (id) select(id);
+    if (!id) return;
+    grid.scrollTop = offsetOf(id);
+    // Not left to the scroll handler: a jump to the last section stops
+    // short of its offset (there is nothing below it to scroll into),
+    // and the handler would then light the section above it.
+    setActive(id);
   });
 
   grid.addEventListener('click', (e) => {
@@ -129,11 +159,9 @@ export function createEmojiPicker({ onPick }) {
     if (!emoji) return;
     recent = [emoji, ...recent.filter((x) => x !== emoji)].slice(0, RECENT_MAX);
     try { localStorage.setItem(RECENT_KEY, JSON.stringify(recent)); } catch {}
-    // The recent page is now out of date. It is dropped, not rebuilt,
-    // so the rebuild happens when that tab is next opened. While that
-    // page is the visible one it must stay as it is; select() drops it
-    // on the next visit anyway.
-    if (activeId !== RECENT_TAB.id) drop(RECENT_TAB.id);
+    // The recent section is deliberately left stale until the next
+    // open: rebuilding it now would move every category down the
+    // scroll, under a finger that is picking a second emoji.
     onPick(emoji);
   });
 
@@ -141,9 +169,12 @@ export function createEmojiPicker({ onPick }) {
     el,
     open() {
       el.hidden = false;
-      // Open on the emoji you actually use; fall back to smileys on a
-      // first run, when the recent page would be empty.
-      if (!activeId) select(recent.length ? RECENT_TAB.id : EMOJI_CATEGORIES[0].id);
+      renderRecent();
+      // Land on the emoji you actually use. A first run has no recent
+      // section worth reading, so it starts at the first category.
+      const id = recent.length ? RECENT.id : EMOJI_CATEGORIES[0].id;
+      grid.scrollTop = offsetOf(id);
+      setActive(id);
     },
     close() {
       el.hidden = true;

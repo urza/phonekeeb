@@ -570,11 +570,15 @@ on combined en+cs statistics. Git history keeps them.
 
 ## Emoji picker
 
-- A button in the top-right corner of the canvas opens an emoji picker
-  in place of the wheel. It is the copy button's twin: same 48 x 40 px
-  size, border and corner inset, in the corner diagonally opposite.
-  The smiley icon becomes a wheel icon while the picker is open, and
-  the button then closes it, as on the iPhone keyboard.
+- A button opens an emoji picker in place of the wheel. It is the copy
+  button's twin: same 48 x 40 px size, border and 12 px right inset, in
+  the wheel's other free corner pocket. Its top edge meets the top of
+  the disk's bounding box, the way the copy button's bottom edge meets
+  the bottom, so both sit the same distance from the rim.
+- While the picker is open the button drops to the right end of the
+  category tab row, where it cannot cover an emoji cell. The tab row
+  reserves that slot, so no tab hides under it. The smiley icon becomes
+  a wheel icon, and the button then closes the picker.
 - The picker covers the canvas; it does not replace it. Hiding the
   canvas would resize it to zero and move the decoder's center through
   a resize cycle. The overlay leaves the wheel untouched underneath and
@@ -583,20 +587,32 @@ on combined en+cs statistics. Git history keeps them.
   are hidden. Word suggestions mean nothing during emoji picking, and
   the copy button sits exactly where the category tabs go.
 - 925 emoji in ten categories (smileys, people, animals, nature, food,
-  activities, travel, objects, symbols, flags), one tab each, plus a
-  recently-used tab first. Tabs sit along the bottom edge, in thumb
-  reach, and switch the grid. There is no search field: a text field
-  would open the phone's own keyboard over a keyboard prototype.
+  activities, travel, objects, symbols, flags), plus a recently-used
+  section first. It is one continuous scroll, not one page per
+  category: the scroll runs from the recent section to the flags with
+  no switching. Each section carries a heading that sticks to the top
+  edge for as long as its section lasts, which is also what tells you
+  where the scroll has got to.
+- Tabs sit along the bottom edge, in thumb reach, one per section. A
+  tab jumps the scroll to its section, and scrolling by hand lights the
+  tab of the section at the top edge. The last section is the exception
+  that needs care: a jump to it stops short of its offset, because
+  there is nothing below it to scroll into, so the tab press sets the
+  active tab itself rather than leaving it to the scroll handler.
+- There is no search field: a text field would open the phone's own
+  keyboard over a keyboard prototype.
 - A tap types the emoji at the caret and leaves the picker open, so a
   row of emoji takes one open. The emoji ends the current word for
   prediction and disarms the double-tap period, the same as
   punctuation. The learner ignores it: an emoji is not a word
   character.
-- The recently-used list holds 16 emoji, newest first, in
-  `localStorage` on this device only. It is the tab the picker opens
-  on once it has content; a first run opens on smileys instead. The
-  grid never reshuffles under a finger: a pick marks the recent page
-  stale, and the rebuild happens when that tab is next opened.
+- The recently-used list holds 16 emoji (two rows), newest first, in
+  `localStorage` on this device only. The picker opens scrolled to it
+  once it has content; a first run opens at smileys instead, past the
+  empty section.
+- That section is rebuilt on open, never on a pick. Rebuilding it as
+  you pick would move every category down the scroll, under a finger
+  that is picking a second emoji.
 - The picker module and its emoji table (~35 kB) load on the first
   press of the button, not at startup. The service worker precaches
   them, so the picker works offline on its first open.
@@ -622,10 +638,12 @@ on combined en+cs statistics. Git history keeps them.
   exists, otherwise the whole text, and flashes a check mark in the
   trail accent for 0.9 s. With nothing to copy it does nothing. The
   selection is read at pointer down, before the click can collapse it.
-- An emoji button sits in the opposite corner, top-right of the canvas
-  (see "Emoji picker"). It is positioned from the typed-text box's
-  height, which the CSS keeps in one variable (`--output-h`) that the
-  box, the button and the picker all read.
+- An emoji button sits in the wheel's other free corner pocket,
+  top-right of the disk's bounding box (see "Emoji picker"). Its
+  distance from the bottom follows the arm length, so main.js places
+  it in `resize()`. The picker below it starts at the canvas top edge,
+  which the CSS derives from the typed-text box's height, kept in one
+  variable (`--output-h`) that the box and the picker both read.
 - The top bar holds only the name, Clear, and a Settings toggle. The
   hint text and all controls (layout, theme, dead zone) sit
   inside the collapsed settings block, so the touch area keeps most of
@@ -795,9 +813,10 @@ Tuned constants, one place to read them all:
 | South drag targets | E = ?, N = !, W = ,; center circle counts as N |
 | Suggestion row gap | bottom edge 4 px above the wheel rim |
 | Copy button | 48 x 40 px, 12 px corner inset; copied flash 900 ms |
-| Emoji button | 48 x 40 px, 12 px inset, top-right of the canvas |
-| Emoji picker | 925 emoji, 10 categories; grid cells 44 px, columns auto-fill from 44 px |
-| Emoji tabs | 11 (recent first), 40 px tall, along the bottom edge |
+| Emoji button | 48 x 40 px, 12 px inset; top edge on the wheel box's top edge, or the tab row while the picker is open |
+| Emoji picker | 925 emoji, 10 categories, one continuous scroll; grid cells 44 px, columns auto-fill from 44 px |
+| Emoji tabs | 11 (recent first), 40 px tall, along the bottom edge; 60 px right slot for the button |
+| Emoji scroll-to-tab tolerance | 4 px |
 | Recently used emoji | 16, newest first, localStorage |
 
 Pixel values were tuned on a ~390 px wide phone viewport; on iOS
