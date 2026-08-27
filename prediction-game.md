@@ -215,3 +215,39 @@ Exchange 15 was never answered, so it is not in the harness. Worth
 noting anyway: its strip is byte-identical to 14's, because `algoritmu`
 is out of vocabulary too, so the context contributes nothing either
 time.
+
+### Would the GPT models suggest it?
+
+The same question case 12 asked, measured the same way
+(`python3 tools/lm-predict.py --model M --game --dtype bfloat16`; cases
+13 and 14 are in that harness now). Strip of 6:
+
+```
+case 13   zkouška nového |predik   -> wanted predikčního
+  Czech-GPT-2-XL    prediktivního, prediktoru, predikčního, predikátu, ...   rank 3
+  czech-gpt2-oscar  predikátu, prediktoru, prediktora, predikce,
+                    predikčního, ...                                         rank 5
+  CzeGPT-2          prediktoru, prediktora, predikátu, prediktivního,
+                    predikce, predikčního                                    rank 6
+  shipped engine    predik                                                   miss
+
+case 14   zkouška nového predikčního -> wanted algoritmu
+  Czech-GPT-2-XL    modelu, systému, nástroje, algoritmu, softwaru, modulu   rank 4
+  czech-gpt2-oscar  období, modelu, plánu, programu, kurzu, termínu          miss
+  CzeGPT-2          zákona, předpisu, papíru, materiálu, řádu, listu         miss
+  shipped engine    to, se, je, a, na, jsem                                  miss
+```
+
+Yes, and the reason is the register argument running backwards. These
+models were rejected as the engine because they are trained on web
+crawl and the strip has to predict chat (`czech-lm-research.md`). This
+sentence is not chat. It is technical Czech, the one register web crawl
+has and subtitles do not, so all three models hold the `predik*` family
+that our tables lack entirely. Case 13 orders them by size, ranks 3, 5,
+6. Only the XL reaches `algoritmu`, and even the misses are the right
+shape: `oscar` offers `modelu` at rank 2 and `CzeGPT-2` offers a whole
+legal-document register (`zákona, předpisu`), both correctly genitive.
+
+Full-harness scores with cases 12 to 14 included: Czech-GPT-2-XL 10/14,
+CzeGPT-2 5/14, czech-gpt2-oscar 5/14, shipped engine 7/14. The earlier
+n/11 numbers are not comparable to these.

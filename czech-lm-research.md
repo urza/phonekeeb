@@ -233,6 +233,15 @@ Czech-only model answers them in Czech, so it cannot score them. The totals
 for the three 124M models say more about the test set than about the models.
 The XL number is real, because that model does answer English.
 
+Re-measured 2026-08-27 with cases 12 to 14 added to the harness (the
+denominators moved, so these are not the rows above): Czech-GPT-2-XL 10/14,
+CzeGPT-2 5/14, czech-gpt2-oscar 5/14, shipped `prediction.js` 7/14. Cases 13
+and 14 are the first exchanges in technical Czech, and they run the register
+argument the other way: subtitles hold no form of `predikce` or `prediktor`,
+web crawl holds all of them. All three web-trained models answer case 13
+(ranks 3, 5, 6 by size); only the XL answers case 14, at rank 4. See
+`prediction-game.md`, session 4.
+
 The two Czech cases are the evidence worth reading:
 
 ```

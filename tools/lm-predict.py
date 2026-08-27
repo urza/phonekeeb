@@ -202,8 +202,13 @@ GAME = [
     (9, "paja se šla vykoupat a", "zapla", "zaplavat"),
     (10, "mam hlad dam si", "k", "kuře"),
     (11, "", "smoo", "smooth"),
+    (12, "ahojky", "zebricko", "zebřičko"),
+    (13, "zkouška nového", "predik", "predikčního"),
+    (14, "zkouška nového predikčního", "", "algoritmu"),
 ]
 # Cases 2 and 4 are next-word questions whose "prefix" column holds context.
+# Case 14 is one too, but it already carries its context in the context
+# column, so it needs no entry here.
 GAME_CTX_ONLY = {2, 4}
 
 
