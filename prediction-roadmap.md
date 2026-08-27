@@ -108,6 +108,13 @@ crossing-count slips and sector misses, and `gesture-decoder.js` already
 computes the continuous quantities that predict them. Full analysis and
 staged plan: `gesture-input-model.md`.
 
+**4b. A big model beside the small one, optional and off by default.**
+User idea, 2026-08-27, recorded in `ideas.md`. Not for next-word ranking,
+where the measurements say it loses. For cause F only: a word no corpus
+ever held. Trigger it when the local strip is weak, let it add
+candidates, and feed whatever the user accepts into the personal model,
+so the call is needed once per new word rather than forever.
+
 **5. Add a small neural re-ranker.** The mini model, trained on a joint
 English and Czech vocabulary, sitting over the n-gram candidate set. Both
 SwiftKey's design and our own measurement point the same way. The n-gram

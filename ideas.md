@@ -135,6 +135,58 @@ layout for both languages. For prediction this means one blended
 ranking with a soft per-sentence language prior, which the current
 predictor structure can grow into.*
 
+### A big model beside the small one
+> Looks like Czech-GPT-2-XL or CzeGPT-2 might be good addition later,
+> running in parallel as optional probably remote models, enriching the
+> local suggestion engine. Just an idea..
+
+*Note (2026-08-27): the measurements say where it fits and where it
+does not. Full numbers in `czech-lm-research.md`.*
+
+*It must not touch next-word ranking. On held-out subtitles the 124M
+models score about half our tables there, and even the 1.58B model only
+ties. That is the register problem, and a remote call does not fix it.*
+
+*What it uniquely gives is cause F from
+`prediction-game-analysis.md`: a word no corpus ever held. Game case 12
+is the proof. `zebřičko` exists in no table at any size, and the XL model
+puts it first, because it composes the word from pieces instead of
+looking it up. So the trigger should be narrow and evidence-based: fire
+only when the local strip is weak, meaning no exact-prefix candidate
+scores above a floor, or the verbatim chip is all there is. That state is
+rare, which keeps the cost and the latency rare too. And when it fires,
+let the big model ADD candidates, not just reorder ours.*
+
+*Never per keystroke. 2.3 s per strip locally on 14 desktop cores, and
+even a server GPU leaves a round trip per letter. Fire on a word
+boundary, or on demand behind a "think harder" chip, and let the answer
+arrive late and replace chips when it lands.*
+
+*The compounding version, which is the best part of the idea: anything
+the big model contributes and the user accepts gets learned by the
+PersonalModel. Then the remote call is needed once per new word, ever.
+The big model becomes a teacher for the small one, not a permanent
+dependency. That also means the feature gets cheaper the longer it runs.*
+
+*Two practical notes. Pick the XL model, not CzeGPT-2: CzeGPT-2 is
+CC-BY-NC-SA, so no commercial use. Both are Czech only, so English needs
+a second model or a multilingual one.*
+
+*The privacy cost is the real objection, and
+`swiftkey_research/swiftkey-user-reviews-analysis.md` is fifteen years of
+users saying so. Their non-negotiable is network access that is visibly
+optional and off by default. So: opt-in, off by default, send the current
+word prefix and one context word rather than the text, never from a
+password field, self-hosting possible, and the keyboard works exactly as
+it does today when the call fails or the phone is offline.*
+
+*On the iOS target this may not need a network at all. The iOS 26
+Foundation Models framework hosts a ~3B multilingual model in the OS, and
+its memory does not count against the keyboard extension. Same
+capability, no server, no data leaving the phone. Remote is the way to
+test the idea now, in the web prototype; it may not be the way to ship
+it.*
+
 ## Beyond letters
 
 ### Word completion inside the glide
