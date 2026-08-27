@@ -52,7 +52,8 @@ that file before design work.
   keyboards, from HN 2010/2013, reviews, and the 8VIM discussions. Read
   it before any layout change that would weaken the QWERTY direction
   mnemonic, and before deciding what to build for beginners.
-- `swiftkey_research/` (three files, no phone twin yet) documents the
+- `swiftkey_research/` (three files, reading material, no phone twin)
+  documents the
   keyboard this project is really competing with: the engine
   (`swiftkey-on-device-engine-deep-dive.md`, from TouchType's patents,
   plus a recreation blueprint and the academic numbers), the product
