@@ -25,7 +25,12 @@ function check(name, ok, detail) {
 }
 
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 400, height: 820 } });
+// UTC in the page, and the seed dates below are built in UTC too. Node
+// and Chromium do not always read the same timezone (this sandbox runs
+// node at UTC+2 and Chromium at UTC), and the Today/Yesterday labels are
+// computed from the page's local date. Without this pin the test fails
+// for the hours where the two clocks name different days.
+const page = await browser.newPage({ viewport: { width: 400, height: 820 }, timezoneId: 'UTC' });
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 
@@ -34,11 +39,12 @@ page.on('pageerror', (e) => errors.push(String(e)));
 // "teh" is the typo, one neighbour swap away from "the". "kolodej" is a
 // personal word no corpus knows.
 const DAY = 86400000;
-// Local midday, not "now minus N hours": a day boundary must not fall
+// Midday, not "now minus N hours": a day boundary must not fall
 // between the stored UTC day number and the local date the page prints,
 // or the Today/Yesterday labels below would depend on the wall clock.
+// UTC midday, to match the timezone pinned on the page above.
 const noon = new Date();
-noon.setHours(12, 0, 0, 0);
+noon.setUTCHours(12, 0, 0, 0);
 const today = noon.getTime();
 const yesterday = today - DAY;
 const day = (t) => Math.floor(t / DAY);
