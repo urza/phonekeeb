@@ -108,13 +108,6 @@ crossing-count slips and sector misses, and `gesture-decoder.js` already
 computes the continuous quantities that predict them. Full analysis and
 staged plan: `gesture-input-model.md`.
 
-**4b. A big model beside the small one, optional and off by default.**
-User idea, 2026-08-27, recorded in `ideas.md`. Not for next-word ranking,
-where the measurements say it loses. For cause F only: a word no corpus
-ever held. Trigger it when the local strip is weak, let it add
-candidates, and feed whatever the user accepts into the personal model,
-so the call is needed once per new word rather than forever.
-
 **5. Add a small neural re-ranker.** The mini model, trained on a joint
 English and Czech vocabulary, sitting over the n-gram candidate set. Both
 SwiftKey's design and our own measurement point the same way. The n-gram
@@ -133,7 +126,20 @@ generator is the expensive alternative and measured badly: 4.8% precision
 on the diminutive rule, because our list carries no part of speech. Full
 numbers: `word-prediction-research.md`, "The out-of-vocabulary tail".
 
-**8. Word-boundary inference.** Typing a phrase without committing
+**8. A big model beside the small one, optional and off by default.**
+User idea, 2026-08-27, recorded in `ideas.md`. Not for next-word ranking,
+where the measurements say it loses. For cause F only: a word no corpus
+ever held. Trigger it when the local strip is weak, let it add
+candidates, and feed whatever the user accepts into the personal model,
+so the call is needed once per new word rather than forever.
+
+Directions 7 and 8 are the two attacks on cause F, and they split by
+what the word is. Direction 7 covers real dictionary forms that our
+tiers cut, offline and free. Direction 8 covers what no dictionary
+holds: names, nicknames and coinages. Build 7 first, because it is
+cheaper and it shrinks how often 8 has to fire.
+
+**9. Word-boundary inference.** Typing a phrase without committing
 spaces, then splitting it. Valuable here because space is a gesture.
 Microsoft holds patents on their version, so it needs its own design from
 the general prior art.
