@@ -829,7 +829,7 @@ layoutModeEl.addEventListener('change', () => {
   try { localStorage.setItem(LAYOUT_KEY, layoutModeEl.value); } catch {}
 });
 
-// Trigram tables: ~1.5 MB of data, so they load lazily after first
+// Trigram tables: ~2.4 MB of data, so they load lazily after first
 // paint (typing works on bigrams meanwhile) and hide behind a
 // data-saving toggle. The body marker lets tests and the curious see
 // when the tables are live.

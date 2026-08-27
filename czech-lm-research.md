@@ -322,6 +322,10 @@ smoothing and successor depth: KenLM keeps every pair above the prune floor,
 while the shipped tables keep the top 24 per head and back off to a
 discounted unigram for everything else.
 
+(Acted on the same day. The tables now carry a per-context backoff
+weight and keep the top 32, which took about half of the remaining gap;
+see `word-prediction-research.md`, "Completion scorer smoothed".)
+
 Two limits of this arm, both real and both fixable:
 
 - The KenLM harness has **no typo hypotheses**, so its typo-2 row is 0.0%

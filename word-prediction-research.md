@@ -496,6 +496,10 @@ Final mixed+tri rows (hit@1 / hit@3, strip of 6, core-vocab pairs):
 | prefix-2 | 61.4 / 75.0 | 57.1 / 70.6 |
 | typo-2 | 36.8 / 53.0 | 33.0 / 47.8 |
 
+(Superseded later the same day. These rows are the baseline of
+"Completion scorer smoothed" below, which holds the current numbers,
+the current caps, and the current meaning of CTX_MISS.)
+
 Game replay 6/11: case 1 (you are am -> amazing) enters at rank 6
 via the cap; case 2 (how -> are) climbs rank 5 to 2 via successor
 depth. Still missing: 4/6/7 are phrase-and-person tail ("future is
@@ -641,6 +645,95 @@ One caution for later: SwiftKey's term-boundary graph, which turns
 inside a stroke, so the same trick would fit it well. If it is ever
 built, design it from the general prior art (n-grams, edit distance,
 key-adjacency error models), not from their claims.
+
+## Completion scorer smoothed (2026-08-27): per-context backoff weights
+
+Roadmap direction 1, built to `completion-scorer-plan.md`. The target
+was the flat `CTX_MISS = 0.15`: it says every context leaves the same
+mass for unseen words, while KenLM knows this per context and beat our
+Czech tables by 9 points of prefix-2 hit@1 at the same byte budget
+(`czech-lm-research.md`, Result 3).
+
+All rows below are mixed+tri, core-vocab pairs, hit@1 / hit@3, from
+the full `node tools/eval-prediction.mjs`. The pairs are deterministic,
+so the deltas are paired.
+
+| Step | EN next-word | EN prefix-2 | EN typo-2 | CS next-word | CS prefix-2 | CS typo-2 |
+|---|---|---|---|---|---|---|
+| Baseline (v2 tables, 24/4) | 21.4 / 36.4 | 61.4 / 75.0 | 36.8 / 53.0 | 19.3 / 33.4 | 57.1 / 70.6 | 33.0 / 47.8 |
+| S1 gamma, unscaled | 20.7 / 35.2 | 63.9 / 77.5 | 34.2 / 50.7 | 18.6 / 32.1 | 59.2 / 74.1 | 30.0 / 44.7 |
+| S1 gamma x 0.6 | 21.2 / 36.1 | 62.9 / 76.5 | 35.5 / 52.2 | 19.0 / 32.8 | 58.5 / 72.6 | 31.4 / 46.6 |
+| **S1 gamma x 0.5 (kept)** | 21.3 / 36.1 | 62.4 / 76.1 | 36.0 / 52.6 | 19.0 / 32.9 | 58.2 / 72.1 | 32.0 / 47.2 |
+| S1 gamma x 0.4 | 21.4 / 36.3 | 61.7 / 75.6 | 36.6 / 53.0 | 19.1 / 33.1 | 57.8 / 71.3 | 32.5 / 47.6 |
+| S2 interpolation (reverted) | 21.2 / 36.4 | 62.2 / 75.9 | 36.2 / 52.6 | 18.9 / 33.1 | 58.1 / 71.7 | 32.5 / 47.4 |
+| **S3 bigram cap 32 (kept)** | 21.3 / 36.1 | 63.7 / 77.0 | 36.2 / 53.4 | 19.0 / 32.9 | 58.7 / 72.9 | 32.0 / 47.8 |
+| S3 bigram cap 48 (too big) | 21.3 / 36.1 | 65.6 / 78.8 | 36.0 / 54.0 | 19.0 / 32.9 | 60.5 / 74.8 | 32.0 / 48.1 |
+| **S3 trigram top 8 (kept)** | 21.3 / 36.2 | 65.2 / 78.0 | 37.1 / 55.7 | 19.0 / 33.0 | 59.7 / 73.8 | 32.8 / 49.3 |
+
+Shipped total against the baseline: prefix-2 +3.8 / +3.0 EN and
++2.6 / +3.2 CS, typo-2 +0.3 / +2.7 EN and -0.2 / +1.5 CS, next-word
+-0.1 / -0.2 EN and -0.3 / -0.4 CS. The plan's estimate was +6 / +11 on
+Czech prefix-2, so smoothing and depth together recovered about half of
+the gap to KenLM, and the typo slots we keep account for a third of it
+by the plan's own reading.
+
+**Stage 1: per-context gamma.** The builders now take an absolute
+discount D off every kept count and emit each head's leftover mass as
+a backoff weight in the head token ("T|g"), format v3. Details and the
+formula are in `features.md`. The runtime multiplies the level below by
+that weight instead of `CTX_MISS`. The cross-language guard keeps the
+flat constant on purpose: a language that does NOT hold the context has
+no gamma to give, and dropping the guard is what let wrong-language
+unigram giants float up in the first place.
+
+Raw gamma failed the plan's gate. It bought prefix-2 (+2.5 EN hit@1)
+but lost 1.2pp of next-word hit@3 and 2.3pp of typo-2 hit@3. Cause: the
+usage-weighted mean gamma is 0.389 EN against the swept 0.15, so the
+whole backoff tier got 2.6x stronger. Gamma measures how much of a
+context's mass its list misses, which is true; the score also needs to
+know that the level below is a WEAK estimator (a plain unigram, not a
+continuation distribution) and deserves less trust than its size. One
+global `GAMMA_SCALE` carries that, and gamma carries the shape. Swept
+1.0 / 0.6 / 0.5 / 0.4: 0.5 is where prefix-2 gains a full point in both
+languages and no other row loses one.
+
+The per-context shape is the point: "thank" holds gamma 0.005 because
+almost all of its mass is on "you", "the" holds 0.779 because top-24
+covers little of what follows a determiner. The flat 0.15 was wrong for
+both.
+
+**Stage 2: interpolation, reverted.** Adding the lower level always
+(`P_tri + g_tri (P_bi + g_bi P_uni)`) instead of falling to it on a
+miss traded 0.2pp of prefix-2 for 0.3pp of next-word hit@3, in both
+languages. A wash, and it costs the Swift port a level of simplicity,
+so backoff stands.
+
+**Stage 3: caps, after smoothing.** Smoothing changes what the tail is
+worth, so the sweep ran last. Bigram gzipped bytes, both files plus
+`words-*.js` (what the service worker precaches at first paint):
+
+| Bigram cap | bigrams gz | precached data | EN prefix-2 hit@1 | CS prefix-2 hit@1 |
+|---|---|---|---|---|
+| 24 | 399 KiB | 436 KiB | 62.4 | 58.2 |
+| 32 (shipped) | 502 KiB | 539 KiB | 63.7 | 58.7 |
+| 48 | 664 KiB | 701 KiB | 65.6 | 60.5 |
+
+Cap 48 is the better buy per byte (1.1 points per 100 KiB against 0.9
+for cap 32) and it regresses nothing. It is left on the shelf only
+because 701 KiB breaks the plan's ~550 KiB first-paint budget. If that
+budget is ever raised, this is the cheapest points on the table.
+
+The trigram cap is the other axis and a much cheaper one: those tables
+are lazy-loaded behind the "Trigram data" toggle, so they cost nothing
+at first paint. Top 4 to top 8 improved every row in both languages
+(prefix-2 +1.5 / +1.0 hit@1, typo-2 +2.3 / +1.5 hit@3) for 567 KiB to
+860 KiB gzipped. Taken.
+
+Game replay (`node tools/eval-game.mjs`) went 6/12 to 7/12: case 7
+("I w" wants "would") entered at rank 4. The four that still miss are
+the ones this direction cannot reach. Cases 4 and 6 are phrase-and-
+person tail that the personal model owns, 9 is the zaplat* morphology
+cluster, and 10 waits on the prefix-scaled language floor.
 
 ## Personalization plan (added 2026-08-25)
 

@@ -282,7 +282,7 @@
 <h2>What to do next</h2>
 
 <ol class="plan">
-  <li><b>Retune the completion scorer.</b> Two independent engines at our own byte budget beat <span class="mono">prediction.js</span> by 5 to 9 points of prefix-2 hit@1 and 11 to 16 of hit@3. Suspects in order: the top-24 successor cap, the flat backoff against real Kneser-Ney discounting, and the two typo slots (which cost 2.8 / 4.8, now measured). The existing eval harness decides it.</li>
+  <li><b>Retune the completion scorer.</b> Two independent engines at our own byte budget beat <span class="mono">prediction.js</span> by 5 to 9 points of prefix-2 hit@1 and 11 to 16 of hit@3. Suspects in order: the top-24 successor cap, the flat backoff against real Kneser-Ney discounting, and the two typo slots (which cost 2.8 / 4.8, now measured). The existing eval harness decides it. <b>Done 2026-08-27:</b> every stored head and context now carries its own backoff weight, the successor caps went 24 to 32 and 4 to 8, and Czech prefix-2 gained 2.6 / 3.2. About half the gap, with the typo slots kept.</li>
   <li><b>Train the mini model properly.</b> It is the one neural shape that fits a keyboard, it already ties the tables after 15M training tokens on a CPU, and it weighs 1.3 MB. Next: a joint en+cs vocabulary and a full GPU run, scored by the same harness.</li>
   <li><b>Keep the big model for phrase-level features only.</b> Czech-GPT-2-XL answered <span class="mono">zaplavat</span> and <span class="mono">kuře</span> and 7 of 11 game cases. That is the quality target, at seconds per strip. On iOS the route to it is Foundation Models, not a bundled GPT-2.</li>
 </ol>

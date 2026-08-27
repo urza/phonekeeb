@@ -10,8 +10,9 @@ plan of record. The detail lives in the research files it points to.
 
 `prediction.js` holds one mixed English and Czech model, with no language
 switch. Candidates come from a scan of the merged vocabulary against the
-typed prefix. Scores come from stupid backoff down trigram, bigram, then
-unigram counts. On top sit a sentence-language posterior, one-edit typo
+typed prefix. Scores come from backoff down trigram, bigram, then
+unigram counts, each level discounted by its own stored backoff weight.
+On top sit a sentence-language posterior, one-edit typo
 hypotheses, a verbatim chip, and a personal model that learns while you
 type.
 
@@ -26,12 +27,13 @@ Measured on held-out subtitles, strip of 6 (hit@1 / hit@3):
 
 | Mode | EN | CS |
 |---|---|---|
-| next-word | 21.4 / 36.4 | 19.3 / 33.4 |
-| 2-letter prefix | 61.4 / 75.0 | 57.1 / 70.6 |
-| corrupted prefix | 36.8 / 53.0 | 33.0 / 47.8 |
+| next-word | 21.3 / 36.2 | 19.0 / 33.0 |
+| 2-letter prefix | 65.2 / 78.0 | 59.7 / 73.8 |
+| corrupted prefix | 37.1 / 55.7 | 32.8 / 49.3 |
 
-Prediction game: 6 of 12. The LLM that played it live scored 8 of the
-first 11.
+Prediction game: 7 of 12 (case 7, "I w" to "would", entered at rank 4
+with the 2026-08-27 smoothing). The LLM that played it live scored 8 of
+the first 11.
 
 ## The five layers, and which ones we have
 
@@ -54,10 +56,12 @@ gaps are the map.
   relative. Register beats size at every scale we tested. Settled.
 - **Vocabulary size.** Core 3000 plus an extension tier took Czech token
   coverage from 74.7% to 91.0% and fixed three game misses. Closed.
-- **Table depth.** Successor depth 12 to 24 gave the whole gain. A five
-  times bigger corpus with a scaled floor gave nothing. Depth, not data.
+- **Table depth.** Successor depth 12 to 24 to 32 gave the whole gain. A
+  five times bigger corpus with a scaled floor gave nothing. Depth, not
+  data. Depth is still paying at cap 48; only the byte budget stops it.
 - **Scoring constants.** Edit penalty, backoff, context-miss discount and
-  typo slots are all swept and tuned. Small headroom left.
+  typo slots are all swept and tuned. The flat context-miss discount is
+  now a per-context weight, which was the last of the real headroom.
 - **Language mixing.** One model with a posterior costs at most 0.7
   points against the single-language ceilings. The design is confirmed.
 - **Pretrained Czech GPT-2 (124M).** Worse than our tables at next-word,
@@ -77,14 +81,23 @@ Numbers and method: `czech-lm-research.md`, `word-prediction-research.md`,
 
 ## Directions from here
 
-**1. Fix the completion scorer.** Cheapest and best evidenced. Two
-independent engines beat us at the same byte budget, so the loss is in
-how we score, not in what we store. Staged plan:
-`completion-scorer-plan.md` (2026-08-27). Order of work: per-context
-backoff mass from build-time discounting, then interpolation instead
-of backoff, then the successor cap sweep, in that order because
-smoothing changes what the tail is worth. `tools/eval-prediction.mjs`
-decides every stage.
+**1. Fix the completion scorer. Done 2026-08-27, partly.** Built to
+`completion-scorer-plan.md`; measured numbers for every stage, kept or
+reverted, in `word-prediction-research.md`, "Completion scorer
+smoothed". Per-context backoff weights shipped (table format v3, one
+weight per stored head and context, scaled by 0.5 at decode time), the
+bigram cap went 24 to 32 and the trigram cap 4 to 8. Interpolation was
+measured and reverted as a wash. Result: prefix-2 +3.8 / +3.0 EN and
++2.6 / +3.2 CS, with next-word and typo-2 held. That is about half of
+the estimated gap to KenLM.
+
+What is left of this direction, in order of evidence: the two
+simplifications Stage 1 named (divide the backoff mass by the unigram
+mass of the unseen words, then a continuation distribution as the
+backoff target, stored as a second value and never as a change to
+`words-*.js`), and bigram cap 48, which regresses nothing and buys more
+per byte than cap 32 but needs 701 KiB of first-paint precache against
+the 550 KiB budget.
 
 **2. Close the last game-analysis item.** The language floor still
 ignores prefix length. With one typed letter there is no typing evidence

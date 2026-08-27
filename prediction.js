@@ -31,12 +31,28 @@ export function matchKey(word) {
 
 // Tuned constants (features.md holds the words-and-numbers table).
 const BACKOFF = 0.4; // stupid-backoff multiplier inside the personal model
-const CTX_MISS = 0.15; // static-chain discount when a KNOWN context lacks
-//   the word. Stronger than the classic 0.4: a stored successor list
-//   that does not hold the word is real evidence against it, and 0.4
-//   let context-free giants (what, kdo) outrank true continuations
-//   (prediction-game-analysis.md, cause C). Swept 2026-08-26 against
-//   the next-word eval rows.
+const CTX_MISS = 0.15; // static-chain fallback discount. Each table
+//   entry now carries its own backoff weight gamma (see
+//   decodeSuccessors), so this constant covers the two cases where no
+//   gamma exists: the cross-language guard (another language knows the
+//   context, this one does not) and a legacy v2 table with no "|g" on
+//   its head token. The value is the swept one from 2026-08-26: stronger
+//   than the classic 0.4, because a stored successor list that does not
+//   hold the word is real evidence against it, and 0.4 let context-free
+//   giants (what, kdo) outrank true continuations
+//   (prediction-game-analysis.md, cause C).
+const GAMMA_SCALE = 0.5; // global pessimism applied to every stored
+//   backoff weight. gamma says what share of a context's mass belongs
+//   to words its list does not hold, which is true but not what the
+//   score needs: the level below is a WEAK estimator (a plain unigram,
+//   not a continuation distribution), so its mass deserves less trust
+//   than its size. gamma keeps the per-context shape ("thank" 0.005,
+//   "the" 0.779) and this scale keeps the average near the swept
+//   CTX_MISS of 0.15 (unscaled gamma averages 0.389 en). Shipping it
+//   unscaled costs 1.2pp of next-word hit@3 and 2.3pp of typo-2 hit@3
+//   to buy prefix-2. Swept 1.0 / 0.6 / 0.5 / 0.4 on 2026-08-27: 0.5 is
+//   where prefix-2 gains a full point in both languages and no other
+//   row loses one.
 const TYPO_SLOTS = 2; // strip slots one-edit hypotheses may take when
 //   exact-prefix candidates exist; without the cap, giant words one
 //   edit away (a, all, my for "am") crowd out real completions
@@ -466,19 +482,30 @@ function withinOneEditPrefix(key, p) {
   return false;
 }
 
-// Decode one packed successor table entry ("T succ|c succ|c ...")
-// into a Map of conditional probabilities. Shared by the bigram and
-// trigram tables; both quantize with QUANT_K.
+// Decode one packed successor table entry ("T|g succ|c succ|c ...")
+// into { p: conditional probabilities, gamma: backoff weight }. Shared
+// by the bigram and trigram tables; both quantize with QUANT_K.
+//
+// gamma is this context's own share of probability left for words its
+// list does not hold, computed by the builders from the absolute
+// discount and the dropped tail. A v2 table has no "|g" on the head
+// token; then gamma falls back to the flat CTX_MISS and the entry
+// scores exactly as it did before smoothing, so a phone still holding
+// a precached v2 table keeps working.
 function decodeSuccessors(packed) {
   const parts = packed.split(' ');
-  const total = Math.exp(Number(parts[0]) / QUANT_K);
-  const succ = new Map();
+  const cut0 = parts[0].indexOf('|');
+  const head = cut0 < 0 ? parts[0] : parts[0].slice(0, cut0);
+  const total = Math.exp(Number(head) / QUANT_K);
+  const gamma = cut0 < 0 ? CTX_MISS
+    : GAMMA_SCALE * Math.min(1, Math.exp(Number(parts[0].slice(cut0 + 1)) / QUANT_K));
+  const p = new Map();
   for (let i = 1; i < parts.length; i++) {
     const cut = parts[i].lastIndexOf('|');
     const c = Math.exp(Number(parts[i].slice(cut + 1)) / QUANT_K);
-    succ.set(parts[i].slice(0, cut), Math.min(1, c / total));
+    p.set(parts[i].slice(0, cut), Math.min(1, c / total));
   }
-  return succ;
+  return { p, gamma };
 }
 
 export class Predictor {
@@ -648,13 +675,15 @@ export class Predictor {
     const prev2Key = prev2 ? matchKey(prev2.toLowerCase()) : '';
     const ctx2 = prev2Key && prevKey ? `${prev2Key} ${prevKey}` : '';
     const succ2 = this.langs.map((l) => (ctx2 ? l.heads2.get(ctx2) : undefined));
-    // The miss discount is cross-language: when ANY language knows the
-    // context, a language without it takes CTX_MISS on that level too.
-    // Otherwise the discount punishes only the language that has real
-    // evidence, and wrong-language unigram giants float to the top
-    // ("know" outranking every Czech word after "si"). Absent tables
-    // (trigrams not loaded) still change nothing: then no language
-    // knows the context and no discount applies.
+    // A language that HOLDS the context uses that entry's own gamma. The
+    // flat CTX_MISS survives for the cross-language case: when ANY
+    // language knows the context, a language without it takes CTX_MISS
+    // on that level too. Otherwise the discount punishes only the
+    // language that has real evidence, and wrong-language unigram giants
+    // float to the top ("know" outranking every Czech word after "si").
+    // Do not fold this into gamma: a missing entry has no gamma to give.
+    // Absent tables (trigrams not loaded) still change nothing: then no
+    // language knows the context and no discount applies.
     const biKnown = succ.some(Boolean);
     const triKnown = succ2.some(Boolean);
     this.syncPersonalEntries();
@@ -683,15 +712,21 @@ export class Predictor {
         let base = 0;
         for (let j = 0; j < this.langs.length; j++) {
           const lp = prior[this.langs[j].id];
-          // Stupid backoff down the chain. The discount applies only
-          // when a KNOWN context misses the word; an unknown context
+          // Backoff down the chain. A KNOWN context that misses the word
+          // hands the level below its own gamma; an unknown context
           // starts at the next level undiscounted, so absent tables
-          // (trigrams not loaded yet) change nothing.
+          // (trigrams not loaded yet) change nothing. Interpolation
+          // (adding the lower level instead of falling to it) was
+          // measured on 2026-08-27 and reverted: it trades 0.2pp of
+          // prefix-2 for 0.3pp of next-word hit@3, a wash that costs a
+          // level of the Swift port's simplicity.
           const uni = e.p[this.langs[j].id] ?? 0;
-          const biLevel = succ[j]?.get(e.word)
-            ?? (biKnown ? CTX_MISS : 1) * uni;
-          base += lp * (succ2[j]?.get(e.word)
-            ?? (triKnown ? CTX_MISS : 1) * biLevel);
+          const bi = succ[j];
+          const tri = succ2[j];
+          const biLevel = bi?.p.get(e.word)
+            ?? (bi ? bi.gamma : (biKnown ? CTX_MISS : 1)) * uni;
+          base += lp * (tri?.p.get(e.word)
+            ?? (tri ? tri.gamma : (triKnown ? CTX_MISS : 1)) * biLevel);
         }
         // The personal model blends in language-free: the user's own
         // words are their language, so no prior scales them down.
