@@ -24,8 +24,21 @@ const check = (name, ok, detail) => {
   if (!ok) failures++;
 };
 
+// The bug this guards: an answer that renders correctly in the DOM but
+// below the fold looks exactly like a button that does nothing. Asking
+// only "is the element there" missed it once already, so every answer
+// path asserts the answer is actually on screen without scrolling.
+async function checkVisible(name) {
+  const m = await page.evaluate(() => {
+    const r = document.getElementById('feedback').getBoundingClientRect();
+    return { top: r.top, bottom: r.bottom, vh: window.innerHeight, scrollY: window.scrollY };
+  });
+  check(name, m.scrollY === 0 && m.top >= 0 && m.bottom <= m.vh,
+    `feedback ${Math.round(m.top)}..${Math.round(m.bottom)} in viewport 0..${m.vh}, scrollY ${m.scrollY}`);
+}
+
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 420, height: 900 } });
+const page = await browser.newPage({ viewport: { width: 390, height: 680 } });
 await page.goto(`${URL}/game.html`);
 await page.selectOption('#layoutMode', 'urza-layout');
 
@@ -86,6 +99,7 @@ check(`"${first.letter}" drawn correctly grades as right`,
 check('reveal card is shown', await page.locator('.reveal svg').count() === 1);
 check('QWERTY hint is shown', await page.locator('svg.qhint').count() === 1);
 check('Next button appears', await page.locator('#nextBtn').isVisible());
+await checkVisible('the right-answer panel is on screen');
 
 // --- 2. a wrong answer ----------------------------------------------
 await page.click('#nextBtn');
@@ -104,6 +118,7 @@ await page.waitForSelector('#feedback.ok, #feedback.bad');
 check(`"${second.letter}" drawn wrong grades as wrong`,
   await page.locator('#feedback.bad').count() === 1,
   await page.locator('.verdict').textContent());
+await checkVisible('the wrong-answer panel is on screen');
 
 // --- 3. giving up ----------------------------------------------------
 // Its own grading branch (a null commit), and the one that keeps the
@@ -116,6 +131,7 @@ await page.waitForSelector('.reveal svg');
 check('"Show me" reveals the stroke', await page.locator('.reveal svg').count() === 1);
 check('"Show me" is not scored as right', await page.locator('#feedback.ok').count() === 0,
   await page.locator('.verdict').textContent());
+await checkVisible('the "Show me" panel is on screen');
 
 // --- 4. progress is counted and persisted ---------------------------
 check('three answers counted', (await page.locator('#step').textContent()).startsWith('3 '),

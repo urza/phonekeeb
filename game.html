@@ -58,18 +58,23 @@ button:disabled { opacity: .45; }
 
 .actions { display: flex; gap: 8px; margin: 8px 0; }
 
-.feedback { border-radius: 12px; padding: 0; }
-.feedback.idle { min-height: 0; }
-.feedback.ok, .feedback.bad, .feedback.hint { padding: 10px 12px; border: 1px solid var(--line); }
+.padwrap { position: relative; }
+/* Idle removes it from the box entirely, so the pad below takes the
+   pointer events. */
+.feedback.idle { display: none; }
+.feedback.ok, .feedback.bad, .feedback.hint {
+  position: absolute; inset: 0; overflow-y: auto;
+  border-radius: 12px; padding: 10px 12px; border: 1px solid var(--line);
+}
 .feedback.ok { background: var(--okbg); border-color: color-mix(in srgb, var(--ok) 35%, var(--line)); }
 .feedback.bad { background: var(--badbg); border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); }
 .feedback.hint { background: var(--panel); }
 .verdict { margin: 0 0 8px; font-size: 14px; }
 .feedback.ok .verdict { color: var(--ok); }
 .feedback.bad .verdict { color: var(--bad); }
-.reveal { width: 190px; max-width: 60%; margin: 0 auto; }
+.reveal { width: 150px; max-width: 46%; margin: 0 auto; }
 .reveal svg { display: block; width: 100%; height: auto; }
-.spec { margin: 2px 0 8px; font-size: 12px; color: var(--muted); text-align: center; }
+.spec { margin: 2px 0 6px; font-size: 12px; color: var(--muted); text-align: center; }
 
 /* QWERTY hint: the mini keyboard plus two rays, one for the letter's
    direction from the keyboard centre and one for its wheel slot. */
@@ -83,7 +88,7 @@ button:disabled { opacity: .45; }
 .ray.q { stroke: var(--accent); }
 .ray.s { stroke: var(--fg); stroke-dasharray: 4 3; }
 .qc { fill: var(--fg); }
-.qcap { font-size: 12px; color: var(--muted); margin: 6px 0 0; text-align: center; }
+.qcap { font-size: 12px; color: var(--muted); margin: 4px 0 0; text-align: center; }
 /* Tie the caption's two halves to the two rays by color. */
 .qcap b.q { color: var(--accent); }
 .qcap b.s { color: var(--fg); }
@@ -136,7 +141,14 @@ p.hint { font-size: 13px; color: var(--muted); max-width: 62ch; margin: 12px 0 0
   <div id="promptNote">draw this letter</div>
 </div>
 
-<canvas id="pad"></canvas>
+<!-- The answer is drawn OVER the pad, not under it. Stacked below, it
+     landed past the fold on a phone and an answer looked like nothing
+     happening. The pad is dead space once the question is answered, and
+     it is where the eye already is. -->
+<div class="padwrap">
+  <canvas id="pad"></canvas>
+  <div id="feedback" class="feedback idle"></div>
+</div>
 
 <div class="actions">
   <button id="hintBtn" type="button">Hint</button>
@@ -144,8 +156,6 @@ p.hint { font-size: 13px; color: var(--muted); max-width: 62ch; margin: 12px 0 0
   <button id="nextBtn" type="button" hidden>Next</button>
   <button id="resetBtn" type="button">Reset progress</button>
 </div>
-
-<div id="feedback" class="feedback idle"></div>
 
 <ul id="stats"></ul>
 
@@ -160,15 +170,15 @@ next ring unlocks only once these are solid.</p>
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=28",
-    "./layout.js": "./layout.js?v=28",
-    "./layouts.js": "./layouts.js?v=28",
-    "./themes.js": "./themes.js?v=28",
-    "./wheel-svg.js": "./wheel-svg.js?v=28",
-    "./qwerty-map.js": "./qwerty-map.js?v=28"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=29",
+    "./layout.js": "./layout.js?v=29",
+    "./layouts.js": "./layouts.js?v=29",
+    "./themes.js": "./themes.js?v=29",
+    "./wheel-svg.js": "./wheel-svg.js?v=29",
+    "./qwerty-map.js": "./qwerty-map.js?v=29"
   }
 }
 </script>
-<script type="module" src="game.js?v=28"></script>
+<script type="module" src="game.js?v=29"></script>
 </body>
 </html>

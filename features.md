@@ -423,6 +423,13 @@ on combined en+cs statistics. Git history keeps them.
   never teach an association the generator did not build.
 - **Show me** reveals the answer and counts as a miss, so a stuck
   learner is never trapped and the boxes stay honest.
+- The answer panel (verdict, reveal card, hint) is drawn **over the
+  pad**, not below it. Stacked below, on a phone it fell past the fold
+  and answering looked like nothing happening; the pad is dead space
+  once the question is answered, and it is where the eye already is.
+  The panel scrolls internally if a short screen cannot fit it.
+  `tests/game-flow.mjs` asserts every answer path leaves the panel
+  inside the viewport at scroll position 0.
 - Per-letter time to first answer is recorded (median of the last 12)
   and shown in a mastery strip under the drill, one chip per letter in
   the pool, bordered by box. Untouched letters get their own "new"
