@@ -38,8 +38,9 @@ assert(await picker.count() === 0, 'picker exists before the button is pressed')
 
 // Geometry of the parked button: it sits in the wheel's top-right
 // corner pocket, mirroring the copy button in the bottom-right one.
-// Its top edge meets the top of the disk's bounding box, it keeps the
-// same 12 px right inset, and it stays clear of the disk itself.
+// Its top and right edges meet the disk's bounding box (the box, not
+// the canvas: the wheel is centered under a mouse and hugs the right
+// edge only on a touch screen), and it stays clear of the disk itself.
 const parked = await page.evaluate(() => {
   const c = document.getElementById('stage');
   const box = c.getBoundingClientRect();
@@ -55,12 +56,12 @@ const parked = await page.evaluate(() => {
   return {
     arm,
     topGap: b.top - (box.top + cy - arm),
-    rightGap: box.right - b.right,
+    rightGap: (box.left + cx + arm) - b.right,
     clearance: Math.hypot(dx, dy) - arm,
   };
 });
 assert(Math.abs(parked.topGap) < 1.5, `button top is ${parked.topGap}px off the wheel box top`);
-assert(Math.abs(parked.rightGap - 12) < 1.5, `button right inset is ${parked.rightGap}px, want 12`);
+assert(Math.abs(parked.rightGap) < 1.5, `button right is ${parked.rightGap}px off the wheel box right`);
 assert(parked.clearance > 0, `button overlaps the wheel disk by ${-parked.clearance}px`);
 
 await toggle.click();

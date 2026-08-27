@@ -21,6 +21,12 @@ body {
   font-family: system-ui, sans-serif;
   padding: 12px calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));
 }
+/* Phone-width column on a desktop window, the same rule style.css uses
+   for the keyboard page (keep the 480 in sync). These pages are drawn
+   for a phone, and a PC window is used to look at what the phone gets. */
+@media (min-width: 520px) {
+  body { max-width: 480px; margin: 0 auto; }
+}
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 10px; }
 h1 { font-size: 18px; margin: 0; }
 a { color: var(--fg); }
@@ -66,14 +72,14 @@ the color name the region the stroke comes back from.</p>
 <script type="importmap">
 {
   "imports": {
-    "./layout.js": "./layout.js?v=34",
-    "./layouts.js": "./layouts.js?v=34",
-    "./themes.js": "./themes.js?v=34",
-    "./gesture-decoder.js": "./gesture-decoder.js?v=34",
-    "./wheel-svg.js": "./wheel-svg.js?v=34"
+    "./layout.js": "./layout.js?v=35",
+    "./layouts.js": "./layouts.js?v=35",
+    "./themes.js": "./themes.js?v=35",
+    "./gesture-decoder.js": "./gesture-decoder.js?v=35",
+    "./wheel-svg.js": "./wheel-svg.js?v=35"
   }
 }
 </script>
-<script type="module" src="cards.js?v=34"></script>
+<script type="module" src="cards.js?v=35"></script>
 </body>
 </html>

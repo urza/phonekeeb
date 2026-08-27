@@ -27,6 +27,14 @@ body {
   font-family: system-ui, sans-serif; font-size: 15px;
   padding: 10px calc(10px + env(safe-area-inset-right)) calc(80px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));
 }
+/* Phone-width column on a desktop window, the same rule style.css uses
+   for the keyboard page (keep the 480 in sync). These pages are drawn
+   for a phone, and a PC window is used to look at what the phone gets.
+   The toast needs its own copy of this query; see the bottom of the
+   file. */
+@media (min-width: 520px) {
+  body { max-width: 480px; margin: 0 auto; }
+}
 header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 h1 { font-size: 18px; margin: 0; flex: 1; }
 a { color: var(--fg); text-decoration: none; font-size: 20px; }
@@ -119,6 +127,14 @@ button { font: inherit; color: inherit; background: none; border: none; padding:
 }
 #toast span { flex: 1; }
 #toast button { text-decoration: underline; font-weight: 600; padding: 4px; }
+/* The toast is fixed to the window, so the desktop column has to be
+   spelled out for it too. This block must stay BELOW the rule above:
+   a media query adds no specificity, and both selectors are #toast, so
+   only source order decides. 460 = 480 minus the body's two 10 px
+   insets. */
+@media (min-width: 520px) {
+  #toast { left: 50%; right: auto; width: 460px; transform: translateX(-50%); }
+}
 </style>
 </head>
 <body>
@@ -169,12 +185,12 @@ button { font: inherit; color: inherit; background: none; border: none; padding:
 <script type="importmap">
 {
   "imports": {
-    "./prediction.js": "./prediction.js?v=34",
-    "./words-en.js": "./words-en.js?v=34",
-    "./words-cs.js": "./words-cs.js?v=34"
+    "./prediction.js": "./prediction.js?v=35",
+    "./words-en.js": "./words-en.js?v=35",
+    "./words-cs.js": "./words-cs.js?v=35"
   }
 }
 </script>
-<script type="module" src="dictionary.js?v=34"></script>
+<script type="module" src="dictionary.js?v=35"></script>
 </body>
 </html>

@@ -287,12 +287,23 @@ function placeCornerButtons() {
       ? '2px' // the bar's own padding, so the button lines up with its keys
       : parked;
   }
-  // The emoji button keeps the right edge in both places. The symbol
-  // button crosses the screen: parked it hugs the wheel's left side,
-  // open it takes the same reserved slot at the right end of the bar.
+  // The pockets belong to the wheel, not to the canvas: on a phone the
+  // wheel hugs the right edge and this inset is WHEEL_MARGIN, but with a
+  // mouse the wheel is centered (and in a desktop column the canvas is
+  // wider than the disk), so the right-hand buttons have to come in with
+  // it or they float off alone at the edge.
+  const pocketRight = `${canvas.getBoundingClientRect().width - (center.x + armLength)}px`;
+  copyButton.style.right = pocketRight;
+  // The symbol button crosses the screen: parked it hugs the wheel's
+  // left side, open it takes the reserved slot at the right end of the
+  // panel bar. The emoji button keeps a right edge in both places, but
+  // not the same one: parked it is the wheel's, open it is the bar's.
   const symbolsUp = symbolToggle.getAttribute('aria-expanded') === 'true';
   symbolToggle.style.left = symbolsUp ? 'auto' : `${center.x - armLength}px`;
   symbolToggle.style.right = symbolsUp ? '12px' : 'auto';
+  emojiToggle.style.right = emojiToggle.getAttribute('aria-expanded') === 'true'
+    ? '12px'
+    : pocketRight;
 }
 
 function rebuildLayout() {

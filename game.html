@@ -29,6 +29,13 @@ body {
   /* The pad captures strokes; without this a drag scrolls the page. */
   overscroll-behavior: none;
 }
+/* Phone-width column on a desktop window, the same rule style.css uses
+   for the keyboard page (keep the 480 in sync). These pages are drawn
+   for a phone, and a PC window is used to look at what the phone gets.
+   The pad also stops being a letterbox and stays near square. */
+@media (min-width: 520px) {
+  body { max-width: 480px; margin: 0 auto; }
+}
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 8px; }
 h1 { font-size: 18px; margin: 0; }
 a { color: var(--fg); }
@@ -171,15 +178,15 @@ next ring unlocks only once these are solid.</p>
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=34",
-    "./layout.js": "./layout.js?v=34",
-    "./layouts.js": "./layouts.js?v=34",
-    "./themes.js": "./themes.js?v=34",
-    "./wheel-svg.js": "./wheel-svg.js?v=34",
-    "./qwerty-map.js": "./qwerty-map.js?v=34"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=35",
+    "./layout.js": "./layout.js?v=35",
+    "./layouts.js": "./layouts.js?v=35",
+    "./themes.js": "./themes.js?v=35",
+    "./wheel-svg.js": "./wheel-svg.js?v=35",
+    "./qwerty-map.js": "./qwerty-map.js?v=35"
   }
 }
 </script>
-<script type="module" src="game.js?v=34"></script>
+<script type="module" src="game.js?v=35"></script>
 </body>
 </html>

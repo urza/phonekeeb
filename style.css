@@ -63,6 +63,24 @@ body {
   color: var(--fg);
 }
 
+/* A desktop window keeps a phone-width column in the middle instead of
+   stretching. Every page here is drawn for a phone, and a PC window is
+   only used to look at what the phone gets; at full width the wheel, the
+   suggestion chips and the corner buttons drift far apart. The body
+   background propagates to the whole viewport, so the two lines are what
+   makes the column readable as a column.
+   cards.html, game.html and dictionary.html repeat this block in their
+   own <style>; keep the 480 in sync. Below the query the rule does
+   nothing, so a portrait phone is untouched. */
+@media (min-width: 520px) {
+  body {
+    max-width: 480px;
+    margin: 0 auto;
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+}
+
 header {
   padding: 6px 12px;
   border-bottom: 1px solid var(--line);
@@ -229,13 +247,17 @@ main {
 
 /* Copy button, in the corner pocket the wheel leaves free: the wheel
    disk is tangent to the canvas's right and bottom edges, so the
-   diagonal corner stays empty. Fixed position because the button must
-   escape the body's flex flow; it re-adds the safe-area inset the
-   body padding would otherwise give it. */
+   diagonal corner stays empty. Absolute inside <main>, not fixed to the
+   viewport: in the desktop column above, a fixed button would stay at
+   the window edge, far away from the page it belongs to. No safe-area
+   inset needed either, because <main> already ends above the home
+   indicator: the body carries that padding.
+   main.js re-points `right` at the wheel's bounding box (12 px on a
+   phone, where the wheel hugs the canvas edge). */
 #copyText {
-  position: fixed;
+  position: absolute;
   right: 12px;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  bottom: 12px;
   z-index: 3;
   width: 48px;
   height: 40px;
@@ -294,9 +316,10 @@ main {
   font-weight: 600;
 }
 
-/* The emoji button keeps the right edge in both of its positions, so it
-   is the one anchor that does not need JS. The symbol button crosses
-   the screen when its pad opens, so main.js owns both of its sides. */
+/* The phone value of the right inset, and what both right-hand buttons
+   show until the first resize() runs. main.js then owns this side:
+   parked, the button follows the wheel's bounding box, which is only the
+   canvas edge when the wheel is anchored there. */
 #emojiToggle {
   right: 12px;
 }

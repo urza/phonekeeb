@@ -675,17 +675,20 @@ and symbol pad. They share a shape, and the rules below hold for both.
   reach (user request 2026-08-26). Empty parts of the strip pass
   presses through to the canvas; only the chips catch taps. On a short
   canvas the row clamps so it cannot cover the typed-text box.
-- A copy button sits fixed in the bottom-right corner (48 x 40 px,
-  12 px inset plus the safe-area inset), in the pocket the wheel disk
-  leaves free. It copies the finger-selected text if a selection
-  exists, otherwise the whole text, and flashes a check mark in the
-  trail accent for 0.9 s. With nothing to copy it does nothing. The
-  selection is read at pointer down, before the click can collapse it.
+- A copy button sits in the bottom-right corner (48 x 40 px, 12 px
+  above the canvas bottom), in the pocket the wheel disk leaves free.
+  It copies the finger-selected text if a selection exists, otherwise
+  the whole text, and flashes a check mark in the trail accent for
+  0.9 s. With nothing to copy it does nothing. The selection is read at
+  pointer down, before the click can collapse it.
 - Two more buttons sit in the wheel's other free corner pockets, at the
   top-left and top-right of the disk's bounding box: numbers and emoji
-  (see "Panels over the wheel"). Their distance from the bottom follows
-  the arm length, and the left one's horizontal position does too, so
-  main.js places both in `resize()`. A panel under them starts at the
+  (see "Panels over the wheel"). All three corner buttons follow the
+  disk's bounding box, not the canvas edges: the two on the right keep
+  a 12 px inset while the wheel hugs the right edge, and move inward
+  with the wheel when it is centered. Their distance from the bottom
+  follows the arm length, so main.js places all of them in `resize()`.
+  A panel under them starts at the
   canvas top edge, which the CSS derives from the typed-text box's
   height, kept in one variable (`--output-h`) that the box and the
   panels both read.
@@ -706,6 +709,12 @@ and symbol pad. They share a shape, and the rules below hold for both.
   under a right thumb; with a mouse (desktop testing) it centers
   horizontally. Arm length is 0.44 x the smaller canvas dimension. A
   left-hand anchor option is future work.
+- From 520 px of window width the page stops stretching: the body holds
+  a 480 px column in the middle, with a hairline down each side. The
+  other three pages take the same column (without the lines, because
+  they scroll). A phone in portrait never reaches the query, so this
+  is a desktop-only rule, and what it shows on a PC is close to what a
+  phone gets.
 
 ## Installable app (PWA)
 
@@ -857,8 +866,9 @@ Tuned constants, one place to read them all:
 | Wheel anchor | bottom, 12 px margin; right on touch, x-centered with a mouse |
 | South drag targets | E = ?, N = !, W = ,; center circle counts as N |
 | Suggestion row gap | bottom edge 4 px above the wheel rim |
-| Copy button | 48 x 40 px, 12 px corner inset; copied flash 900 ms |
-| Panel buttons | 48 x 40 px, 12 px inset; top edge on the wheel box's top edge, or the panel's bottom bar while it is open |
+| Copy button | 48 x 40 px, 12 px above the canvas bottom, right edge on the wheel box; copied flash 900 ms |
+| Panel buttons | 48 x 40 px, edges on the wheel box's top and side, or the panel's bottom bar while it is open |
+| Desktop column | 480 px wide, centered, from a window 520 px wide |
 | Panel bar | 40 px tall keys, 60 px right slot for the button |
 | Emoji picker | 925 emoji, 10 categories, one continuous scroll; cells 44 px, columns auto-fill from 44 px, 2 px gap |
 | Emoji tabs | 11, recent first |
