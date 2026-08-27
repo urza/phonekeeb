@@ -112,6 +112,11 @@
   </ul>
 </div>
 
+<div class="warncard">
+  <span class="tag">DECIDED 2026-08-27</span>
+  <p>Phonekeeb takes neither mechanism on this page. No layers, and no reversal suffix. Backtrack correction stays. Both are recorded here as prior art, not as options. The last section holds what stays open.</p>
+</div>
+
 <h2>The data model</h2>
 
 <div class="tablewrap">
@@ -251,12 +256,19 @@
 
 <h2>What this means for phonekeeb</h2>
 
+<p><b>Decided by the user, 2026-08-27: we take neither mechanism.</b> No layers, and no reversal suffix. Backtrack correction stays as <span class="mono">features.md</span> describes it. Both 8VIM paths are prior art here, not options.</p>
+
+<p>The reasons hold up on their own evidence. Their layer prefix starts outside the circle, and that is the exact property their own experienced users reject. Their fast path costs them the ability to rotate back out of a mistake, which the maintainer confirmed in #558.</p>
+
+<p>What survives for the open design work:</p>
+
 <ol class="plan">
-  <li><b>Our diacritics problem is 15 Czech letters</b> (á č ď é ě í ň ó ř š ť ú ů ý ž) on top of 32 full slots. A layer is the proven container for exactly this, and one layer holds all 15 with room to spare.</li>
-  <li><b>Name the reversal trade before building anything.</b> <span class="mono">features.md</span> says the crossing count is net, and a backtrack to zero types nothing. 8VIM made the opposite choice and got cheap diacritics for it. We cannot have both. Correction is the beginner feature; the fast diacritic is the expert feature.</li>
-  <li><b>Do not copy their prefix.</b> It starts outside the circle, and that is the one thing an experienced user rejected outright. A prefix that starts and ends in the center would keep our continuous stroke property.</li>
-  <li><b>Copy the same-slot rule.</b> The accented letter goes in the base letter's slot, so the layer needs no new spatial memory. It also gives the study cards and the game a trivial extension.</li>
-  <li><b>A layer is the answer for symbols too.</b> The tap keypad is the loudest complaint in this whole input family, and <span class="mono">symbols-pad.js</span> is our version of their numpad, with the same weakness.</li>
+  <li><b>The problem is smaller than 15 characters.</b> Czech adds 15 accented letters, but they sit on only 13 base letters, and only e (é, ě) and u (ú, ů) are ambiguous. A single modifier decides the other eleven: a c d i n o r s t y z.</li>
+  <li><b>The open direction is a modifier after the finished letter.</b> A gesture or a tap that follows the letter, not a mode entered before it. Nothing is designed yet.</li>
+  <li><b>Whatever it is, it must start and end in the center.</b> That keeps the continuous stroke, and it is the single loudest structural complaint about 8VIM's answer.</li>
+  <li><b>It must not collide with the net crossing count.</b> Backward rotation already means "un-count an arm", and capitals already own the extra full loop. The free ground is what happens after the commit, not during the letter.</li>
+  <li><b>Keep the no-new-memory property.</b> 8VIM puts the accented letter in the base letter's slot, so a user learns nothing new for it. A post-letter modifier gets the same property for free, and the study cards and the game then extend without a new map.</li>
+  <li><b>Symbols carry the same open question.</b> <span class="mono">symbols-pad.js</span> is our version of the tap keypad that every review of this input family complains about. The diacritics answer and the symbols answer should at least be considered together.</li>
 </ol>
 
 <div class="sources">

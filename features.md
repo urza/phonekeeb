@@ -452,8 +452,20 @@ on combined en+cs statistics. Git history keeps them.
   like the theme. A stale `phonekeeb.language` key from before the
   language switch was removed is simply ignored.
 - Slots can hold punctuation. A typed mark ends the prediction word.
-- Diacritics input is not built yet; the plan is an accent popup or
-  combining swipes, and the prediction chips already restore them.
+- Diacritics input is not built yet. The prediction chips already
+  restore them, so this is a second path, not the only one.
+  Two mechanisms are ruled out (user, 2026-08-27):
+  - **No layers.** 8VIM switches to a second wheel with a prefix
+    gesture that starts outside the circle. Its own users report that
+    this breaks the stroke flow. See `8vim-layers-research.md`.
+  - **No reversal suffix.** 8VIM types the accented letter by rotating
+    one sector back before the center, which is why it has no backtrack
+    correction. We keep backtrack correction. See "Cancel and
+    correction" above.
+  The open direction is a modifier that follows the finished letter,
+  because in Czech only `e` (é, ě) and `u` (ú, ů) carry two diacritics.
+  The other eleven base letters (a c d i n o r s t y z) have exactly
+  one, so a single gesture or tap decides them. Not designed yet.
 
 ## Letter study cards
 
