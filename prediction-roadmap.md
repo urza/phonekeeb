@@ -1,10 +1,10 @@
 # Suggestion engine: where we are and where we can go
 
-Written 2026-08-27, after the language-model study. This is the standing
-overview of the prediction work: what the engine does, what has been
-tried, what each route returned, and which directions are open. It is a
-map, not a plan of record. The detail lives in the research files it
-points to.
+Written 2026-08-27, after the language-model study. Refreshed the same
+day, after the learned-words page landed. This is the standing overview
+of the prediction work: what the engine does, what has been tried, what
+each route returned, and which directions are open. It is a map, not a
+plan of record. The detail lives in the research files it points to.
 
 ## Where the engine stands
 
@@ -14,6 +14,13 @@ typed prefix. Scores come from stupid backoff down trigram, bigram, then
 unigram counts. On top sit a sentence-language posterior, one-edit typo
 hypotheses, a verbatim chip, and a personal model that learns while you
 type.
+
+The personal side is now the most finished layer of the engine. It keeps
+its own trigram, bigram and unigram counts, halves them every 30 days as
+well as past 50000 tokens, and holds the user's own decisions: a blocked
+list, a pinned list, and the last 500 committed words. `dictionary.html`
+makes all of it readable and editable, including a review queue for
+learned typos.
 
 Measured on held-out subtitles, strip of 6 (hit@1 / hit@3):
 
@@ -37,7 +44,7 @@ gaps are the map.
 | 1. Input model | Each input event becomes a distribution over intended letters | **Missing.** We use a generic one-edit string model |
 | 2. Candidate generation | Prefix trie plus edits, plus word-boundary nodes | Prefix scan plus 1 edit. No boundary inference |
 | 3. Context LM | n-gram over committed words | Well developed. The scoring is the weak part |
-| 4. Personal layer | Counts from the user's own typing, with decay | Learning shipped. Seeding and tuning open |
+| 4. Personal layer | Counts from the user's own typing, with decay | Learning, decay, editing and a typo queue all shipped. Seeding and tuning open |
 | 5. Neural re-ranker | Small model reorders the n-gram candidates | Measured, not built |
 
 ## What we explored, and what each returned
@@ -80,11 +87,17 @@ ignores prefix length. With one typed letter there is no typing evidence
 yet, and 0.05 times an English giant still beats a small Czech word.
 
 **3. Go deeper on personalization.** This is where SwiftKey's reputation
-comes from, and where the user's own typing history becomes a moat. Two
-pieces: seed the model from chat exports (`tools/build-personal.py`, still
-unwritten), then tune the blend weight. The public Enron personalization
-set unblocks the tuning today. Published target: about 10% keystroke
-savings and 36% fewer word errors over a static model.
+comes from, and where the user's own typing history becomes a moat. The
+store itself is now well built, so two pieces remain. Seed the model from
+chat exports (`tools/build-personal.py`, still unwritten), then tune the
+blend weight, which has never been tuned against held-out data. The
+public Enron personalization set unblocks the tuning today. Published
+target: about 10% keystroke savings and 36% fewer word errors over a
+static model.
+
+One thing the store now provides for free: the commit history and the
+typo queue are the corrections log that direction 4 needs for per-user
+calibration. Half of that data pipeline already exists.
 
 **4. Build a gesture-aware input model.** The largest untouched axis, and
 the one nobody else can copy. Our errors are not neighbour taps. They are

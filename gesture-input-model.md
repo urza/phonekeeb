@@ -198,7 +198,11 @@ anything from anyone.
 **Learned from the user, later.** The keyboard already sees ground truth:
 accepting a chip, or backspacing and retyping, reveals the intended word.
 Logging stroke features against the corrected letter gives a per-user
-fit. This is the same learning signal AOSP's user-history dictionary
+fit. Half of that pipeline landed on 2026-08-27 with the learned-words
+page: `PersonalModel` now keeps the last 500 committed words, and the
+Typos tab already pairs a learned mistake with the word it was probably
+meant to be. What is missing is the stroke features next to each pair,
+which is exactly what stage 0 below adds. This is the same learning signal AOSP's user-history dictionary
 uses, and the same hierarchy the CHI 2013 adaptive-keyboard work
 recommends: global prior, then user, then session. Store it locally and
 decay it, like the personal model.
@@ -237,6 +241,17 @@ crossing count, or its neighbour by sector. Every typo number we have
 today is measured against errors that cannot happen.
 
 ## 7. What this touches elsewhere
+
+**The learned-typo queue.** `dictionary.html` flags a learned word as a
+probable typo when it is within one edit of a common word, counting a
+swap of two neighbouring letters as one edit. That swap rule is a
+tap-keyboard heuristic: it exists because fingers on keys land in the
+wrong order. A gesture never transposes two letters, because each one is
+drawn and committed on its own. The confusions this keyboard actually
+makes are the ones in section 2, and a posterior would flag them
+directly, with the marginal stroke as the evidence rather than string
+distance as a guess. Keep the swap rule, since real typing-through
+mistakes still happen, and add the gesture confusions beside it.
 
 **Layout.** The confusable pairs are fixed by the geometry: crossings
 plus or minus one within a row, and adjacent sectors. A layout that puts
