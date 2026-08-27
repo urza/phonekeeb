@@ -22,6 +22,9 @@ assignment is what our prototype copies.
 - Repo: https://github.com/8VIM/8VIM
 - Issues: https://github.com/8VIM/8VIM/issues
 
+Its layer system, which is how it types diacritics, is taken apart in
+`8vim-layers-research.md`.
+
 Community (checked 2026-08-25):
 
 - GitHub Issues is where the community actually talks: 82 open, real

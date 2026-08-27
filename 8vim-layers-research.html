@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Phonekeeb 8VIM Layers</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --ink: #1a212c; --muted: #576273;
+    --line: #dfe4eb; --accent: #2b5fe3; --link: #2154cf; --chip-bg: #eef1f6;
+    --warn-ink: #815409; --warn-bg: #faf1df; --warn-line: #e8d5a8;
+    --good: #1a7f4b; --quote-line: #b9c4d4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a; --card: #181d24; --ink: #e7eaf0; --muted: #98a2b1;
+      --line: #2a313b; --accent: #5c86f5; --link: #93b0ff; --chip-bg: #232a33;
+      --warn-ink: #e3b76c; --warn-bg: #251e0f; --warn-line: #4a3d1e;
+      --good: #52c98a; --quote-line: #3c4756;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a; --card: #181d24; --ink: #e7eaf0; --muted: #98a2b1;
+    --line: #2a313b; --accent: #5c86f5; --link: #93b0ff; --chip-bg: #232a33;
+    --warn-ink: #e3b76c; --warn-bg: #251e0f; --warn-line: #4a3d1e;
+    --good: #52c98a; --quote-line: #3c4756;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.03rem; line-height: 1.55; margin: 0;
+  }
+  .wrap { max-width: 42.5rem; margin: 0 auto; padding: 2.2rem 1.15rem 3.5rem; }
+  .eyebrow {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(1.9rem, 6vw, 2.5rem); font-weight: 700;
+    letter-spacing: -.015em; line-height: 1.08; text-wrap: balance; margin: 0 0 .7rem;
+  }
+  .dek { font-size: 1.11rem; color: var(--muted); max-width: 34em; margin: 0 0 1.8rem; }
+  h2 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.28rem; font-weight: 700; letter-spacing: -.01em;
+    text-wrap: balance; margin: 2.6rem 0 .8rem;
+  }
+  h3 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.03rem; font-weight: 700; margin: 1.7rem 0 .5rem;
+  }
+  p { margin: .65rem 0; max-width: 65ch; }
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .mono { font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace; }
+
+  .tldr { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.05rem 1.25rem; margin: 1.6rem 0 0; }
+  .tldr ul { margin: 0; padding-left: 1.1rem; }
+  .tldr li { margin: .45rem 0; }
+  .tldr b { font-weight: 600; }
+
+  /* quote cards: the complaints are the evidence, so they stay verbatim */
+  .q { border-left: 3px solid var(--quote-line); padding: .1rem 0 .1rem 1rem; margin: 1.1rem 0; }
+  .q.key { border-left-color: var(--good); }
+  .q p { font-size: .99rem; margin: 0 0 .4rem; }
+  .q b { font-weight: 600; }
+  .who { font-family: "Spline Sans Mono", monospace; font-size: .78rem; color: var(--muted); }
+  .who .yr { opacity: .75; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .5rem .7rem; border-top: 1px solid var(--line); vertical-align: top; }
+  thead th { border-top: 0; font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
+  td:first-child { font-weight: 600; }
+  td.seq { font-family: "Spline Sans Mono", monospace; font-size: .82rem; font-weight: 400; }
+  td.seq b { color: var(--accent); }
+
+  .warncard { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: .9rem 1.1rem; margin: 1.3rem 0; }
+  .warncard .tag { font-family: "Spline Sans Mono", monospace; font-size: .72rem; letter-spacing: .12em; color: var(--warn-ink); font-weight: 500; }
+  .warncard p { font-size: .95rem; margin: .4rem 0 0; }
+
+  ol.plan { padding-left: 1.25rem; margin: .8rem 0; }
+  ol.plan li { margin: .7rem 0; max-width: 62ch; }
+  ol.plan b { font-weight: 600; }
+
+  .sources { border-top: 1px solid var(--line); margin-top: 2.6rem; padding-top: 1.2rem; }
+  .sources h2 { margin-top: 0; font-size: 1.05rem; }
+  .sources ul { padding-left: 1.1rem; margin: .5rem 0 0; font-size: .84rem; }
+  .sources li { margin: .3rem 0; }
+  .repo-note { font-size: .88rem; color: var(--muted); margin-top: 1.3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">Phonekeeb · researched 2026-08-27</p>
+<h1>How 8VIM layers work, and what they cost</h1>
+<p class="dek">Layers are 8VIM's answer to the question we have not answered yet: where do the Czech diacritics live.</p>
+
+<div class="tldr">
+  <ul>
+    <li><b>A layer is a second full wheel</b> of 32 characters, drawn in place of the letters. Six levels exist: the default plus five extra.</li>
+    <li><b>You enter one with a prefix gesture</b>: bottom sector, into the circle, back out to bottom. Each further clockwise step picks the next layer.</li>
+    <li><b>It is momentary.</b> The layer resets after every character, and at every finger down and up. Sticky layers do not exist.</li>
+    <li><b>32 of the 33 shipped layouts use them.</b> Only English does not. The content is almost all diacritics.</li>
+    <li><b>There is a faster undocumented path:</b> draw the base letter, then step back one sector before returning to the center.</li>
+    <li><b>That fast path costs them backtrack correction.</b> Our decoder spends the same motion on correction today. Both are not possible at once.</li>
+  </ul>
+</div>
+
+<h2>The data model</h2>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Level</th><th>Name</th><th>Drawn</th><th>How you reach it</th></tr></thead>
+  <tbody>
+    <tr><td>−1</td><td class="mono">functions</td><td>no</td><td>only while the Fn button is on</td></tr>
+    <tr><td>0</td><td class="mono">hidden</td><td>no</td><td>arbitrary movement sequences, written by hand</td></tr>
+    <tr><td>1</td><td class="mono">default</td><td>yes</td><td>the normal wheel</td></tr>
+    <tr><td>2–6</td><td class="mono">first…fifth</td><td>yes</td><td>the prefix gesture below</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Each visible layer holds the same 32 slots as the default wheel: 4 sectors, 2 parts per sector, 4 crossing depths. Every slot carries a lower case and an upper case value, so one layer can hold 64 outputs, and six layers give 192 slots.</p>
+
+<p>The <span class="mono">hidden</span> layer is different in kind. It holds explicit movement sequences instead of positions, so it can define any path, including one that starts outside the circle or needs a finger lift. The shipped <span class="mono">special_core_gestures.yaml</span> puts the emoji shortcuts, the bracket pairs, the suggestion picks and the Fn toggle there.</p>
+
+<h2>How you activate a layer</h2>
+
+<div class="q">
+  <p>To switch to layer selection do: <span class="mono">bottom</span> → <span class="mono">circle</span>. Then go back to <span class="mono">bottom</span> for the second layer. If you turn clockwise you change to the other layers.</p>
+  <span class="who">8VIM docs · layers guide</span>
+</div>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Layer</th><th>Prefix</th></tr></thead>
+  <tbody>
+    <tr><td>2</td><td class="seq">bottom, circle, bottom</td></tr>
+    <tr><td>3</td><td class="seq">bottom, circle, bottom, left</td></tr>
+    <tr><td>4</td><td class="seq">bottom, circle, bottom, left, top</td></tr>
+    <tr><td>5</td><td class="seq">bottom, circle, bottom, left, top, right</td></tr>
+    <tr><td>6</td><td class="seq">bottom, circle, bottom, left, top, right, bottom</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Then you return to the circle and draw the letter as usual. Three properties matter.</p>
+
+<p><b>The stroke must start outside the circle</b>, with the finger down in the bottom sector. A layer cannot be entered from the middle of a running stroke, because the prefix is matched from the first position of the stroke.</p>
+
+<p><b>The wheel re-renders</b> with the layer's characters while the prefix is held. That is the whole point of the feature. It was contributed in 2023 as "display other layers", and a later regression that stopped the redraw was treated as a bug.</p>
+
+<p><b>The layer resets</b> to default after each committed character, and on every finger down and up. One user asked for a permanent switch, "as from the local language to English". The code has no such state.</p>
+
+<p>Cost for one accented letter at the first crossing: 5 moves after touch down, against 3 for the plain letter.</p>
+
+<h3>The fast path nobody documented</h3>
+
+<p>Every extra-layer character also gets a second gesture, generated in code and registered next to the first. The rule: draw the base letter's path, and before returning to the center, step back one sector. One extra back step per layer level above the first.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Char</th><th>Gesture</th></tr></thead>
+  <tbody>
+    <tr><td>a</td><td class="seq">center, right, top, center</td></tr>
+    <tr><td>á <span class="who">layer 2</span></td><td class="seq">center, right, top, <b>right</b>, center</td></tr>
+    <tr><td>r</td><td class="seq">center, right, top, left, center</td></tr>
+    <tr><td>ř <span class="who">layer 2</span></td><td class="seq">center, right, top, left, <b>top</b>, center</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>This is the pre-2023 diacritics mechanism. Layers replaced it, users revolted at the cost, and the maintainer restored it as a hidden alternative inside the same release. It is not in the docs, not in the wiki, and not visible on the wheel. The visible layer teaches the character; the reversal types it quickly once you know it.</p>
+
+<h2>What the shipped layouts put in layers</h2>
+
+<p>All 33 layout files, read at <span class="mono">master</span> on 2026-08-27.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Use</th><th>Layouts</th></tr></thead>
+  <tbody>
+    <tr><td>Diacritics and special letters</td><td>28 layouts, <span class="mono">af</span> through <span class="mono">tr</span></td></tr>
+    <tr><td>Currency and extra punctuation</td><td><span class="mono">de es et fi fr it nl pl pt sk</span>, mostly €</td></tr>
+    <tr><td>Digraph macros</td><td><span class="mono">it</span>: ch, qu, gh as single slots</td></tr>
+    <tr><td>A whole second alphabet</td><td><span class="mono">he</span> and <span class="mono">uk</span> hold the full 32-slot Latin set in a layer</td></tr>
+    <tr><td>Numerals and marks</td><td><span class="mono">ar</span>: Arabic-Indic digits plus the harakat</td></tr>
+    <tr><td>Punctuation the base wheel lacks</td><td><span class="mono">ru</span>: ! . … : / — * ; " ъ ё</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Layer counts run from 1 to 5. French uses all five: <span class="mono">éœæç</span>, then <span class="mono">àùè</span>, then <span class="mono">âôûêî</span>, then <span class="mono">ÿöüëï</span>, then €. Czech uses two, with 13 characters in the first (<span class="mono">ňářýšďťčžíéóú</span>) and 2 in the second (<span class="mono">ěů</span>). English is the only shipped layout with no extra layer at all.</p>
+
+<div class="warncard">
+  <span class="tag">THE DETAIL WORTH COPYING</span>
+  <p>An accented letter sits in the same slot as its base letter. In the Czech layout, á is at the a slot, č at the c slot, ě at the e slot one layer deeper. Nothing new must be memorized, and the fast path falls out of the same rule.</p>
+</div>
+
+<h2>What is not a layer</h2>
+
+<p><b>Numbers and symbols.</b> A tap on the left sector opens a conventional tap keypad. This is the single most repeated complaint about the keyboard.</p>
+
+<div class="q">
+  <p>The worst experience is with symbols and numbers. To type them you have to use a numpad, <b>reverting to the old targeting method, instead of the gestures.</b></p>
+  <span class="who">Derisis13 <span class="yr">· after seven months of exclusive use, 2024</span></span>
+</div>
+
+<p>A 2022 request to make numbers a wheel is still open. The maintainer wrote in 2023 that layers now make it possible. It has not shipped.</p>
+
+<p><b>Emoji and brackets</b> are hidden-layer sequences. <b>Capitals</b> are one full rotation, and the rotation detector offsets itself by the layer prefix, so capitals work inside a layer. <b>Selection, clipboard and cursor</b> are sector gestures and the Fn layer.</p>
+
+<h2>What users say about layers</h2>
+
+<p>The threads are consistent. All four complaints are about cost, not about the idea.</p>
+
+<div class="q">
+  <p>To write ñ I need to do 5 gestures, in old method I need to do only 3.</p>
+  <span class="who">marcossmtp <span class="yr">· issue #321, 2023</span></span>
+</div>
+
+<div class="q">
+  <p>It is the same situation with the German layout. Since diacritics and capital letters are so common that they occur multiple times in almost every sentence, <b>the new method of entering them is way too slow.</b></p>
+  <span class="who">kjoetom <span class="yr">· issue #321, 2023</span></span>
+</div>
+
+<div class="q key">
+  <p>Personally, I have a problem with gestures which don't start at C. <b>They badly interfere with the "flow".</b> That's also why the Layout Switching method for diacritics is not feasible for me.</p>
+  <span class="who">ManDay <span class="yr">· issue #330, 2023</span></span>
+</div>
+
+<div class="q">
+  <p>I can't find anywhere (wiki, source) how to activate the secondary layers.</p>
+  <span class="who">flauta <span class="yr">· issue #320, 2023</span></span>
+</div>
+
+<p>flauta also names a design smell: the switch gesture ends in the bottom sector, and many layer characters live in the bottom sector.</p>
+
+<p>The most useful thread for us is #558. A user asked to rotate backward to fix an overshoot. The answer was no, and the reason is the fast path.</p>
+
+<div class="q key">
+  <p>It is not possible, because <b>reversing is already used to obtain variants of a letter</b> (in layouts which have multiple "layers").</p>
+  <span class="who">ManDay <span class="yr">· issue #558, 2024, confirmed by the maintainer</span></span>
+</div>
+
+<h2>What this means for phonekeeb</h2>
+
+<ol class="plan">
+  <li><b>Our diacritics problem is 15 Czech letters</b> (á č ď é ě í ň ó ř š ť ú ů ý ž) on top of 32 full slots. A layer is the proven container for exactly this, and one layer holds all 15 with room to spare.</li>
+  <li><b>Name the reversal trade before building anything.</b> <span class="mono">features.md</span> says the crossing count is net, and a backtrack to zero types nothing. 8VIM made the opposite choice and got cheap diacritics for it. We cannot have both. Correction is the beginner feature; the fast diacritic is the expert feature.</li>
+  <li><b>Do not copy their prefix.</b> It starts outside the circle, and that is the one thing an experienced user rejected outright. A prefix that starts and ends in the center would keep our continuous stroke property.</li>
+  <li><b>Copy the same-slot rule.</b> The accented letter goes in the base letter's slot, so the layer needs no new spatial memory. It also gives the study cards and the game a trivial extension.</li>
+  <li><b>A layer is the answer for symbols too.</b> The tap keypad is the loudest complaint in this whole input family, and <span class="mono">symbols-pad.js</span> is our version of their numpad, with the same weakness.</li>
+</ol>
+
+<div class="sources">
+<h2>Sources</h2>
+<ul>
+  <li><a href="https://8vim.github.io/docs/guides/layers/">8VIM layers guide</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/wiki/Adding-a-new-language">Wiki: layout file format</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/wiki/Usability-Guide">Wiki: usability guide</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/tree/master/8vim/src/main/res/raw">The 33 shipped layout files</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/issues/292">#292 the feature request that started layers</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/issues/321">#321 diacritics too slow, fast path restored</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/issues/320">#320 layer switch undocumented</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/issues/418">#418 layers stopped rendering, treated as a bug</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/issues/270">#270 numbers and symbols as a wheel, still open</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/issues/330">#330 faster capitals, and the flow objection</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/issues/558">#558 no backtrack correction, and why</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/discussions/280">Discussion #280 community EN/DE layout built on reversals</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/discussions/186">Discussion #186 mode switches, and adaptive cycling</a></li>
+  <li><a href="https://github.com/8VIM/8VIM/discussions/65">Discussion #65 diacritics methods before layers</a></li>
+  <li><a href="https://derisis13.github.io/2024/07/26/8vim.html">Derisis13, 8VIM review after seven months</a></li>
+</ul>
+<p class="repo-note">Phone twin of <span class="mono">8vim-layers-research.md</span>. Researched 2026-08-27.</p>
+</div>
+
+</div>
+</body>
+</html>

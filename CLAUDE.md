@@ -65,6 +65,12 @@ that file before design work.
   keyboards, from HN 2010/2013, reviews, and the 8VIM discussions. Read
   it before any layout change that would weaken the QWERTY direction
   mnemonic, and before deciding what to build for beginners.
+- `8vim-layers-research.md` (phone twin: `8vim-layers-research.html`)
+  takes apart the one shipped answer to "where do the diacritics live":
+  8VIM's layer system. The gesture that opens a layer, the undocumented
+  reversal shortcut, what all 33 shipped layouts put in their layers,
+  and why 8VIM has no backtrack correction. Read it before designing
+  Czech diacritics input or a symbols wheel.
 - `prediction-roadmap.md` is the standing map of the suggestion engine:
   what it does now, the five layers a keyboard predictor has and which
   ones we have, every route already explored with what it returned, and

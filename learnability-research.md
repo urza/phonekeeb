@@ -132,6 +132,9 @@ return to OpenBoard to compare:
   Capitals need "a full turn (which is longer than typing any
   character)".
 
+The mechanism behind both of those, and behind their diacritics, is the
+layer system. It has its own note: `8vim-layers-research.md`.
+
 Two of those land on us directly. Capitals by extra loop is the
 mechanism we inherited from 8pen and it is reported as too expensive.
 Our punctuation is still unbuilt, and it is the thing that broke 8VIM's
