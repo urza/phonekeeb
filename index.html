@@ -11,7 +11,7 @@
      sw.js caches one pinned build for offline use; freshness still
      comes from the ?v= pinning below (the worker fetches navigations
      network-first and never mixes two builds). -->
-<link rel="manifest" href="manifest.webmanifest?v=31" />
+<link rel="manifest" href="manifest.webmanifest?v=32" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -24,7 +24,7 @@
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file, in cards.html, and the BUILD constant
      in sw.js together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=31" />
+<link rel="stylesheet" href="style.css?v=32" />
 </head>
 <body>
 <header>
@@ -56,7 +56,9 @@
     center to delete more; drag back to restore. Hold top and drag
     sideways to move the caret. Drag from the bottom area: right types ?,
     up types ! (the center circle counts as up), left types a comma. The
-    corner button copies the text, or only the selected part. Suggestions
+    bottom corner button copies the text, or only the selected part. The
+    top corner button opens the emoji picker; it stays open until you
+    press the same button again. Suggestions
     mix English and Czech, follow the sentence's language, and restore
     diacritics and apostrophes (tata &#8594; t&#225;ta, dont &#8594; don't). The keyboard
     learns your words and phrases on this device only; the settings can
@@ -105,6 +107,26 @@
   <div id="output" aria-live="polite"></div>
   <div id="suggestions"></div>
   <canvas id="stage"></canvas>
+  <!-- Top-right corner of the canvas, mirroring the copy button in the
+       bottom-right one. The emoji picker itself is built by
+       emoji-picker.js, lazily on the first open, and inserted after
+       this button. -->
+  <button id="emojiToggle" type="button" aria-label="Emoji" aria-expanded="false" title="Emoji">
+    <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 14.5a4.5 4.5 0 0 0 7 0" />
+      <path d="M9 9.5h.01M15 9.5h.01" />
+    </svg>
+    <!-- Shown instead of the smiley while the picker is open: the same
+         button goes back to the wheel, as on the iPhone keyboard. -->
+    <svg class="back" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="2.5" />
+      <!-- The four sector boundaries of the wheel, drawn on the
+           diagonals like the real ones. -->
+      <path d="M13.8 10.2 18.4 5.6M10.2 10.2 5.6 5.6M10.2 13.8 5.6 18.4M13.8 13.8 18.4 18.4" />
+    </svg>
+  </button>
   <!-- Lives in the bottom-right corner pocket outside the wheel disk;
        position and feedback state are in style.css, wiring in main.js. -->
   <button id="copyText" type="button" aria-label="Copy to clipboard" title="Copy">
@@ -119,22 +141,24 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=31",
-    "./layout.js": "./layout.js?v=31",
-    "./layouts.js": "./layouts.js?v=31",
-    "./themes.js": "./themes.js?v=31",
-    "./prediction.js": "./prediction.js?v=31",
-    "./words-en.js": "./words-en.js?v=31",
-    "./words-cs.js": "./words-cs.js?v=31",
-    "./bigrams-en.js": "./bigrams-en.js?v=31",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=31",
-    "./trigrams-en.js": "./trigrams-en.js?v=31",
-    "./trigrams-cs.js": "./trigrams-cs.js?v=31",
-    "./words-ext-en.js": "./words-ext-en.js?v=31",
-    "./words-ext-cs.js": "./words-ext-cs.js?v=31"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=32",
+    "./layout.js": "./layout.js?v=32",
+    "./layouts.js": "./layouts.js?v=32",
+    "./themes.js": "./themes.js?v=32",
+    "./prediction.js": "./prediction.js?v=32",
+    "./words-en.js": "./words-en.js?v=32",
+    "./words-cs.js": "./words-cs.js?v=32",
+    "./bigrams-en.js": "./bigrams-en.js?v=32",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=32",
+    "./trigrams-en.js": "./trigrams-en.js?v=32",
+    "./trigrams-cs.js": "./trigrams-cs.js?v=32",
+    "./words-ext-en.js": "./words-ext-en.js?v=32",
+    "./words-ext-cs.js": "./words-ext-cs.js?v=32",
+    "./emoji-picker.js": "./emoji-picker.js?v=32",
+    "./emoji-data.js": "./emoji-data.js?v=32"
   }
 }
 </script>
-<script type="module" src="main.js?v=31"></script>
+<script type="module" src="main.js?v=32"></script>
 </body>
 </html>

@@ -18,6 +18,7 @@ const themeEl = document.getElementById('theme');
 const sectorColorsEl = document.getElementById('sectorColors');
 const clearButton = document.getElementById('clearText');
 const copyButton = document.getElementById('copyText');
+const emojiToggle = document.getElementById('emojiToggle');
 const learnTypingEl = document.getElementById('learnTyping');
 const forgetTypingEl = document.getElementById('forgetTyping');
 const forceReloadEl = document.getElementById('forceReload');
@@ -911,6 +912,47 @@ copyButton.addEventListener('click', async () => {
   clearTimeout(copyFlashTimer);
   copyFlashTimer = setTimeout(() => copyButton.classList.remove('copied'), 900);
 });
+
+// Emoji picker. Everything about it is lazy: emoji-picker.js and its
+// 925-entry table are ~35 kB that a session which never opens the
+// picker should not pay for at startup.
+//
+// The picker covers the canvas rather than replacing it (see
+// #emojiPicker in style.css), so the wheel and the decoder's center
+// stay exactly as they were while it is open.
+let emojiPicker = null;
+let emojiOpen = false;
+
+function insertEmoji(emoji) {
+  insertAtCaret(emoji);
+  // An emoji is not a word character: the prediction prefix ends here,
+  // and a period must not appear from a space tapped before it.
+  lastSpaceTapAt = 0;
+  syncCurrentWord();
+  renderSuggestions();
+  renderOutput();
+}
+
+async function setEmojiOpen(open) {
+  if (open && !emojiPicker) {
+    const { createEmojiPicker } = await import('./emoji-picker.js');
+    emojiPicker = createEmojiPicker({ onPick: insertEmoji });
+    // Right after the button, so the button stays later in the DOM and
+    // keeps painting above the picker it opens.
+    emojiToggle.after(emojiPicker.el);
+  }
+  emojiOpen = open;
+  if (emojiPicker) emojiOpen ? emojiPicker.open() : emojiPicker.close();
+  // Word suggestions mean nothing while picking emoji, and the copy
+  // button sits exactly where the category tabs go.
+  suggestionsEl.hidden = emojiOpen;
+  copyButton.hidden = emojiOpen;
+  emojiToggle.setAttribute('aria-expanded', String(emojiOpen));
+  emojiToggle.setAttribute('aria-label', emojiOpen ? 'Back to the keyboard' : 'Emoji');
+  emojiToggle.title = emojiOpen ? 'Keyboard' : 'Emoji';
+}
+
+emojiToggle.addEventListener('click', () => setEmojiOpen(!emojiOpen));
 
 // The hint and all controls collapse behind the settings toggle so the
 // canvas keeps most of the phone screen. Toggling resizes the canvas;

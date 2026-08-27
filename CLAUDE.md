@@ -33,7 +33,12 @@ that file before design work.
   `dictionary.html`/`dictionary.js` (inspect and edit what the
   keyboard learned). The dictionary page keeps every mutation in
   `PersonalModel` (`prediction.js`) so the editing rules port to Swift
-  with the model; the page only decides what to show. Shared pieces:
+  with the model; the page only decides what to show. The keyboard page
+  also carries the emoji picker: `emoji-picker.js` (DOM only, no
+  gesture or text logic) over `emoji-data.js`, which
+  `tools/convert-emoji.py` generates from `emojis/EmojiData.cs`, the
+  user's own C# source. Edit the `.cs` file and re-run the script;
+  never edit the generated file. Shared pieces:
   `wheel-svg.js` draws one gesture as an SVG for both teaching pages,
   and `qwerty-map.js` holds the QWERTY mnemonic table used by the
   game's hint and by `tools/generate-qwerty8pen.mjs`. A new page needs

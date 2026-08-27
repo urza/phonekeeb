@@ -568,6 +568,44 @@ on combined en+cs statistics. Git history keeps them.
   same-scheme panel. A settings checkbox turns the colors off, and the
   choice persists.
 
+## Emoji picker
+
+- A button in the top-right corner of the canvas opens an emoji picker
+  in place of the wheel. It is the copy button's twin: same 48 x 40 px
+  size, border and corner inset, in the corner diagonally opposite.
+  The smiley icon becomes a wheel icon while the picker is open, and
+  the button then closes it, as on the iPhone keyboard.
+- The picker covers the canvas; it does not replace it. Hiding the
+  canvas would resize it to zero and move the decoder's center through
+  a resize cycle. The overlay leaves the wheel untouched underneath and
+  swallows every pointer event by itself.
+- While the picker is open, the suggestion strip and the copy button
+  are hidden. Word suggestions mean nothing during emoji picking, and
+  the copy button sits exactly where the category tabs go.
+- 925 emoji in ten categories (smileys, people, animals, nature, food,
+  activities, travel, objects, symbols, flags), one tab each, plus a
+  recently-used tab first. Tabs sit along the bottom edge, in thumb
+  reach, and switch the grid. There is no search field: a text field
+  would open the phone's own keyboard over a keyboard prototype.
+- A tap types the emoji at the caret and leaves the picker open, so a
+  row of emoji takes one open. The emoji ends the current word for
+  prediction and disarms the double-tap period, the same as
+  punctuation. The learner ignores it: an emoji is not a word
+  character.
+- The recently-used list holds 16 emoji, newest first, in
+  `localStorage` on this device only. It is the tab the picker opens
+  on once it has content; a first run opens on smileys instead. The
+  grid never reshuffles under a finger: a pick marks the recent page
+  stale, and the rebuild happens when that tab is next opened.
+- The picker module and its emoji table (~35 kB) load on the first
+  press of the button, not at startup. The service worker precaches
+  them, so the picker works offline on its first open.
+- Data path: `emojis/EmojiData.cs` (the upstream source, from another
+  project of the author's) to `emoji-data.js`, by
+  `tools/convert-emoji.py`. The same `.cs` file holds 907 search
+  keywords; the converter emits them (`--keywords`) only when a search
+  field exists to use them.
+
 ## Phone-keyboard page layout
 
 - Top to bottom: compact header, typed text, canvas. The canvas fills
@@ -584,6 +622,10 @@ on combined en+cs statistics. Git history keeps them.
   exists, otherwise the whole text, and flashes a check mark in the
   trail accent for 0.9 s. With nothing to copy it does nothing. The
   selection is read at pointer down, before the click can collapse it.
+- An emoji button sits in the opposite corner, top-right of the canvas
+  (see "Emoji picker"). It is positioned from the typed-text box's
+  height, which the CSS keeps in one variable (`--output-h`) that the
+  box, the button and the picker all read.
 - The top bar holds only the name, Clear, and a Settings toggle. The
   hint text and all controls (layout, theme, dead zone) sit
   inside the collapsed settings block, so the touch area keeps most of
@@ -652,6 +694,10 @@ equivalent is UserDefaults. Key, values, default:
 - `phonekeeb.learn`: `1`/`0`, default on (learn from typing).
 - `phonekeeb.trigrams`: `1`/`0`, default on (download and use the
   trigram tables).
+- `phonekeeb.emojiRecent`: the recently used emoji as a JSON array of
+  strings, newest first, at most 16, absent until the first pick.
+  Anything else in the slot is dropped rather than trusted: the list
+  is rendered as DOM text.
 - `phonekeeb.personal`: the personal model as JSON, absent until
   something is learned and removed by "Forget learned words". Never
   leaves the device. Shape v2:
@@ -681,7 +727,7 @@ storage failure (private browsing) never breaks the feature itself.
   layout rules, theme and sector-color contrast) and Playwright
   end-to-end flows (hello in one stroke, prediction chips, function
   taps, delete glide with undelete, double-tap period, caret glide,
-  letter-cards smoke).
+  letter-cards smoke, emoji picker).
 - `tools/eval-prediction.mjs`: the prediction quality harness. It
   scores the real `Predictor` on held-out subtitle lines (every 100th
   line of an 80 MB dump prefix, cached in `tools/corpus/`), reporting
@@ -749,6 +795,10 @@ Tuned constants, one place to read them all:
 | South drag targets | E = ?, N = !, W = ,; center circle counts as N |
 | Suggestion row gap | bottom edge 4 px above the wheel rim |
 | Copy button | 48 x 40 px, 12 px corner inset; copied flash 900 ms |
+| Emoji button | 48 x 40 px, 12 px inset, top-right of the canvas |
+| Emoji picker | 925 emoji, 10 categories; grid cells 44 px, columns auto-fill from 44 px |
+| Emoji tabs | 11 (recent first), 40 px tall, along the bottom edge |
+| Recently used emoji | 16, newest first, localStorage |
 
 Pixel values were tuned on a ~390 px wide phone viewport; on iOS
 they should scale in points, not pixels.

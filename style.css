@@ -28,6 +28,22 @@
   }
 }
 
+/* The `hidden` attribute is a UA rule of `display: none`, and every
+   `display` rule in this file is more specific than it. Elements that
+   JS hides that way need this, or they stay on screen: #suggestions,
+   #copyText, #emojiPicker and .emoji-page all set a display. */
+[hidden] {
+  display: none !important;
+}
+
+:root {
+  /* Height of the typed-text box. The canvas starts right below it, so
+     the emoji button and the emoji picker measure their top edge from
+     this number too. Not a theme variable: it survives the inline
+     theme variables main.js writes on the same element. */
+  --output-h: 74px;
+}
+
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
@@ -127,8 +143,11 @@ main {
   line-height: 1.3;
   /* Fixed height: the canvas must not resize mid-gesture, which would
      move the decoder's center under the finger. Two text lines; longer
-     text scrolls and main.js keeps the newest line in view. */
-  height: 74px;
+     text scrolls and main.js keeps the newest line in view. The height
+     is a variable because the emoji button and the emoji picker are
+     positioned from the canvas top edge, which is this box's bottom
+     edge; three copies of 74 would drift apart. */
+  height: var(--output-h);
   overflow-y: auto;
   background: var(--bg);
   word-break: break-word;
@@ -249,4 +268,141 @@ main {
 
 #copyText.copied .check {
   display: block;
+}
+
+/* Emoji button: the copy button's twin in the canvas's top-right
+   corner. Absolute inside <main>, not fixed like the copy button,
+   because it anchors to the canvas top edge, which moves when the
+   settings block opens. */
+#emojiToggle {
+  position: absolute;
+  right: 12px;
+  top: calc(var(--output-h) + 12px);
+  z-index: 4; /* above #emojiPicker: the same button closes it */
+  width: 48px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  /* --bg over the --panel canvas, same reason as the copy button. */
+  background: var(--bg);
+  color: var(--fg);
+}
+
+#emojiToggle .back {
+  display: none;
+}
+
+/* Open: the smiley becomes the wheel it takes you back to. */
+#emojiToggle[aria-expanded='true'] {
+  border-color: var(--trail);
+  color: var(--trail);
+}
+
+#emojiToggle[aria-expanded='true'] .icon {
+  display: none;
+}
+
+#emojiToggle[aria-expanded='true'] .back {
+  display: block;
+}
+
+/* The picker covers the canvas instead of replacing it. Hiding the
+   canvas would resize it to zero and drag the decoder's center through
+   a resize cycle; an overlay leaves the wheel untouched underneath and
+   swallows every pointer event on its own.
+   It starts at the canvas top edge, so the canvas (which still draws
+   its HUD line) is hidden completely. The padding is the emoji button's
+   band, 12 px gap + 40 px button: the grid begins below it, and because
+   the grid scrolls inside its own box, no emoji cell ever passes under
+   the button. */
+#emojiPicker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: var(--output-h);
+  padding-top: 52px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+}
+
+.emoji-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Momentum scrolling inside the picker. The body sets
+     overscroll-behavior: none for gestures; this box wants normal
+     touch scrolling instead. */
+  touch-action: pan-y;
+  padding: 8px 8px 4px;
+}
+
+.emoji-page {
+  display: grid;
+  /* auto-fill, not fixed columns: the same cell size gives 8 columns on
+     a phone and more on a desktop window, with no breakpoint. */
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 2px;
+}
+
+.emoji-cell {
+  height: 44px; /* full touch target; the glyph alone is not one */
+  font-size: 28px;
+  line-height: 1;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.emoji-cell:active {
+  background: var(--line);
+}
+
+.emoji-empty {
+  /* Spans the whole grid: it is the empty state of the recent page, not
+     a cell in it. */
+  grid-column: 1 / -1;
+  margin: 12px 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Tabs at the bottom, as on the iPhone keyboard: the thumb reaches the
+   bottom edge, and the top-right corner is taken by the emoji button. */
+.emoji-tabs {
+  display: flex;
+  border-top: 1px solid var(--line);
+  /* No safe-area inset here: the picker lives inside <main>, and the
+     body's padding-bottom already holds the whole page above the home
+     indicator. The copy button needs its own inset only because it is
+     position: fixed and escapes that padding. */
+  padding: 2px 4px;
+  background: var(--bg);
+}
+
+.emoji-tab {
+  flex: 1;
+  height: 40px;
+  font-size: 19px;
+  line-height: 1;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  padding: 0;
+  /* The icons are emoji, so a dimmed inactive tab needs opacity; color
+     does not reach a color-font glyph. */
+  opacity: 0.45;
+  cursor: pointer;
+}
+
+.emoji-tab.active {
+  opacity: 1;
+  background: var(--panel);
 }
