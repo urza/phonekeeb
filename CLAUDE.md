@@ -52,6 +52,16 @@ that file before design work.
   keyboards, from HN 2010/2013, reviews, and the 8VIM discussions. Read
   it before any layout change that would weaken the QWERTY direction
   mnemonic, and before deciding what to build for beginners.
+- `prediction-roadmap.md` is the standing map of the suggestion engine:
+  what it does now, the five layers a keyboard predictor has and which
+  ones we have, every route already explored with what it returned, and
+  the open directions. Read it before proposing prediction work, and
+  update it when a direction opens or closes.
+- `gesture-input-model.md` is the design note for roadmap direction 4:
+  turning the decoder's discarded continuous quantities (entry margin,
+  commit margin, radius) into a probability distribution over intended
+  letters, and feeding that to the predictor instead of the current
+  edit-distance-1 branch. Analysis and staged plan only, no code.
 - `swiftkey_research/` (three files, reading material, no phone twin)
   documents the
   keyboard this project is really competing with: the engine
