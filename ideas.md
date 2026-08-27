@@ -181,6 +181,19 @@ PersonalModel. Then the remote call is needed once per new word, ever.
 The big model becomes a teacher for the small one, not a permanent
 dependency. That also means the feature gets cheaper the longer it runs.*
 
+*Refinement (2026-08-27, game session 4). Two technical-Czech cases
+split the win further, into three tiers rather than two. Frequency
+questions: counting wins, free. Register and vocabulary questions: ANY
+web-trained Czech model wins, including the two 124M ones, because
+subtitles hold no form of `predikce` or `prediktor` and web crawl holds
+all of them. All three answered case 13 (`zkouška nového predik`), at
+ranks 3, 5 and 6 in order of size. Meaning-and-context questions: the XL
+alone. Only it reached case 14 (`algoritmu` after `predikčního`), and
+the 124M models answered in the wrong register instead (`zákona`,
+`předpisu`). That matters for cost: the middle tier is 248 MB and ~350
+ms locally, not 3.46 GB and 2.3 s, and it may not need the network at
+all. Only the top tier does.*
+
 *Two practical notes. Pick the XL model, not CzeGPT-2: CzeGPT-2 is
 CC-BY-NC-SA, so no commercial use. Both are Czech only, so English needs
 a second model or a multilingual one.*

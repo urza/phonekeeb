@@ -162,6 +162,15 @@ cannot reach at any size, which is why game cases 9 and 10 are in the
 n-gram reads a two-word window. Unknown words are one case of that
 advantage, not the boundary of it.
 
+Game session 4 split the win into three tiers, not two (2026-08-27).
+Frequency: counting wins and is free. Register and vocabulary: any
+web-trained Czech model wins, the 124M ones included, because our
+subtitle tables hold no technical Czech at all; all three answered case
+13 at ranks 3, 5 and 6 by size. Meaning and context: the XL alone, the
+only engine to reach case 14. The middle tier costs 248 MB and ~350 ms
+locally and may need no network; only the top tier does. Direction 7
+covers part of that middle tier offline and cheaper still.
+
 Two things are settled, and the rest is open. It can never sit in the
 per-keystroke loop: 2.3 seconds per strip locally, and a round trip per
 letter even on a server GPU. And whatever it contributes and the user
