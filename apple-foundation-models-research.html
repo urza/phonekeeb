@@ -273,7 +273,8 @@
 <p>The model is multilingual, so it will emit Czech if pushed. Unsupported means untested and untuned, and <code>czech-lm-research.md</code> is 545 lines of evidence that a model's behavior outside its trained register is not guessable. If this route is ever taken for Czech, measure it on the 14 game cases first, like every other engine in that study.</p>
 
 <h3>Europe</h3>
-<p>Apple Intelligence reached the EU in April 2025 with iOS 18.4, so the framework works here today. The June 2026 newsroom post delays <strong>Siri AI</strong> in the EU for iOS 27, and its wording is narrow: the conversations app, Visual Intelligence, writing tools, Camera Siri mode, and "other Siri AI capabilities announced at WWDC26". <span class="tag v">apple</span> It says nothing about the Foundation Models framework, and macOS 27 keeps Siri AI even in the EU.</p>
+<p>A stale belief worth killing: Apple Intelligence is not blocked in the EU. It was at launch in 2024, and it shipped here with <strong>iOS 18.4 on 2025-03-31</strong>, announced the previous February once the Digital Markets Act interoperability question was resolved. <span class="tag v">apple</span> The framework works on an EU iPhone today.</p>
+<p>The June 2026 newsroom post delays <strong>Siri AI</strong> in the EU for iOS 27, and its wording is narrow: the conversations app, Visual Intelligence, writing tools, Camera Siri mode, and "other Siri AI capabilities announced at WWDC26". <span class="tag v">apple</span> It says nothing about the Foundation Models framework, and macOS 27 keeps Siri AI even in the EU.</p>
 <p>One third-party summary reads this as the whole framework being absent on EU iPhones at launch. That reading is not supported by Apple's text, and it is not settled either. For a Czech user this is a real risk on the 2026 model and no risk at all on the 2025 one.</p>
 
 <h2 id="cost">Cost: memory, speed, and the rate limit</h2>
@@ -312,6 +313,8 @@
   <li>they often were not the words users had asked for.</li>
 </ul>
 <p>Stated gains after the change: no networking code and no AI service of any kind, so nothing typed can leave the device; the engine works on every supported device; and one engine now drives completion, next-word prediction and sentence capitalization.</p>
+
+<p>The <a href="https://apps.apple.com/us/app/jkey-accessible-keyboard/id6746700520">App Store listing</a> prices the result. jKey 2026.1 is <strong>23.2 MB</strong> in total, English only, $1.99, minimum <strong>iOS 18.2</strong>. Two numbers to keep. A whole keyboard with its own language model inside fits in 23.2 MB, a budget our mini model beats by a wide margin. And iOS 18.2 is four releases before Foundation Models existed, so leaving the framework is what let them serve older phones. That is their second reason, priced.</p>
 
 <div class="note">That is our architecture, arrived at independently, by the only other keyboard that tried this API for this job. The third reason is the interesting one. It is not about speed or hardware. It says a 3B general model asked in prose for word suggestions returns the wrong words, which is what the LM study measured for every pretrained model at next-word: 10.0 hit@1 for a 124M model against 17.3 for 1.8 MB of counts.</div>
 
@@ -358,7 +361,8 @@
   <li><a href="https://developer.apple.com/forums/thread/792908">Guardrail violations on benign prompts</a></li>
   <li><a href="https://rudrank.com/exploring-foundation-models-supported-languages-internationalization">Supported languages, enumerated</a></li>
   <li><a href="https://developer.apple.com/wwdc26/guides/machine-learning/">WWDC26 machine learning guide</a></li>
-  <li><a href="https://www.apple.com/newsroom/2026/06/due-to-dma-siri-ai-delayed-in-eu-for-ios-27-and-ipados-27/">Siri AI delayed in the EU</a></li>
+  <li><a href="https://www.apple.com/newsroom/2026/06/due-to-dma-siri-ai-delayed-in-eu-for-ios-27-and-ipados-27/">Siri AI delayed in the EU (June 2026)</a></li>
+  <li><a href="https://www.apple.com/newsroom/2025/02/apple-intelligence-expands-to-more-languages-and-regions-in-april/">Apple Intelligence reaching the EU (announced Feb 2025)</a></li>
   <li><a href="https://github.com/artemnovichkov/xcode-27-system-prompts">Xcode 27 shipped documentation (API surface)</a></li>
   <li><a href="https://github.com/fguzman82/apple-foundation-model-analysis">AFMTextV7 internals, reverse engineered</a></li>
   <li><a href="https://github.com/scouzi1966/AFMTrainer">Adapter training toolkit (rank-32 LoRA, draft model)</a></li>
