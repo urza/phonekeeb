@@ -97,7 +97,13 @@ async function chat(messages) {
     }
     if (!r.ok) throw new Error(`POST /v1/chat/completions -> ${r.status} ${text}`);
     const j = JSON.parse(text);
-    return j.choices?.[0]?.message?.content ?? '';
+    // finish_reason travels with the answer because a reasoning model can
+    // spend the whole output budget thinking and return an empty strip. That
+    // is a harness fault and must never be reported as a model miss.
+    return {
+      content: j.choices?.[0]?.message?.content ?? '',
+      finish: j.choices?.[0]?.finish_reason ?? '',
+    };
   } finally {
     clearTimeout(timer);
   }
@@ -151,12 +157,12 @@ function parseCandidates(text, n) {
 
 async function strip({ left, prefix, n = LIMIT }) {
   const t0 = performance.now();
-  const raw = await chat([
+  const { content, finish } = await chat([
     { role: 'system', content: SYSTEM },
     { role: 'user', content: userPrompt({ left, prefix, n }) },
   ]);
-  const chips = parseCandidates(raw, n);
-  return { chips, ms: performance.now() - t0, raw };
+  const chips = parseCandidates(content, n);
+  return { chips, ms: performance.now() - t0, raw: content, finish };
 }
 
 // ------------------------------------------------------------------ scoring
@@ -179,6 +185,7 @@ async function runGame() {
   let hits = 0;
   let wasted = 0;
   let totalMs = 0;
+  let cut = 0;
   const byLang = { en: 0, cs: 0 };
   for (const c of CASES) {
     const left = c.prefix ? c.input.slice(0, c.input.length - c.prefix.length).trim() : c.input;
@@ -197,9 +204,17 @@ async function runGame() {
     if (rank) { hits++; byLang[LANG[c.n]]++; }
     console.log(`#${String(c.n).padStart(2)} "${c.input}" want=${c.want}`);
     console.log(`    strip: ${res.chips.join(' | ')}`);
-    const verdict = rank ? `HIT at rank ${rank}`
-      : fold ? `MISS (fold-only match "${res.chips[fold - 1]}" at rank ${fold})`
-        : 'MISS';
+    // An empty strip after a long wait is a reasoning model that never left
+    // its scratchpad: either it ran out of budget, or it looped inside the
+    // thinking block and ended the turn with no content. Both are reported
+    // as no answer, not as a miss, because the cause is the run and not the
+    // model's word choice.
+    if (!res.chips.length) cut++;
+    const verdict = !res.chips.length
+      ? `NO ANSWER (${res.finish === 'length' ? 'output budget spent on reasoning' : 'the model ended inside the reasoning block'})`
+      : rank ? `HIT at rank ${rank}`
+        : fold ? `MISS (fold-only match "${res.chips[fold - 1]}" at rank ${fold})`
+          : 'MISS';
     console.log(`    ${verdict}   ${(res.ms / 1000).toFixed(1)}s`
       + (bad ? `   ${bad} chip(s) break the prefix` : ''));
     if (VERBOSE) console.log(`    raw: ${JSON.stringify(res.raw).slice(0, 400)}`);
@@ -207,6 +222,7 @@ async function runGame() {
   console.log(`\n${hits}/${CASES.length} wanted words on the strip`
     + `  (EN ${byLang.en}/9, CS ${byLang.cs}/5)`);
   console.log(`${wasted} chip(s) broke the typed prefix`);
+  if (cut) console.log(`${cut} empty strip(s); the score is a floor, not a result`);
   console.log(`${(totalMs / 1000 / CASES.length).toFixed(1)}s per strip on average`);
 }
 
