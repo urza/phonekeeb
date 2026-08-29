@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Phonekeeb: a 27B behind an API</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #1a212c;
+    --muted: #576273;
+    --line: #dfe4eb;
+    --accent: #2b5fe3;
+    --link: #2154cf;
+    --chip-bg: #eef1f6;
+    --good-ink: #1e6b3a;
+    --good-bg: #e6f4ea;
+    --good-line: #bfe0c9;
+    --warn-ink: #815409;
+    --warn-bg: #faf1df;
+    --warn-line: #e8d5a8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a;
+      --card: #181d24;
+      --ink: #e7eaf0;
+      --muted: #98a2b1;
+      --line: #2a313b;
+      --accent: #5c86f5;
+      --link: #93b0ff;
+      --chip-bg: #232a33;
+      --good-ink: #7ecf9a;
+      --good-bg: #14251a;
+      --good-line: #2b4a35;
+      --warn-ink: #e3b76c;
+      --warn-bg: #251e0f;
+      --warn-line: #4a3d1e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a;
+    --card: #181d24;
+    --ink: #e7eaf0;
+    --muted: #98a2b1;
+    --line: #2a313b;
+    --accent: #5c86f5;
+    --link: #93b0ff;
+    --chip-bg: #232a33;
+    --good-ink: #7ecf9a;
+    --good-bg: #14251a;
+    --good-line: #2b4a35;
+    --warn-ink: #e3b76c;
+    --warn-bg: #251e0f;
+    --warn-line: #4a3d1e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.03rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .wrap { max-width: 42.5rem; margin: 0 auto; padding: 2.2rem 1.15rem 3.5rem; }
+  .eyebrow {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(1.9rem, 6vw, 2.5rem); font-weight: 700;
+    letter-spacing: -.015em; line-height: 1.08; text-wrap: balance; margin: 0 0 .7rem;
+  }
+  .dek { font-size: 1.11rem; color: var(--muted); max-width: 34em; margin: 0 0 1.4rem; }
+  h2 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.42rem; font-weight: 700; letter-spacing: -.01em;
+    line-height: 1.15; margin: 2.4rem 0 .8rem;
+  }
+  h3 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.08rem; font-weight: 700; margin: 1.6rem 0 .5rem;
+  }
+  p { margin: .55rem 0 .9rem; }
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  ul, ol { padding-left: 1.25rem; margin: .5rem 0 1rem; }
+  li { margin: .3rem 0; }
+  code {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .88em; background: var(--chip-bg);
+    padding: .08em .35em; border-radius: .35em;
+  }
+  .toc { display: flex; flex-wrap: wrap; gap: .45rem; margin: 0 0 1.2rem; padding: 0; list-style: none; }
+  .toc a {
+    display: inline-block; background: var(--chip-bg); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: .28rem .75rem; font-size: .85rem; text-decoration: none;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: .8rem; padding: .95rem 1.05rem; margin: .9rem 0;
+  }
+  .note, .warn, .good {
+    border-radius: .8rem; padding: .8rem 1rem; margin: .9rem 0; font-size: .97rem;
+  }
+  .warn { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); }
+  .good { background: var(--good-bg); border: 1px solid var(--good-line); color: var(--good-ink); }
+  .note { background: var(--chip-bg); border: 1px solid var(--line); color: var(--ink); }
+  .warn strong, .good strong { color: inherit; }
+  .tag {
+    display: inline-block; font-family: "Spline Sans Mono", monospace;
+    font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--chip-bg); border: 1px solid var(--line);
+    border-radius: .4rem; padding: .1rem .45rem; margin-left: .35rem;
+    color: var(--muted); vertical-align: middle;
+  }
+  .tag.v { color: var(--good-ink); background: var(--good-bg); border-color: var(--good-line); }
+  .tag.w { color: var(--warn-ink); background: var(--warn-bg); border-color: var(--warn-line); }
+  .tablewrap { overflow-x: auto; margin: .9rem 0; border: 1px solid var(--line); border-radius: .8rem; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; min-width: 26rem; font-size: .95rem; }
+  th, td { text-align: left; padding: .55rem .8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-family: "Spline Sans Mono", monospace; font-weight: 500;
+    font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  }
+  tr:last-child td { border-bottom: none; }
+  .route { margin: .8rem 0; }
+  .route h4 {
+    font-family: "Schibsted Grotesk", sans-serif; font-size: 1rem;
+    margin: 0 0 .25rem;
+  }
+  .route .meta { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .4rem; }
+  .route .meta span {
+    font-size: .78rem; background: var(--chip-bg); border: 1px solid var(--line);
+    border-radius: 999px; padding: .12rem .6rem; color: var(--muted);
+  }
+  .route p { margin: .2rem 0 0; font-size: .97rem; }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: step; position: relative;
+    padding: .1rem 0 .1rem 2.4rem; margin: .8rem 0;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: .1rem;
+    width: 1.7rem; height: 1.7rem; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-family: "Schibsted Grotesk", sans-serif; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; font-size: .95rem;
+  }
+  .srcs { font-size: .92rem; }
+  .srcs li { margin: .25rem 0; overflow-wrap: anywhere; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">Phonekeeb research &middot; 2026-08-29</p>
+<h1>A big model behind an API, measured</h1>
+<p class="dek">Roadmap direction 8 says a big model should sit beside the small one. A 27B on the user's own network answered our 14 game cases and 400 held-out pairs. It wins the game by one case and loses every measured task.</p>
+
+<ul class="toc">
+  <li><a href="#tldr">TL;DR</a></li>
+  <li><a href="#setup">The setup</a></li>
+  <li><a href="#game">The game</a></li>
+  <li><a href="#pairs">Held-out pairs</a></li>
+  <li><a href="#think">Reasoning</a></li>
+  <li><a href="#dir8">Direction 8</a></li>
+  <li><a href="#next">The open lead</a></li>
+</ul>
+
+<h2 id="tldr">TL;DR</h2>
+<div class="card">
+<ul>
+  <li><strong>It loses every held-out task, in both languages.</strong> Next-word, prefix completion, corrupted prefix. The closest is English next-word, 19.5 against our 22.5.</li>
+  <li><strong>It wins the prediction game, 8 of 14 against 7.</strong> The game rewards meaning. The pairs reward frequency. Same split as always, now at 27B.</li>
+  <li><strong>Czech everyday speech is still the hole.</strong> 1 of 5 Czech cases. A 1.58B Czech model answers all five.</li>
+  <li><strong>Reasoning is a loss at every price.</strong> 160 times the latency, no better score, and two answers lost inside the thinking block.</li>
+  <li><strong>Words without numbers cost more than expected.</strong> 17 times bigger than Czech-GPT-2-XL and two game cases behind it, because a chat answer carries no probability and no prefix constraint.</li>
+</ul>
+</div>
+
+<div class="warn"><strong>The verdict in one line.</strong> Nothing here supports letting a big model rank the strip. Its one win is at phrase level, which is where the roadmap already put it.</div>
+
+<h2 id="setup">The setup</h2>
+<p>vLLM on the local network, serving <code>unsloth/Qwen3.8-27B-NVFP4</code>. Strip of 6, temperature 0, non-thinking unless a row says otherwise. Harness: <code>tools/api-lm-predict.mjs</code>, any OpenAI-compatible endpoint. The 14 cases live in <code>tools/game-cases.mjs</code>, shared with <code>tools/eval-game.mjs</code>, so the model and the engine answer the same list.</p>
+
+<div class="note">This is the first measurement of a model we can only talk to in <em>words</em>. <code>lm-predict.py</code> uses logits and a constrained beam. Apple's framework gives neither, so this shape is what iOS forces on us.</div>
+
+<h2 id="game">The prediction game, 14 cases</h2>
+<div class="tablewrap"><table>
+  <tr><th>Engine</th><th>Score</th><th>EN 9</th><th>CS 5</th><th>Per strip</th></tr>
+  <tr><td>shipped <code>prediction.js</code></td><td>7/14</td><td>6</td><td>1</td><td>under 1 ms</td></tr>
+  <tr><td>Qwen3.8-27B, no thinking</td><td><strong>8/14</strong></td><td><strong>7</strong></td><td>1</td><td>0.2 s</td></tr>
+  <tr><td>Qwen3.8-27B, thinking</td><td>7/14, a floor</td><td>5</td><td>2</td><td>32 s</td></tr>
+  <tr><td>Czech-GPT-2-XL 1.58B, beam</td><td>10/14</td><td>5</td><td>5</td><td>1.7-12 s</td></tr>
+  <tr><td>two specialist models merged</td><td>12/14</td><td>7</td><td>5</td><td>seconds</td></tr>
+</table></div>
+
+<p>English everyday speech: good. Czech everyday speech: 1 of 5. Cases 9, 10 and 12 (<code>zaplavat</code>, <code>kuře</code>, <code>zebřičko</code>) are colloquial Czech and it does not hold them. One case went the other way: it put <code>algoritmu</code> at rank 3, and until today only the 1.58B Czech model reached that case.</p>
+
+<h2 id="pairs">Held-out subtitle pairs</h2>
+<p>200 pairs per language, strip of 6, hit@1 / hit@3. The engine column is the shipped predictor on the <em>same</em> pairs, from the same run.</p>
+
+<h3>English</h3>
+<div class="tablewrap"><table>
+  <tr><th>Task</th><th>27B</th><th>our engine</th></tr>
+  <tr><td>next-word</td><td>19.5 / 30.0</td><td><strong>22.5 / 35.0</strong></td></tr>
+  <tr><td>prefix-2</td><td>49.5 / 67.2</td><td><strong>63.5 / 78.6</strong></td></tr>
+  <tr><td>corrupted prefix</td><td>3.1 / 9.4</td><td><strong>35.4 / 51.6</strong></td></tr>
+</table></div>
+
+<h3>Czech</h3>
+<div class="tablewrap"><table>
+  <tr><th>Task</th><th>27B</th><th>our engine</th></tr>
+  <tr><td>next-word</td><td>11.5 / 16.5</td><td><strong>19.0 / 33.0</strong></td></tr>
+  <tr><td>prefix-2</td><td>35.6 / 46.1</td><td><strong>63.9 / 73.8</strong></td></tr>
+  <tr><td>corrupted prefix</td><td>3.1 / 5.2</td><td><strong>34.6 / 53.4</strong></td></tr>
+</table></div>
+
+<p><strong>Next-word is the closest call and still a loss.</strong> The roadmap said a big model loses where frequency decides. It does, and 27B does not change it.</p>
+
+<p><strong>Prefix completion is a large loss, which is new.</strong> The 124M Czech models won this task. This one loses it by 14 points in English and 28 in Czech. The cause is the interface, not the knowledge: asked for six words starting with <code>fi</code>, it writes six plausible words in no frequency order, and our tables know which one people type.</p>
+
+<p><strong>The corrupted prefix is a collapse.</strong> The first run scored 0.5 because the prompt made the typed letters a rule and the model obeyed. The <code>--fuzzy-prefix</code> prompt states the engine's real rule, that a letter can be wrong, and that lifts it only to 3.1. Two letters with one wrong is a job for edit distance over a known lexicon.</p>
+
+<h2 id="think">Reasoning made it worse</h2>
+<p>Thinking mode cost 32 s per strip against 0.2 s, and scored no better. At temperature 0 it looped: on the case <code>smoo</code> it wrote 10306 tokens, most of them the line <code>"smoothe" no.</code> repeated, then ended its turn with no answer. Two cases died that way even at the recommended temperature 0.6.</p>
+
+<div class="note">The harness now reports an empty strip as <em>no answer</em> and totals it separately. Counting it as a miss would blame the model's word choice for a fault of the run.</div>
+
+<h2 id="dir8">What it changes for direction 8</h2>
+<p>The direction survives and its shape narrows.</p>
+<ul>
+  <li><strong>A big model is not a better strip.</strong> Worse at the per-keystroke job in both languages, and not because of size or Czech.</li>
+  <li><strong>The win is phrase level and meaning level.</strong> 8 of 14 against 7 is thin, and it is the only win.</li>
+  <li><strong>The text-only interface costs more than it seemed.</strong> Direction 8 assumed candidates the merge weighs by <code>langPosterior()</code>. That needs numbers. A chat model gives an order and nothing else, and this is what an order alone is worth.</li>
+  <li><strong>Reasoning models are the wrong tool here.</strong> Use the non-thinking path or a base model.</li>
+</ul>
+
+<h2 id="next">The open lead: logprobs</h2>
+<p>This server allows logprobs. vLLM returns the top-N alternatives per generated token on <code>/v1/completions</code>, which is enough to run the same constrained beam <code>lm-predict.py</code> uses locally, against a 27B we could never load here. That would separate the two causes this study confounds: what the model does not know, and what the chat interface throws away. Cheapest next experiment on this hardware, and it needs no new model.</p>
+
+<footer>
+Researched 2026-08-29. Markdown twin: <a href="https://github.com/urza/phonekeeb/blob/main/served-model-research.md">served-model-research.md</a>.
+</footer>
+
+</div>
+</body>
+</html>

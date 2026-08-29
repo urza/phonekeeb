@@ -38,6 +38,12 @@ const LIMIT = Number(arg('n', '6')); // strip of 6: eval-prediction.mjs LIMIT
 const TEMP = Number(arg('temp', '0'));
 const MAX_TOKENS = Number(arg('max-tokens', '700'));
 const NO_THINK = flag('no-think');
+// The engine treats a typed prefix as evidence, not as law: its typo layer
+// offers words one edit away. A prompt that says "every line must start with
+// these letters" asks for something else, and on the corrupted-prefix task it
+// makes the model spell out words that cannot exist. This flag states the
+// engine's own rule instead, so the two columns measure the same task.
+const FUZZY = flag('fuzzy-prefix');
 const CONCURRENCY = Number(arg('concurrency', '2'));
 const TIMEOUT_MS = Number(arg('timeout', '180')) * 1000;
 const VERBOSE = flag('verbose');
@@ -119,6 +125,15 @@ Never repeat a candidate. Never answer with a phrase; one word per line.`;
 
 function userPrompt({ left, prefix, n }) {
   const ctx = left ? `Text so far:\n${left}\n\n` : 'The user starts a new message.\n\n';
+  if (prefix && FUZZY) {
+    return `${ctx}The user has started typing the next word. `
+      + `The letters typed so far are: ${prefix}\n`
+      + `Gestures slip, so one of those letters can be wrong.\n`
+      + `List the ${n} most likely whole words the user is typing, most likely `
+      + `first. Most of them begin with "${prefix}". Include a word that `
+      + `differs from "${prefix}" by one letter when that word is more likely.`
+      + (NO_THINK ? ' /no_think' : '');
+  }
   if (prefix) {
     return `${ctx}The user has started typing the next word. `
       + `The letters typed so far are: ${prefix}\n`

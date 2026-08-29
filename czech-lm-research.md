@@ -15,6 +15,11 @@ need to ship".
 Read `word-prediction-research.md` first. It holds the shipped engine's
 design, its tuned constants, and the numbers this study compares against.
 
+Every model here is one we load ourselves, with logits and a constrained
+beam. A model we can only talk to in words is measured separately, on the
+same game and the same held-out pairs: `served-model-research.md`, a 27B
+served over the network, 2026-08-29.
+
 ## Summary
 
 1. **The 124M Czech GPT-2 models lose to the shipped tables at next-word

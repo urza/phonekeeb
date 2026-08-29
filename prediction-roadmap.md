@@ -185,6 +185,20 @@ letter even on a server GPU. And whatever it contributes and the user
 accepts goes into the personal model, so it teaches the small engine
 instead of becoming a permanent dependency.
 
+A 27B model, served over the user's own network, was measured on
+2026-08-29: `served-model-research.md`. It is the first test of a model
+we can only talk to in words, which is the shape iOS forces. Three
+results. It wins the game by one case, 8 of 14 against our 7, and that
+win is the whole win. It loses every held-out task in both languages,
+including next-word (19.5 against 22.5 hit@1 in English) and prefix
+completion, which pretrained models normally win. And it is two game
+cases behind a 1.58B Czech model that gets logits and a constrained
+beam, while being 17 times larger. So the interface costs more than the
+size buys, and the merge this direction assumes has no probabilities to
+merge. Reasoning mode is worse than useless here: 160 times the latency,
+no better score, and empty strips when the model loops inside its own
+thinking block.
+
 The iOS half of this direction is now researched:
 `apple-foundation-models-research.md` (2026-08-29). Four findings change
 the plan. The framework hands out words and never numbers, so there is
