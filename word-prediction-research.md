@@ -77,9 +77,16 @@ LSTM), against a 164K vocabulary. The approach is sound at our scale.
 - iOS 26 ships the Foundation Models framework: a system-managed ~3B
   model at 2 bits per weight, about 30 tokens/s on an iPhone 15 Pro.
   The OS hosts the model, so it does not count against an extension's
-  memory ceiling (Apple forums thread 795044). At least one shipping
-  keyboard extension (jKey) already uses it for next-word prediction.
+  memory ceiling (Apple forums thread 795044).
   Latency fits phrase-level chips, not per-keystroke ranking.
+  Taken apart in full on 2026-08-29:
+  `apple-foundation-models-research.md`. The API returns words and never
+  probabilities, so nothing can enter our score merge and nothing can be
+  constrained to our lexicon; Czech is unsupported in both model
+  generations; and jKey, the shipping keyboard this note used to cite as
+  a precedent, dropped the framework in 2026.1 for a model inside the
+  keyboard, because the suggestions were slow, needed newer devices, and
+  were often the wrong words.
 
 ### Microsoft SwiftKey
 

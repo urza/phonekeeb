@@ -185,6 +185,22 @@ letter even on a server GPU. And whatever it contributes and the user
 accepts goes into the personal model, so it teaches the small engine
 instead of becoming a permanent dependency.
 
+The iOS half of this direction is now researched:
+`apple-foundation-models-research.md` (2026-08-29). Four findings change
+the plan. The framework hands out words and never numbers, so there is
+no probability to merge and no way to constrain the output to our
+lexicon. Czech is unsupported in both model generations, and the 2026
+list added Polish, Russian and Ukrainian while skipping it. The model's
+memory is hosted by the OS and does not count against the extension's
+48 to 60 MB, which is the only reason a 3B model is thinkable inside a
+keyboard. And jKey, the one shipping keyboard that used this API for
+prediction, removed it in 2026.1 and shipped its own model, because
+predictions were slow, needed newer devices, and were often the wrong
+words. So the two specialist arms split by platform as well as by
+language: English can run free and local on Apple's model, and Czech
+still needs a provider we choose. Three device tests come before any
+code, listed at the end of that note.
+
 Directions 7 and 8 overlap only on cause F, and there they split by
 what the word is. Direction 7 covers real dictionary forms our tiers
 cut, offline and free. Direction 8 covers what no dictionary holds:

@@ -358,7 +358,7 @@
   <p>Agreed order, each step measurable: the eval harness first (constants get tuned, so measurement comes first, with a typo-simulation eval next to hit@3), then bigrams with counts plus the scoring predictor, then the trigram layer with counts behind a flag. Later refinement: gesture-aware edit costs, because this keyboard's typos are crossing-count slips and sector misses, not QWERTY neighbor taps.</p>
 
   <h2>iOS port notes</h2>
-  <p><span class="mono">documentContextBeforeInput</span> hands a keyboard extension the text before the cursor (about 300 characters in practice), enough for trigram context. The tables sit far under the 48 to 60 MB extension memory ceiling. The Foundation Models route deserves one prototype spike later; the jKey keyboard already ships it, and the model's memory is system-managed, outside the extension's budget.</p>
+  <p><span class="mono">documentContextBeforeInput</span> hands a keyboard extension the text before the cursor (about 300 characters in practice), enough for trigram context. The tables sit far under the 48 to 60 MB extension memory ceiling. The Foundation Models route deserves one prototype spike later, and the model's memory is system-managed, outside the extension's budget. Researched in full on 2026-08-29 (<a href="apple-foundation-models-research.html">Apple Foundation Models for a keyboard</a>): the API returns words and never probabilities, Czech is unsupported in both model generations, and jKey, the keyboard this note used to cite as a precedent, dropped the framework in 2026.1 for a model shipped inside the keyboard.</p>
 
   <h2>Measured top successors</h2>
   <div class="demo">

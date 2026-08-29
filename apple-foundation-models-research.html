@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Apple Foundation Models for a Keyboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #1a212c;
+    --muted: #576273;
+    --line: #dfe4eb;
+    --accent: #2b5fe3;
+    --link: #2154cf;
+    --chip-bg: #eef1f6;
+    --good-ink: #1e6b3a;
+    --good-bg: #e6f4ea;
+    --good-line: #bfe0c9;
+    --warn-ink: #815409;
+    --warn-bg: #faf1df;
+    --warn-line: #e8d5a8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a;
+      --card: #181d24;
+      --ink: #e7eaf0;
+      --muted: #98a2b1;
+      --line: #2a313b;
+      --accent: #5c86f5;
+      --link: #93b0ff;
+      --chip-bg: #232a33;
+      --good-ink: #7ecf9a;
+      --good-bg: #14251a;
+      --good-line: #2b4a35;
+      --warn-ink: #e3b76c;
+      --warn-bg: #251e0f;
+      --warn-line: #4a3d1e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a;
+    --card: #181d24;
+    --ink: #e7eaf0;
+    --muted: #98a2b1;
+    --line: #2a313b;
+    --accent: #5c86f5;
+    --link: #93b0ff;
+    --chip-bg: #232a33;
+    --good-ink: #7ecf9a;
+    --good-bg: #14251a;
+    --good-line: #2b4a35;
+    --warn-ink: #e3b76c;
+    --warn-bg: #251e0f;
+    --warn-line: #4a3d1e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.03rem;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .wrap { max-width: 42.5rem; margin: 0 auto; padding: 2.2rem 1.15rem 3.5rem; }
+  .eyebrow {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(1.9rem, 6vw, 2.5rem); font-weight: 700;
+    letter-spacing: -.015em; line-height: 1.08; text-wrap: balance; margin: 0 0 .7rem;
+  }
+  .dek { font-size: 1.11rem; color: var(--muted); max-width: 34em; margin: 0 0 1.4rem; }
+  h2 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.42rem; font-weight: 700; letter-spacing: -.01em;
+    line-height: 1.15; margin: 2.4rem 0 .8rem;
+  }
+  h3 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.08rem; font-weight: 700; margin: 1.6rem 0 .5rem;
+  }
+  p { margin: .55rem 0 .9rem; }
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  ul, ol { padding-left: 1.25rem; margin: .5rem 0 1rem; }
+  li { margin: .3rem 0; }
+  code {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .88em; background: var(--chip-bg);
+    padding: .08em .35em; border-radius: .35em;
+  }
+  .toc { display: flex; flex-wrap: wrap; gap: .45rem; margin: 0 0 1.2rem; padding: 0; list-style: none; }
+  .toc a {
+    display: inline-block; background: var(--chip-bg); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: .28rem .75rem; font-size: .85rem; text-decoration: none;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: .8rem; padding: .95rem 1.05rem; margin: .9rem 0;
+  }
+  .note, .warn, .good {
+    border-radius: .8rem; padding: .8rem 1rem; margin: .9rem 0; font-size: .97rem;
+  }
+  .warn { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); }
+  .good { background: var(--good-bg); border: 1px solid var(--good-line); color: var(--good-ink); }
+  .note { background: var(--chip-bg); border: 1px solid var(--line); color: var(--ink); }
+  .warn strong, .good strong { color: inherit; }
+  .tag {
+    display: inline-block; font-family: "Spline Sans Mono", monospace;
+    font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
+    background: var(--chip-bg); border: 1px solid var(--line);
+    border-radius: .4rem; padding: .1rem .45rem; margin-left: .35rem;
+    color: var(--muted); vertical-align: middle;
+  }
+  .tag.v { color: var(--good-ink); background: var(--good-bg); border-color: var(--good-line); }
+  .tag.w { color: var(--warn-ink); background: var(--warn-bg); border-color: var(--warn-line); }
+  .tablewrap { overflow-x: auto; margin: .9rem 0; border: 1px solid var(--line); border-radius: .8rem; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; min-width: 26rem; font-size: .95rem; }
+  th, td { text-align: left; padding: .55rem .8rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-family: "Spline Sans Mono", monospace; font-weight: 500;
+    font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  }
+  tr:last-child td { border-bottom: none; }
+  .route { margin: .8rem 0; }
+  .route h4 {
+    font-family: "Schibsted Grotesk", sans-serif; font-size: 1rem;
+    margin: 0 0 .25rem;
+  }
+  .route .meta { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .4rem; }
+  .route .meta span {
+    font-size: .78rem; background: var(--chip-bg); border: 1px solid var(--line);
+    border-radius: 999px; padding: .12rem .6rem; color: var(--muted);
+  }
+  .route p { margin: .2rem 0 0; font-size: .97rem; }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: step; position: relative;
+    padding: .1rem 0 .1rem 2.4rem; margin: .8rem 0;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: .1rem;
+    width: 1.7rem; height: 1.7rem; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-family: "Schibsted Grotesk", sans-serif; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; font-size: .95rem;
+  }
+  .srcs { font-size: .92rem; }
+  .srcs li { margin: .25rem 0; overflow-wrap: anywhere; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">Phonekeeb research &middot; 2026-08-29</p>
+<h1>Apple's on-device model, from inside a keyboard</h1>
+<p class="dek">The roadmap says the iOS route to a big model is the Foundation Models framework. This tests that sentence: what the API hands a keyboard extension, what it refuses, and what it costs. Facts marked <span class="tag v">apple</span> come from Apple's own pages, forums or shipped docs. <span class="tag w">3rd party</span> is weaker.</p>
+
+<ul class="toc">
+  <li><a href="#tldr">TL;DR</a></li>
+  <li><a href="#model">The model</a></li>
+  <li><a href="#api">What the API gives</a></li>
+  <li><a href="#missing">What it withholds</a></li>
+  <li><a href="#avail">Availability</a></li>
+  <li><a href="#cost">Cost</a></li>
+  <li><a href="#jkey">The precedent</a></li>
+  <li><a href="#ios27">iOS 27</a></li>
+  <li><a href="#verdict">Verdict</a></li>
+  <li><a href="#sources">Sources</a></li>
+</ul>
+
+<h2 id="tldr">TL;DR</h2>
+<div class="card">
+<ul>
+  <li><strong>It gives you words, never numbers.</strong> No logits, no per-token probability, no lexicon constraint. Both tricks that make <code>lm-predict.py</code> work are impossible through this API.</li>
+  <li><strong>Czech is not supported.</strong> Not in the 23 locales of 2025, not in the 25 languages of 2026. That list added Polish, Russian and Ukrainian and still skipped Czech.</li>
+  <li><strong>Memory is free.</strong> The OS hosts the model, so it does not count against the extension's Jetsam limit. That is the one real gift, and nothing else we measured has it.</li>
+  <li><strong>Speed puts it where the roadmap already put it.</strong> ~30 tokens/s, so one to two seconds per strip. Phrase level. Never per keystroke.</li>
+  <li><strong>The one shipping keyboard that used it removed it.</strong> jKey 2026.1 threw the engine away and shipped its own model.</li>
+</ul>
+</div>
+
+<div class="warn"><strong>The verdict in one line.</strong> Use it as the <em>English</em> arm of roadmap direction 8, where it is free, local and costs no extension memory. It is not an answer for the Czech arm, and Czech is why direction 8 was opened.</div>
+
+<h2 id="model">The model behind the API</h2>
+<p>Two generations exist. Third-party apps get the on-device text model. <span class="tag v">apple</span></p>
+
+<div class="tablewrap"><table>
+  <tr><th></th><th>2025 (iOS 26)</th><th>2026 (iOS 27)</th></tr>
+  <tr><td>On-device</td><td>~3B dense</td><td>AFM 3 Core, 3B dense</td></tr>
+  <tr><td>Second tier</td><td>none</td><td>Core Advanced, 20B sparse, 1-4B active</td></tr>
+  <tr><td>Decoder quant.</td><td>2 bits/weight, QAT</td><td>not published</td></tr>
+  <tr><td>Embed. / KV</td><td>4 bits / 8 bits</td><td>not published</td></tr>
+  <tr><td>Session context</td><td>4,096 tokens</td><td>not published</td></tr>
+  <tr><td>Languages</td><td>23 locales</td><td>25 languages</td></tr>
+</table></div>
+
+<p>Two architecture details explain the speed. The model splits into two blocks at a 5:3 depth ratio, and block 2 reuses block 1's final-layer KV cache, cutting KV memory by 37.5%. The 2026 model keeps all 20B in NAND flash and swaps routed experts into DRAM per prompt, which is how a 20B model fits a phone at all.</p>
+
+<p>Reverse engineering of the shipped bundle <span class="tag w">3rd party</span> adds what Apple does not publish: the text model is <code>AFMTextV7</code>, 3.18B parameters over 56 layers (35 standard, 21 KV-reuse), hidden size 2048, a <strong>153,600-token vocabulary</strong>, and about <strong>1.0-1.1 GB on disk</strong>. A separate 48.8M draft model does speculative decoding. LoRA adapters are rank 32 across 1,173 attachment points.</p>
+
+<div class="note">Two of those numbers matter to us. <strong>1 GB</strong> is what the OS holds for free on our behalf, against an extension budget of 48-60 MB. And <strong>153,600 tokens</strong> is six times GPT-2's vocabulary, a real cost for any prefix-constrained decode, if we could do one, which we cannot.</div>
+
+<h2 id="api">What the API gives</h2>
+<p>The whole surface, from the documentation shipped with Xcode. <span class="tag v">apple</span></p>
+
+<div class="tablewrap"><table>
+  <tr><th>Piece</th><th>What it does</th></tr>
+  <tr><td><code>SystemLanguageModel.default</code></td><td>the model handle</td></tr>
+  <tr><td><code>.availability</code></td><td><code>.available</code>, or <code>.unavailable(reason)</code></td></tr>
+  <tr><td><code>.supportedLanguages</code></td><td><code>[Locale.Language]</code>, checked at runtime</td></tr>
+  <tr><td><code>LanguageModelSession(instructions:)</code></td><td>one context, one transcript</td></tr>
+  <tr><td><code>session.respond(to:)</code></td><td>whole answer, one call</td></tr>
+  <tr><td><code>session.streamResponse(to:)</code></td><td>partial snapshots as they generate</td></tr>
+  <tr><td><code>session.prewarm()</code></td><td>load weights before the user needs them</td></tr>
+  <tr><td><code>@Generable</code> / <code>@Guide</code></td><td>structured output, typed, constrained fields</td></tr>
+  <tr><td><code>Tool</code> protocol</td><td>the model calls your Swift code mid-generation</td></tr>
+  <tr><td><code>GenerationOptions</code></td><td><code>temperature</code>, <code>sampling</code>, <code>maximumResponseTokens</code></td></tr>
+</table></div>
+
+<p><code>sampling</code> accepts <code>.greedy</code>, <code>.random(top:seed:)</code> and <code>.random(probabilityThreshold:seed:)</code>. So you pick top-k or top-p, and you can make generation deterministic. You still never see the distribution those options operate on.</p>
+
+<p>Three availability failures, each needing a different response: <code>deviceNotEligible</code> is permanent, fall back forever; <code>appleIntelligenceNotEnabled</code> is a user setting, one prompt is fair; <code>modelNotReady</code> means still downloading, retry quietly. A keyboard must handle all three, because the local engine has to keep working in every one.</p>
+
+<h2 id="missing">What it withholds, and why each one hurts</h2>
+
+<div class="card route">
+  <h4>No logits, no per-token probabilities</h4>
+  <div class="meta"><span>no API exists</span><span>blocks the merge</span></div>
+  <p>Our engine merges evidence by weighing scores, and <code>langPosterior()</code> weighs two languages every keystroke. A big model that returns six strings and no scores cannot enter that merge. It can only replace or append. A principled combination becomes a heuristic one.</p>
+</div>
+
+<div class="card route">
+  <h4>No lexicon constraint</h4>
+  <div class="meta"><span>blocks the prefix mask</span><span>invented words</span></div>
+  <p><code>lm-predict.py</code> masks the vocabulary at every beam step to tokens still compatible with the typed letters. That needs the vocabulary. Here you can only write "words beginning with zapla" in the prompt and hope. The LM study already measured the result of no constraint: "smool, smoop, smoola". <code>@Generable</code> fixes the <em>shape</em> of the answer, a list of six strings, and says nothing about whether those strings are words.</p>
+</div>
+
+<div class="card route">
+  <h4>Guardrails you do not control</h4>
+  <div class="meta"><span>forum 792908</span><span>moves between betas</span></div>
+  <p>Benign prompts draw <code>guardrailViolation</code>, appearing and disappearing across OS betas with no code change. A keyboard types what the user types. A strip that silently empties on some sentences is worse than one that is merely wrong. The Python SDK exposes a permissive guardrail mode, which hints the Swift API has the same escape hatch. Check before building.</p>
+</div>
+
+<div class="card route">
+  <h4>No control over the model version</h4>
+  <div class="meta"><span>adapters expire</span></div>
+  <p>Adapters must be retrained for every new base model. Any tuning we do carries an OS-release-shaped expiry date.</p>
+</div>
+
+<p>The 4,096-token session window is the one limit that does not bite us. A keyboard sees a sentence.</p>
+
+<h2 id="avail">Availability</h2>
+
+<h3>Devices</h3>
+<p>iPhone 15 Pro and newer (A17 Pro and up), Apple silicon Macs, M-series iPads. Everything older gets nothing. jKey named this as one of its three reasons for leaving.</p>
+
+<h3>Languages <span class="tag v">apple</span></h3>
+<p>2025 covers 23 locales: English (US, GB, AU), French (FR, CA), German, Italian, Spanish (ES, US, 419), Portuguese (BR, PT), Dutch, Danish, Norwegian, Swedish, Turkish, Vietnamese, Chinese (CN, TW, HK), Japanese, Korean. The 2026 model adds Arabic, Finnish, Hebrew, Hindi, Indonesian, Malay, Polish, Russian, Thai and Ukrainian.</p>
+
+<div class="warn"><strong>Czech appears in neither list.</strong> The 2026 list is the sharper evidence, because it added three Slavic languages and skipped Czech. Read <code>supportedLanguages</code> at runtime rather than trusting a hardcoded list, but plan for absence.</div>
+
+<p>The model is multilingual, so it will emit Czech if pushed. Unsupported means untested and untuned, and <code>czech-lm-research.md</code> is 545 lines of evidence that a model's behavior outside its trained register is not guessable. If this route is ever taken for Czech, measure it on the 14 game cases first, like every other engine in that study.</p>
+
+<h3>Europe</h3>
+<p>Apple Intelligence reached the EU in April 2025 with iOS 18.4, so the framework works here today. The June 2026 newsroom post delays <strong>Siri AI</strong> in the EU for iOS 27, and its wording is narrow: the conversations app, Visual Intelligence, writing tools, Camera Siri mode, and "other Siri AI capabilities announced at WWDC26". <span class="tag v">apple</span> It says nothing about the Foundation Models framework, and macOS 27 keeps Siri AI even in the EU.</p>
+<p>One third-party summary reads this as the whole framework being absent on EU iPhones at launch. That reading is not supported by Apple's text, and it is not settled either. For a Czech user this is a real risk on the 2026 model and no risk at all on the 2025 one.</p>
+
+<h2 id="cost">Cost: memory, speed, and the rate limit</h2>
+
+<h3>Memory: effectively zero <span class="tag v">apple</span></h3>
+<p>An Apple Frameworks Engineer confirmed the model and its inference resources are managed centrally by the OS, shared across all Apple Intelligence features, and <strong>do not count against the app's Jetsam limit</strong>. Multiple sessions in parallel are supported, and run serially on the Neural Engine.</p>
+
+<div class="tablewrap"><table>
+  <tr><th>Option</th><th>In-extension memory</th><th>Fits 48-60 MB?</th></tr>
+  <tr><td>shipped <code>prediction.js</code> tables</td><td>1.81 MB</td><td>yes</td></tr>
+  <tr><td>mini model from scratch</td><td>1.3 MB int8</td><td>yes</td></tr>
+  <tr><td>CzeGPT-2, 124M</td><td>124 MB int8</td><td>no</td></tr>
+  <tr><td>Czech-GPT-2-XL, 1.58B</td><td>~790 MB int4</td><td>no</td></tr>
+  <tr><td><strong>Foundation Models, 3B</strong></td><td><strong>~0</strong></td><td><strong>yes</strong></td></tr>
+</table></div>
+
+<div class="good">Every local neural option above 100 MB is dead inside a keyboard extension. This one is not, and it is 3B parameters. That is the whole argument for the route.</div>
+
+<h3>Speed</h3>
+<p>Apple published about <strong>30 tokens per second</strong> and roughly 0.6 ms time-to-first-token per prompt token on an iPhone 15 Pro for the first generation. <span class="tag v">apple</span> Third-party testing puts short answers at 30-50 tokens/s, falling when another Neural Engine workload runs. Six candidate words as a structured list is perhaps 30-60 tokens, so <strong>one strip is one to two seconds</strong> before prompt processing. Our per-keystroke budget is about 20 ms. The gap is two orders of magnitude, the same conclusion the local XL model reached at 2.3 s per strip.</p>
+
+<h3>The rate limit is the undocumented risk <span class="tag v">apple</span></h3>
+<p>Apple's engineer states rate limiting applies when the device is on battery <strong>and</strong> the process runs in the background, and that it surfaces as a misleading "Safety guardrail was triggered after consecutive failures during streaming" error. One developer hit it with <strong>four requests at 30-second intervals</strong>. Advice given: do not stream in background contexts, use <code>respond</code> instead.</p>
+
+<div class="warn"><strong>Nobody has answered whether a keyboard extension counts as background.</strong> It is visible on screen and it is not the foreground app. A keyboard firing one request per word boundary would sit far above four requests per two minutes. Test on a device before any design depends on it. This may be the real reason jKey found the route slow.</div>
+
+<h3>Full Access</h3>
+<p>No source says whether the framework is reachable from a keyboard extension without Full Access. It is a local XPC service, not network, so it should be. Guideline 4.4.1 requires the keyboard to work fully without Full Access, and our design already meets that. Test it, and treat the answer as a gate.</p>
+
+<h2 id="jkey">The one shipping precedent</h2>
+<p>jKey is an accessible keyboard for VoiceOver users: five large letter clusters, and the keyboard works out the intended word. A harder decoding problem than ours, and the same shape.</p>
+<p>Its prediction ran on Apple Intelligence. In jKey 2026.1 the developer replaced it with a language model shipped inside the keyboard, listing three reasons <span class="tag w">3rd party</span>:</p>
+<ul>
+  <li>predictions were slow,</li>
+  <li>they only worked on newer devices,</li>
+  <li>they often were not the words users had asked for.</li>
+</ul>
+<p>Stated gains after the change: no networking code and no AI service of any kind, so nothing typed can leave the device; the engine works on every supported device; and one engine now drives completion, next-word prediction and sentence capitalization.</p>
+
+<div class="note">That is our architecture, arrived at independently, by the only other keyboard that tried this API for this job. The third reason is the interesting one. It is not about speed or hardware. It says a 3B general model asked in prose for word suggestions returns the wrong words, which is what the LM study measured for every pretrained model at next-word: 10.0 hit@1 for a 124M model against 17.3 for 1.8 MB of counts.</div>
+
+<h2 id="ios27">What WWDC 2026 changed</h2>
+<div class="card">
+<ul>
+  <li><strong>Image input.</strong> Prompts take images; Vision tools (OCR, barcodes) are callable by the model. Nothing for us.</li>
+  <li><strong>The <code>LanguageModel</code> protocol.</strong> Third-party providers ship Swift packages conforming to it. Anthropic and Google shipped implementations on day one. Swap the provider by changing a package dependency; the rest of the app keeps using <code>LanguageModelSession</code>.</li>
+  <li><strong>Free Private Cloud Compute.</strong> App Store Small Business Program apps under 2 million lifetime first-time downloads get the server model free. Above that line, no published pricing. Claude and Gemini are metered separately.</li>
+  <li><strong>Dynamic Profiles</strong>, an <code>fm</code> CLI, a Python SDK, an evaluations framework, and Instruments profiling for model calls.</li>
+</ul>
+</div>
+
+<p>The protocol is the piece that matters. Direction 8 decided on 2026-08-27 to run two specialist models, one per language, merged by the posterior we already compute. iOS 27 turns that into one interface with two providers behind it: Apple's local model for English, something else for Czech. The keyboard writes one code path.</p>
+
+<div class="warn">The free PCC tier does not solve Czech. The cloud model is the same family and presumably the same language list. And any cloud call is exactly the network dependency fifteen years of SwiftKey reviews say users will not forgive unless it is visibly optional and off by default.</div>
+
+<h2 id="verdict">What this means for phonekeeb</h2>
+
+<p><strong>Keep direction 8 as written, and split it by language.</strong></p>
+
+<div class="good"><strong>The English arm gets a strong answer.</strong> Apple's model is free, local, needs no network, costs no extension memory, and reaches quality our tables cannot at phrase level. Cost: one to two seconds, iPhone 15 Pro and newer, and an untested rate limit.</div>
+
+<div class="warn"><strong>The Czech arm gets no answer here.</strong> Czech is unsupported in both generations, and the two game cases that opened direction 8, <code>zaplavat</code> and <code>ku&#345;e</code>, are Czech. Options by cost: wait for Czech support and re-measure; route Czech through a provider package at metered cost, off by default; or accept that the Czech arm stays local and capped.</div>
+
+<h3>Three things to do before any code</h3>
+<ol class="steps">
+  <li><strong>Measure Apple's model on the 14 game cases.</strong> The <code>fm</code> CLI and the Python SDK make this the same shape as <code>tools/lm-predict.py</code>, so the harness already exists in outline. It needs a Mac, and <code>ios-deployment-research.md</code> prices a cloud Mac at about 3 EUR per day for a one-day job. Run the English cases as the real test, and the Czech ones to price the unsupported-language question with numbers instead of a language list.</li>
+  <li><strong>Test the rate limit from a real keyboard extension.</strong> One request per word boundary, on battery, for two minutes. If it throttles, the feature is a "think harder" chip and not an automatic second opinion.</li>
+  <li><strong>Test whether it works without Full Access.</strong> Guideline 4.4.1 makes this a gate, not a detail.</li>
+</ol>
+
+<h3>One thing not to do</h3>
+<p>Do not let this route touch the per-keystroke strip. Two orders of magnitude of latency, no probabilities to merge, no lexicon constraint, and a shipping keyboard that already tried and reverted. The 1.3 MB mini model stays the right answer for the strip, and the compounding design still holds: whatever the big model contributes and the user accepts goes into <code>PersonalModel</code>, so the big model teaches the small one and is needed once per new word, ever.</p>
+
+<h2 id="sources">Sources</h2>
+<ul class="srcs">
+  <li><a href="https://developer.apple.com/documentation/foundationmodels">Foundation Models framework documentation</a></li>
+  <li><a href="https://machinelearning.apple.com/research/apple-foundation-models-2025-updates">2025 model update (sizes, quantization, KV sharing)</a></li>
+  <li><a href="https://machinelearning.apple.com/research/introducing-third-generation-of-apple-foundation-models">Third generation, AFM 3 (2026)</a></li>
+  <li><a href="https://arxiv.org/abs/2507.13575">Apple Intelligence Foundation Language Models, tech report 2025</a></li>
+  <li><a href="https://developer.apple.com/forums/thread/795044">Memory is OS-managed, not charged to the app</a></li>
+  <li><a href="https://developer.apple.com/forums/thread/789788">Rate limiting inside app extensions</a></li>
+  <li><a href="https://developer.apple.com/forums/thread/792908">Guardrail violations on benign prompts</a></li>
+  <li><a href="https://rudrank.com/exploring-foundation-models-supported-languages-internationalization">Supported languages, enumerated</a></li>
+  <li><a href="https://developer.apple.com/wwdc26/guides/machine-learning/">WWDC26 machine learning guide</a></li>
+  <li><a href="https://www.apple.com/newsroom/2026/06/due-to-dma-siri-ai-delayed-in-eu-for-ios-27-and-ipados-27/">Siri AI delayed in the EU</a></li>
+  <li><a href="https://github.com/artemnovichkov/xcode-27-system-prompts">Xcode 27 shipped documentation (API surface)</a></li>
+  <li><a href="https://github.com/fguzman82/apple-foundation-model-analysis">AFMTextV7 internals, reverse engineered</a></li>
+  <li><a href="https://github.com/scouzi1966/AFMTrainer">Adapter training toolkit (rank-32 LoRA, draft model)</a></li>
+  <li><a href="https://apple.github.io/python-apple-fm-sdk/">Python SDK</a></li>
+  <li><a href="https://www.applevis.com/forum/ios-ipados/jkey-20261-cluster-typing-real-language-model-behind-it-no-ai">jKey 2026.1, why it dropped Apple Intelligence</a></li>
+  <li><a href="https://apps.apple.com/us/app/jkey-accessible-keyboard/id6746700520">jKey on the App Store</a></li>
+</ul>
+
+<footer>
+Researched 2026-08-29. Markdown twin: <a href="https://github.com/urza/phonekeeb/blob/main/apple-foundation-models-research.md">apple-foundation-models-research.md</a>.
+</footer>
+
+</div>
+</body>
+</html>

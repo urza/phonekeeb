@@ -238,6 +238,19 @@ capability, no server, no data leaving the phone. Remote is the way to
 test the idea now, in the web prototype; it may not be the way to ship
 it.*
 
+*Researched properly 2026-08-29 (`apple-foundation-models-research.md`),
+and it holds for English only. The free memory is real and it is the one
+thing no other big-model route offers. But the framework returns words
+and never probabilities, so its answer cannot enter the score merge, and
+it cannot be constrained to our lexicon. Czech is unsupported in both
+model generations; the 2026 list added Polish, Russian and Ukrainian and
+skipped Czech. jKey, the one shipping keyboard that used this API for
+prediction, removed it in 2026.1 and shipped its own model instead. So:
+English free and local on Apple's model, Czech still needs a provider we
+choose. iOS 27 makes that one code path, because its new `LanguageModel`
+protocol puts Apple's local model and the cloud providers behind one
+interface.*
+
 ## Beyond letters
 
 ### Word completion inside the glide

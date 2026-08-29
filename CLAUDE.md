@@ -106,6 +106,14 @@ that file before design work.
   Store rules for keyboards (4.4.1, Full Access, ~40-60 MB memory cap),
   and costs. Researched and hand-verified 2026-08-25. Read it before any
   native iOS work.
+- `apple-foundation-models-research.md` (phone twin:
+  `apple-foundation-models-research.html`) tests the roadmap's claim that
+  the iOS route to a big model is Apple's Foundation Models framework:
+  the API surface, the three things it withholds (logits, a lexicon
+  constraint, guardrail control), the languages (Czech is in neither
+  generation), the free extension memory, the undocumented rate limit,
+  and the one keyboard that tried it and reverted. Researched
+  2026-08-29. Read it before any work on prediction-roadmap direction 8.
 
 ## Working mode
 
