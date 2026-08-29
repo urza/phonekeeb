@@ -1,18 +1,26 @@
-// Suggestion strip driven by a chat model behind an OpenAI-compatible HTTP
-// API: Ollama, LM Studio, llama.cpp server, vLLM, or a hosted provider.
+// Suggestion strip driven by a model behind an OpenAI-compatible HTTP API:
+// vLLM, Ollama, LM Studio, llama.cpp server, or a hosted provider.
 //
 // Written for prediction-roadmap.md direction 8 ("a big model beside the
 // small one"). tools/lm-predict.py answers the same question for a model we
-// load ourselves, with logits and a constrained beam. This file answers it
-// for a model we can only talk to in words. That is the harder and more
-// honest case, because it is what iOS gives us: Apple's Foundation Models
-// framework hands out text and never numbers
-// (apple-foundation-models-research.md). So the ranking here comes from the
-// model's own ordering of a list, not from probabilities.
+// load ourselves. This file answers it over the network, at three levels of
+// access, because the level decides what a big model is worth here:
+//
+//   --chat    (default) ask in words, take the model's own ordering. This is
+//             all Apple's Foundation Models framework allows: text out, no
+//             numbers (apple-foundation-models-research.md).
+//   --beam    constrained beam search over /v1/completions logprobs. The same
+//             method lm-predict.py runs locally: whole words, the typed
+//             prefix enforced by the prompt, and tokenizations of one word
+//             summed. Needs an API that returns top-N logprobs.
+//   --rerank  score the shipped engine's own chips and reorder them. The
+//             neural re-ranker of roadmap direction 5, measured without
+//             building one: the n-gram generates, the big model ranks.
 //
 // Usage:
 //   node tools/api-lm-predict.mjs --base http://192.168.1.50:11434 --game
 //   node tools/api-lm-predict.mjs --base URL --model qwen3:27b --game --no-think
+//   node tools/api-lm-predict.mjs --base URL --game --beam
 //   node tools/api-lm-predict.mjs --base URL --pairs /tmp/pairs-cs.json \
 //       --limit 100 [--tasks next,prefix,typo] [--concurrency 4]
 //
@@ -47,6 +55,11 @@ const FUZZY = flag('fuzzy-prefix');
 const CONCURRENCY = Number(arg('concurrency', '2'));
 const TIMEOUT_MS = Number(arg('timeout', '180')) * 1000;
 const VERBOSE = flag('verbose');
+
+const MODE = flag('beam') ? 'beam' : flag('rerank') ? 'rerank' : 'chat';
+const BEAM = Number(arg('beam-width', '8'));
+const DEPTH = Number(arg('beam-depth', '6'));   // tokens per word, after the prefix
+const TOP = Number(arg('top', '20'));           // vLLM caps sample logprobs at 20
 
 if (!BASE) {
   console.error('Give the server with --base http://HOST:PORT (or LM_API_BASE).');
@@ -115,6 +128,190 @@ async function chat(messages) {
   }
 }
 
+// The raw completions endpoint, with no chat template. That is deliberate:
+// the beam needs the model as a plain language model over the user's own
+// text, which is what lm-predict.py measures locally on GPT-2 class models.
+// `prompt` may be a list, and the server answers one choice per prompt, so a
+// whole beam step costs one request.
+async function complete(prompts, extra) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const r = await fetch(`${BASE}/v1/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KEY}` },
+      body: JSON.stringify({ model: MODEL, prompt: prompts, temperature: 0, ...extra }),
+      signal: ctrl.signal,
+    });
+    const text = await r.text();
+    if (!r.ok) throw new Error(`POST /v1/completions -> ${r.status} ${text}`);
+    const j = JSON.parse(text);
+    // The server may return the choices out of order; index says which prompt.
+    const out = new Array(prompts.length);
+    for (const c of j.choices) out[c.index] = c;
+    return out;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// vLLM answers a whole batch with 400 when one prompt in it produces a NaN
+// logprob, and the batch is then lost. Retrying prompt by prompt keeps the
+// rest of the strip, and only the prompt that actually fails scores as
+// impossible.
+async function completeSafe(prompts, extra) {
+  try {
+    return await complete(prompts, extra);
+  } catch (e) {
+    if (prompts.length === 1) return [null];
+    const out = [];
+    for (const p of prompts) {
+      try { out.push((await complete([p], extra))[0]); } catch { out.push(null); }
+    }
+    return out;
+  }
+}
+
+const logsumexp = (a, b) => (a > b ? a + Math.log1p(Math.exp(b - a)) : b + Math.log1p(Math.exp(a - b)));
+
+// A token that opens with a space or a newline starts a NEW word, so it ends
+// the word being built. So does a token that opens with punctuation. Anything
+// else continues the current word.
+const startsWord = (t) => /^[\s]/.test(t);
+const endsWord = (t) => startsWord(t) || (t.length > 0 && EDGE_PUNCT.has(t[0]));
+
+function trimWord(w) {
+  let s = w.split(/\s/)[0];
+  while (s.length > 1 && EDGE_PUNCT.has(s[0])) s = s.slice(1);
+  while (s.length > 1 && EDGE_PUNCT.has(s[s.length - 1])) s = s.slice(0, -1);
+  return s;
+}
+
+// Constrained beam search over whole words, the method of lm-predict.py, run
+// over HTTP.
+//
+// Two things make this a suggestion strip and not a text generator. The typed
+// prefix goes INTO the prompt, so every beam already spells it and no beam
+// slot is wasted on a word that breaks it. And two token paths that spell the
+// same word are one candidate, summed in probability, because "zaplavat" is
+// one word whether the model reached it as zapla+vat or zap+lavat.
+async function stripBeam({ left, prefix, n = LIMIT }) {
+  const t0 = performance.now();
+  // With a typed prefix the prompt ends mid-word, so the model continues it.
+  // With no prefix the prompt must NOT end in a space: a trailing space
+  // splits the next word away from its word-start token and the whole beam
+  // collapses into fragments.
+  const base = (prefix ? (left ? `${left} ${prefix}` : prefix) : left) || '\n';
+  const pkey = matchKey(prefix.toLowerCase());
+  const covers = (w) => matchKey(w.toLowerCase()).startsWith(pkey);
+  // A beam carries two strings. `cont` is what gets appended to the prompt,
+  // and `word` is the word being spelled. They differ when the model restates
+  // the typed prefix as part of one token, so neither one alone is enough.
+  let beams = [{ cont: '', word: prefix, lp: 0, open: prefix !== '' }];
+  const done = new Map();
+  const trace = [];
+  let requests = 0;
+
+  const record = (word, score) => {
+    const w = trimWord(word);
+    if (!w || !covers(w)) return;
+    const cur = done.get(w);
+    done.set(w, cur === undefined ? score : logsumexp(cur, score));
+  };
+
+  for (let step = 0; step < DEPTH && beams.length; step++) {
+    const res = await complete(beams.map((b) => base + b.cont), { max_tokens: 1, logprobs: TOP });
+    requests++;
+    const next = new Map();
+    const push = (cont, word, score) => {
+      const cur = next.get(cont);
+      next.set(cont, { cont, word, lp: cur ? logsumexp(cur.lp, score) : score, open: true });
+    };
+    for (let i = 0; i < beams.length; i++) {
+      const b = beams[i];
+      const top = res[i]?.logprobs?.top_logprobs?.[0];
+      if (!top) continue;
+      for (const [tok, lp] of Object.entries(top)) {
+        if (/^<\|.*\|>$/.test(tok)) continue; // chat control tokens are not words
+        const score = b.lp + lp;
+        const t = tok.replace(/^\s+/, '');
+        if (!b.open) {
+          // Before the word: only a token that opens one counts. A
+          // continuation here would be the model finishing the PREVIOUS word.
+          if (!startsWord(tok) || !t || endsWord(t)) continue;
+          push(tok, t, score);
+          continue;
+        }
+        if (startsWord(tok) && b.cont === '' && t && covers(t)) {
+          // The prompt ends mid-word, and the model answers with the WHOLE
+          // word as one token, space and all ("you are am" -> " amazing").
+          // That is the word's canonical tokenization, so it is another path
+          // to the same candidate and not a new word. Without this branch the
+          // top-20 cap hides every word the tokenizer spells in one piece.
+          push(tok, t, score);
+          continue;
+        }
+        if (endsWord(tok)) { record(b.word, score); continue; }
+        push(b.cont + tok, b.word + tok, score);
+      }
+    }
+    beams = [...next.values()].sort((a, b) => b.lp - a.lp).slice(0, BEAM);
+    // The trace travels back with the result instead of being printed here,
+    // so it lands under its own case and not under the previous one.
+    trace.push(`step ${step}: [${beams.map((b) => JSON.stringify(b.cont)).join(' ')}] ${done.size} done`);
+  }
+
+  const chips = [...done.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([w]) => w);
+  return { chips, ms: performance.now() - t0, raw: `${requests} requests\n    ${trace.join('\n    ')}`, finish: 'stop' };
+}
+
+// Scores whole candidates the engine already produced, and reorders them.
+// One request for the whole strip: echo returns a logprob per prompt token,
+// and text_offset says which tokens are the candidate rather than the
+// context. The sum of those is log P(candidate | context), marginalized over
+// nothing, because the tokenization of a given string is fixed.
+async function rerankChips(left, chips) {
+  const t0 = performance.now();
+  if (!chips.length) return { chips: [], ms: 0, raw: '', finish: 'stop' };
+  const prompts = chips.map((w) => (left ? `${left} ${w}` : w));
+  // One generated token comes back with the echo. Its distribution is what
+  // says the word is FINISHED, and without it this scores prefixes instead of
+  // words: the token sum for "fi" is the probability of every word starting
+  // "fi", which beats "film" for no good reason. The boundary term is the
+  // mass on tokens that open a new word, and it collapses that bias.
+  const res = await completeSafe(prompts, { max_tokens: 1, echo: true, logprobs: TOP });
+  const scored = chips.map((w, i) => {
+    const lg = res[i]?.logprobs;
+    if (!lg) return { w, lp: -Infinity };
+    let lp = 0;
+    for (let k = 0; k < lg.tokens.length - 1; k++) {
+      // A token belongs to the candidate when it starts at or after the end
+      // of the context. The joining space rides on the candidate's first
+      // token (" bright"), so the boundary is left.length, not left.length+1.
+      if (lg.text_offset[k] >= left.length && lg.token_logprobs[k] !== null) lp += lg.token_logprobs[k];
+    }
+    const top = lg.top_logprobs?.[lg.top_logprobs.length - 1] || {};
+    let mass = 0;
+    for (const [tok, tlp] of Object.entries(top)) if (endsWord(tok)) mass += Math.exp(tlp);
+    // A floor, not zero: when no word-start token is in the top 20 the true
+    // mass is small but unknown, and -Infinity would make every such
+    // candidate equally last.
+    lp += Math.log(Math.max(mass, 1e-9));
+    return { w, lp };
+  });
+  const order = scored.slice().sort((a, b) => b.lp - a.lp);
+  // `lps` travels with the result so the blend sweep below can mix the
+  // model's posterior with the engine's own order, without asking the server
+  // a second time.
+  return {
+    chips: order.map((s) => s.w),
+    lps: scored.map((s) => s.lp),
+    ms: performance.now() - t0,
+    raw: '',
+    finish: 'stop',
+  };
+}
+
 // ------------------------------------------------------------------ prompts
 
 const SYSTEM = `You are the word prediction engine of a phone keyboard.
@@ -170,7 +367,7 @@ function parseCandidates(text, n) {
   return out;
 }
 
-async function strip({ left, prefix, n = LIMIT }) {
+async function stripChat({ left, prefix, n = LIMIT }) {
   const t0 = performance.now();
   const { content, finish } = await chat([
     { role: 'system', content: SYSTEM },
@@ -178,6 +375,36 @@ async function strip({ left, prefix, n = LIMIT }) {
   ]);
   const chips = parseCandidates(content, n);
   return { chips, ms: performance.now() - t0, raw: content, finish };
+}
+
+// One entry point for all three access levels. `engine` is the shipped
+// strip for this context, which only the re-ranker needs.
+function strip({ left, prefix, n = LIMIT, engine = [] }) {
+  if (MODE === 'beam') return stripBeam({ left, prefix, n });
+  if (MODE === 'rerank') return rerankChips(left, engine.slice(0, n));
+  return stripChat({ left, prefix, n });
+}
+
+// The shipped predictor, loaded only when the re-ranker needs a strip to
+// reorder and the pairs file does not already hold one (the game).
+let _predictor = null;
+async function enginePredictor() {
+  if (_predictor) return _predictor;
+  const { Predictor } = await import('../prediction.js');
+  const langs = ['en', 'cs'];
+  const sources = [];
+  for (const l of langs) {
+    const [{ WORDS }, { BIGRAMS }, { TRIGRAMS }] = await Promise.all([
+      import(`../words-${l}.js`), import(`../bigrams-${l}.js`), import(`../trigrams-${l}.js`),
+    ]);
+    sources.push({ id: l, words: WORDS, bigrams: BIGRAMS, trigrams: TRIGRAMS });
+  }
+  _predictor = new Predictor(sources);
+  for (const l of langs) {
+    const { WORDS_EXT } = await import(`../words-ext-${l}.js`);
+    _predictor.addWords(l, WORDS_EXT);
+  }
+  return _predictor;
 }
 
 // ------------------------------------------------------------------ scoring
@@ -206,13 +433,19 @@ async function runGame() {
     const left = c.prefix ? c.input.slice(0, c.input.length - c.prefix.length).trim() : c.input;
     let res;
     try {
-      res = await strip({ left, prefix: c.prefix });
+      const engine = MODE === 'rerank'
+        ? (await enginePredictor()).predict(c.prefix, LIMIT, { prev: c.prev, prev2: c.prev2, recent: c.recent })
+        : [];
+      res = await strip({ left, prefix: c.prefix, engine });
     } catch (e) {
       console.error(`#${c.n} failed: ${e.message}`);
       break;
     }
     totalMs += res.ms;
-    const bad = res.chips.filter((w) => breaksPrefix(w, c.prefix)).length;
+    // Only the chat mode can break the typed prefix. The beam enforces it and
+    // the re-ranker reorders the engine's chips, whose typo layer is meant to
+    // leave the prefix behind.
+    const bad = MODE === 'chat' ? res.chips.filter((w) => breaksPrefix(w, c.prefix)).length : 0;
     wasted += bad;
     const rank = hitRank(res.chips, c.want);
     const fold = foldRank(res.chips, c.want);
@@ -278,17 +511,19 @@ async function runPairs() {
   let done = 0;
   const results = await mapPool(jobs, async (j) => {
     let chips = [];
+    let lps = null;
     let ms = 0;
     try {
-      const res = await strip({ left: j.r.left, prefix: j.prefix });
+      const res = await strip({ left: j.r.left, prefix: j.prefix, engine: j.engine || [] });
       chips = res.chips;
+      lps = res.lps || null;
       ms = res.ms;
     } catch (e) {
       console.error(`  request failed: ${e.message}`);
     }
     done++;
     if (done % 20 === 0) console.error(`  ${done}/${jobs.length}`);
-    return { ...j, chips, ms };
+    return { ...j, chips, lps, ms };
   }, CONCURRENCY);
 
   const score = (rowsIn, get) => {
@@ -310,9 +545,48 @@ async function runPairs() {
     const e = score(sub, (x) => x.engine || []);
     console.log(`| ${task} | ${m.h1} / ${m.h3} | ${e.h1} / ${e.h3} | ${m.n} |`);
   }
+  if (MODE === 'rerank') blendSweep(results, tasks, score);
+
   const msAll = results.reduce((a, x) => a + x.ms, 0);
   console.log(`\n${(msAll / results.length / 1000).toFixed(2)}s per request, `
     + `${((performance.now() - t0) / 1000).toFixed(0)}s wall at concurrency ${CONCURRENCY}`);
+}
+
+// A re-ranker that replaces our order with the model's is one extreme, and
+// keeping our order is the other. The useful question is whether any mixture
+// beats both, which is how SwiftKey's fifth layer is described. So blend two
+// posteriors over the same six chips and sweep the weight.
+//
+// The model side is a softmax over its own log P(word | context). The engine
+// side has no scores in the dump, only an order, so it gets a 1/rank prior,
+// normalized. That prior is a stand-in, not the engine's real distribution,
+// and a positive result here would need the real scores before it ships.
+function blendSweep(results, tasks, score) {
+  const blended = (x, alpha) => {
+    if (!x.lps || !x.engine?.length) return x.engine || [];
+    const max = Math.max(...x.lps);
+    const em = x.lps.map((lp) => Math.exp(lp - max));
+    const esum = em.reduce((a, b) => a + b, 0) || 1;
+    const prior = x.engine.map((_, i) => 1 / (i + 1));
+    const psum = prior.reduce((a, b) => a + b, 0);
+    return x.engine
+      .map((w, i) => ({ w, p: alpha * (em[i] / esum) + (1 - alpha) * (prior[i] / psum) }))
+      .sort((a, b) => b.p - a.p)
+      .map((s) => s.w);
+  };
+
+  console.log(`\nBlend sweep, alpha = weight on the model (0 = our order, 1 = the model's):`);
+  console.log(`\n| Task | ${[0, 0.2, 0.4, 0.5, 0.6, 0.8, 1].map((a) => `a=${a}`).join(' | ')} |`);
+  console.log(`|---|${'---|'.repeat(7)}`);
+  for (const task of tasks) {
+    const sub = results.filter((x) => x.task === task);
+    if (!sub.length) continue;
+    const cells = [0, 0.2, 0.4, 0.5, 0.6, 0.8, 1].map((a) => {
+      const s = score(sub, (x) => blended(x, a));
+      return `${s.h1} / ${s.h3}`;
+    });
+    console.log(`| ${task} | ${cells.join(' | ')} |`);
+  }
 }
 
 // --------------------------------------------------------------------- main
@@ -328,7 +602,7 @@ if (models && models.length) {
   console.error('No model given and /v1/models returned nothing. Use --model.');
   process.exit(2);
 }
-console.error(`using model: ${MODEL}\n`);
+console.error(`using model: ${MODEL}, access level: ${MODE}\n`);
 
 if (arg('pairs')) await runPairs();
 else await runGame();

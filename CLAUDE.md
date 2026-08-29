@@ -116,14 +116,16 @@ that file before design work.
   2026-08-29. Read it before any work on prediction-roadmap direction 8.
 - `served-model-research.md` (phone twin: `served-model-research.html`)
   measures a real big model on this project's own tasks: a 27B served by
-  vLLM on the user's network, asked for candidates in words only, which
-  is what Apple's framework and any chat API give. It wins the 14-case
-  game by one and loses all six held-out measurements. Harness:
-  `tools/api-lm-predict.mjs`, which plays the game or the held-out pairs
-  against any OpenAI-compatible endpoint, and shares the game cases with
+  vLLM on the user's network, at three levels of access (asked in words,
+  a constrained beam over logprobs, and re-ranking our own chips). One
+  win in six held-out measurements, and it is the first time any model
+  beat the shipped tables. Harness: `tools/api-lm-predict.mjs`, which
+  plays the game or the held-out pairs against any OpenAI-compatible
+  endpoint at all three levels, and shares the game cases with
   `tools/eval-game.mjs` through `tools/game-cases.mjs`. Measured
-  2026-08-29. Read it with the Apple note before direction 8 work. The
-  server address is the user's own machine and stays out of the repo.
+  2026-08-29. Read it with the Apple note before direction 8 work, and
+  before direction 5, which it answers negatively. The server address is
+  the user's own machine and stays out of the repo.
 
 ## Working mode
 

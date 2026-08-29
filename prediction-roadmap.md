@@ -129,6 +129,16 @@ English and Czech vocabulary, sitting over the n-gram candidate set. Both
 SwiftKey's design and our own measurement point the same way. The n-gram
 stays the generator and the fallback.
 
+Measured against the biggest model we can reach, and it failed
+(`served-model-research.md`, 2026-08-29). A 27B scored our own six chips
+with exact probabilities and reordered them, and its order is worse than
+ours on every task in both languages: English prefix-2 goes 63.5 to 21.9
+hit@1. A blend sweep from our order to the model's found no weight that
+beats using our order alone. The candidate set was ours and the interface
+loss was zero, so this is a result about re-ranking itself, not about
+access. A small model trained on our own register might still work where
+a general 27B does not, but this direction now starts from a negative.
+
 **6. Two-word chips.** Never built, and step 4 of the original build
 order. A gesture letter costs more than a tap letter, so a chip that
 inserts two words saves more here than on any other keyboard.
@@ -186,18 +196,29 @@ accepts goes into the personal model, so it teaches the small engine
 instead of becoming a permanent dependency.
 
 A 27B model, served over the user's own network, was measured on
-2026-08-29: `served-model-research.md`. It is the first test of a model
-we can only talk to in words, which is the shape iOS forces. Three
-results. It wins the game by one case, 8 of 14 against our 7, and that
-win is the whole win. It loses every held-out task in both languages,
-including next-word (19.5 against 22.5 hit@1 in English) and prefix
-completion, which pretrained models normally win. And it is two game
-cases behind a 1.58B Czech model that gets logits and a constrained
-beam, while being 17 times larger. So the interface costs more than the
-size buys, and the merge this direction assumes has no probabilities to
-merge. Reasoning mode is worse than useless here: 160 times the latency,
-no better score, and empty strips when the model loops inside its own
+2026-08-29 at three levels of access: `served-model-research.md`. Asked
+in words, which is the shape iOS forces, it wins the game 8 of 14
+against our 7 and loses every held-out task. Given logprobs and a
+constrained beam, it produces the one win this project has ever seen
+against its own tables: 37.0 hit@3 on English next-word, past our 35.0,
+where the same model asked in words scores 30.0. So the text-only
+interface has a price now, and it is 7 points of hit@3. Used as a
+re-ranker over our own chips it loses everywhere, which is the finding
+recorded under direction 5.
+
+Two limits sit under those numbers. The server returns at most 20
+logprobs per step, and `" amazing"` is not in the top 20 after
+`"you are"`, so prefix completion by beam collapses. Raising vLLM's
+`--max-logprobs` is the cheapest open experiment on that hardware.
+And reasoning mode is worse than useless: 160 times the latency, no
+better score, and empty strips when the model loops inside its own
 thinking block.
+
+One beam result belongs to direction 7, not here. Game case 13 wants
+`predikčního`, a word our vocabulary does not hold, and the beam put it
+at rank 1. That is the out-of-vocabulary tail answered by a model
+instead of by an aspell bucket file, and the two should be measured
+against each other on the tail cases alone.
 
 The iOS half of this direction is now researched:
 `apple-foundation-models-research.md` (2026-08-29). Four findings change

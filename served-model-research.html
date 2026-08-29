@@ -164,13 +164,14 @@
 
 <p class="eyebrow">Phonekeeb research &middot; 2026-08-29</p>
 <h1>A big model behind an API, measured</h1>
-<p class="dek">Roadmap direction 8 says a big model should sit beside the small one. A 27B on the user's own network answered our 14 game cases and 400 held-out pairs. It wins the game by one case and loses every measured task.</p>
+<p class="dek">Roadmap direction 8 says a big model should sit beside the small one. A 27B on the user's own network answered our 14 game cases and 400 held-out pairs, at three levels of access: asked in words, beam-searched over logprobs, and used to re-rank our own chips. One win out of six measurements, and it is a real one.</p>
 
 <ul class="toc">
   <li><a href="#tldr">TL;DR</a></li>
   <li><a href="#setup">The setup</a></li>
   <li><a href="#game">The game</a></li>
   <li><a href="#pairs">Held-out pairs</a></li>
+  <li><a href="#blend">The re-ranker</a></li>
   <li><a href="#think">Reasoning</a></li>
   <li><a href="#dir8">Direction 8</a></li>
   <li><a href="#next">The open lead</a></li>
@@ -179,57 +180,85 @@
 <h2 id="tldr">TL;DR</h2>
 <div class="card">
 <ul>
-  <li><strong>It loses every held-out task, in both languages.</strong> Next-word, prefix completion, corrupted prefix. The closest is English next-word, 19.5 against our 22.5.</li>
-  <li><strong>It wins the prediction game, 8 of 14 against 7.</strong> The game rewards meaning. The pairs reward frequency. Same split as always, now at 27B.</li>
-  <li><strong>Czech everyday speech is still the hole.</strong> 1 of 5 Czech cases. A 1.58B Czech model answers all five.</li>
+  <li><strong>Logprobs buy exactly one win, and it is real.</strong> A beam reaches <strong>37.0</strong> hit@3 on English next-word, past our engine's 35.0. No model in this project had beaten the shipped tables on held-out data before.</li>
+  <li><strong>The same model asked in words scores 30.0 on those rows.</strong> Seven points of hit@3 were being thrown away by the interface alone. That is the price of the iOS shape.</li>
+  <li><strong>Everything else is still a loss.</strong> Czech next-word, prefix completion and the corrupted prefix all go to the tables.</li>
+  <li><strong>The re-ranker adds nothing.</strong> Scoring our own six chips and reordering them is worse than our order, and no blend weight beats using our order alone.</li>
+  <li><strong>The beam is capped by the server, not the model.</strong> vLLM returns 20 logprobs per step, and <code>" amazing"</code> is not in the top 20 after <code>"you are"</code>.</li>
   <li><strong>Reasoning is a loss at every price.</strong> 160 times the latency, no better score, and two answers lost inside the thinking block.</li>
-  <li><strong>Words without numbers cost more than expected.</strong> 17 times bigger than Czech-GPT-2-XL and two game cases behind it, because a chat answer carries no probability and no prefix constraint.</li>
 </ul>
 </div>
 
-<div class="warn"><strong>The verdict in one line.</strong> Nothing here supports letting a big model rank the strip. Its one win is at phrase level, which is where the roadmap already put it.</div>
+<div class="warn"><strong>The verdict in one line.</strong> Nothing here supports letting a big model rank the strip per keystroke. Its wins are at phrase level and in the vocabulary tail, which is where the roadmap already put it.</div>
 
 <h2 id="setup">The setup</h2>
 <p>vLLM on the local network, serving <code>unsloth/Qwen3.8-27B-NVFP4</code>. Strip of 6, temperature 0, non-thinking unless a row says otherwise. Harness: <code>tools/api-lm-predict.mjs</code>, any OpenAI-compatible endpoint. The 14 cases live in <code>tools/game-cases.mjs</code>, shared with <code>tools/eval-game.mjs</code>, so the model and the engine answer the same list.</p>
 
-<div class="note">This is the first measurement of a model we can only talk to in <em>words</em>. <code>lm-predict.py</code> uses logits and a constrained beam. Apple's framework gives neither, so this shape is what iOS forces on us.</div>
+<div class="tablewrap"><table>
+  <tr><th>Level</th><th>What the model does</th><th>Why it is here</th></tr>
+  <tr><td><code>--chat</code></td><td>asked in words, answers with a list</td><td>all Apple's framework allows</td></tr>
+  <tr><td><code>--beam</code></td><td>constrained beam over top-20 logprobs</td><td>what <code>lm-predict.py</code> does locally</td></tr>
+  <tr><td><code>--rerank</code></td><td>scores our own six chips exactly</td><td>direction 5, the neural re-ranker</td></tr>
+</table></div>
+
+<div class="note">Two traps the harness had to fix. Summed token logprobs score a <em>prefix</em>, not a word, so <code>"fi"</code> beat <code>"film"</code> until a boundary term was added. And a beam whose prompt ends mid-word only works because the model often answers with the whole word as one token, which is that word's canonical tokenization.</div>
 
 <h2 id="game">The prediction game, 14 cases</h2>
 <div class="tablewrap"><table>
   <tr><th>Engine</th><th>Score</th><th>EN 9</th><th>CS 5</th><th>Per strip</th></tr>
   <tr><td>shipped <code>prediction.js</code></td><td>7/14</td><td>6</td><td>1</td><td>under 1 ms</td></tr>
-  <tr><td>Qwen3.8-27B, no thinking</td><td><strong>8/14</strong></td><td><strong>7</strong></td><td>1</td><td>0.2 s</td></tr>
-  <tr><td>Qwen3.8-27B, thinking</td><td>7/14, a floor</td><td>5</td><td>2</td><td>32 s</td></tr>
+  <tr><td>27B <code>--chat</code>, no thinking</td><td><strong>8/14</strong></td><td><strong>7</strong></td><td>1</td><td>0.2 s</td></tr>
+  <tr><td>27B <code>--chat</code>, thinking</td><td>7/14, a floor</td><td>5</td><td>2</td><td>32 s</td></tr>
+  <tr><td>27B <code>--rerank</code></td><td>7/14</td><td><strong>7</strong></td><td>0</td><td>0.1 s</td></tr>
+  <tr><td>27B <code>--beam</code></td><td>2/14</td><td>0</td><td>2</td><td>0.4 s</td></tr>
   <tr><td>Czech-GPT-2-XL 1.58B, beam</td><td>10/14</td><td>5</td><td>5</td><td>1.7-12 s</td></tr>
   <tr><td>two specialist models merged</td><td>12/14</td><td>7</td><td>5</td><td>seconds</td></tr>
 </table></div>
 
-<p>English everyday speech: good. Czech everyday speech: 1 of 5. Cases 9, 10 and 12 (<code>zaplavat</code>, <code>kuře</code>, <code>zebřičko</code>) are colloquial Czech and it does not hold them. One case went the other way: it put <code>algoritmu</code> at rank 3, and until today only the 1.58B Czech model reached that case.</p>
+<p>English everyday speech: good. Czech everyday speech: 1 of 5. Cases 9, 10 and 12 (<code>zaplavat</code>, <code>kuře</code>, <code>zebřičko</code>) are colloquial Czech and it does not hold them.</p>
+
+<div class="good"><strong>The beam's 2 of 14 is the most interesting bad score here.</strong> Both hits are the technical Czech cases, and one is a result no other engine has produced: case 13 wants <code>predikčního</code>, the beam puts it at <strong>rank 1</strong>, and the word is not in our vocabulary at all. Read with its nine English misses, the beam is a tail generator and not a strip.</div>
 
 <h2 id="pairs">Held-out subtitle pairs</h2>
 <p>200 pairs per language, strip of 6, hit@1 / hit@3. The engine column is the shipped predictor on the <em>same</em> pairs, from the same run.</p>
 
 <h3>English</h3>
 <div class="tablewrap"><table>
-  <tr><th>Task</th><th>27B</th><th>our engine</th></tr>
-  <tr><td>next-word</td><td>19.5 / 30.0</td><td><strong>22.5 / 35.0</strong></td></tr>
-  <tr><td>prefix-2</td><td>49.5 / 67.2</td><td><strong>63.5 / 78.6</strong></td></tr>
-  <tr><td>corrupted prefix</td><td>3.1 / 9.4</td><td><strong>35.4 / 51.6</strong></td></tr>
+  <tr><th>Task</th><th>engine</th><th>beam</th><th>chat</th><th>rerank</th></tr>
+  <tr><td>next-word</td><td><strong>22.5</strong> / 35.0</td><td>19.5 / <strong>37.0</strong></td><td>19.5 / 30.0</td><td>12.0 / 26.5</td></tr>
+  <tr><td>prefix-2</td><td><strong>63.5 / 78.6</strong></td><td>15.6 / 20.8</td><td>49.5 / 67.2</td><td>21.9 / 56.8</td></tr>
+  <tr><td>corrupted</td><td><strong>35.4 / 51.6</strong></td><td>not run</td><td>3.1 / 9.4</td><td>17.7 / 39.1</td></tr>
 </table></div>
 
 <h3>Czech</h3>
 <div class="tablewrap"><table>
-  <tr><th>Task</th><th>27B</th><th>our engine</th></tr>
-  <tr><td>next-word</td><td>11.5 / 16.5</td><td><strong>19.0 / 33.0</strong></td></tr>
-  <tr><td>prefix-2</td><td>35.6 / 46.1</td><td><strong>63.9 / 73.8</strong></td></tr>
-  <tr><td>corrupted prefix</td><td>3.1 / 5.2</td><td><strong>34.6 / 53.4</strong></td></tr>
+  <tr><th>Task</th><th>engine</th><th>beam</th><th>chat</th><th>rerank</th></tr>
+  <tr><td>next-word</td><td><strong>19.0 / 33.0</strong></td><td>10.5 / 19.0</td><td>11.5 / 16.5</td><td>9.0 / 26.0</td></tr>
+  <tr><td>prefix-2</td><td><strong>63.9 / 73.8</strong></td><td>34.6 / 37.7</td><td>35.6 / 46.1</td><td>29.3 / 55.5</td></tr>
+  <tr><td>corrupted</td><td><strong>34.6 / 53.4</strong></td><td>not run</td><td>3.1 / 5.2</td><td>19.9 / 38.7</td></tr>
 </table></div>
 
-<p><strong>Next-word is the closest call and still a loss.</strong> The roadmap said a big model loses where frequency decides. It does, and 27B does not change it.</p>
+<div class="good"><strong>The one win: English next-word at hit@3, 37.0 by beam against our 35.0.</strong> The same model on the same rows scores 30.0 when asked in words. That gap of 7 points is what a text-only API throws away, measured rather than argued.</div>
 
-<p><strong>Prefix completion is a large loss, which is new.</strong> The 124M Czech models won this task. This one loses it by 14 points in English and 28 in Czech. The cause is the interface, not the knowledge: asked for six words starting with <code>fi</code>, it writes six plausible words in no frequency order, and our tables know which one people type.</p>
+<p><strong>Next-word hit@1 stays ours in both languages.</strong> 22.5 against 19.5, and 19.0 against 10.5. The model finds the right word more often at a strip of three and puts it first less often.</p>
 
-<p><strong>The corrupted prefix is a collapse.</strong> The first run scored 0.5 because the prompt made the typed letters a rule and the model obeyed. The <code>--fuzzy-prefix</code> prompt states the engine's real rule, that a letter can be wrong, and that lifts it only to 3.1. Two letters with one wrong is a job for edit distance over a known lexicon.</p>
+<p><strong>Prefix completion by beam collapses, and the cause is the server.</strong> vLLM returns 20 logprobs per step. After <code>"you are"</code> the top 20 does not contain <code>" amazing"</code>. Czech survives better, 34.6 hit@1, because its morphology puts the continuations inside the top 20 more often.</p>
+
+<p><strong>The corrupted prefix is a collapse in every mode.</strong> In chat the first run scored 0.5 because the prompt made the typed letters a rule and the model obeyed; <code>--fuzzy-prefix</code> states the engine's real rule and lifts it only to 3.1. The re-ranker does better, 17.7, because our own typo layer built the candidates. Two letters with one wrong is a job for edit distance over a known lexicon.</p>
+
+<h2 id="blend">The re-ranker, blended</h2>
+<p>Replacing our order with the model's is one extreme, keeping ours is the other. SwiftKey's fifth layer is a mixture, so the sweep blends two posteriors over the same six chips: a softmax over the model's log P(word | context), and a 1/rank prior standing in for the engine's scores, which the pair dump does not carry.</p>
+
+<div class="tablewrap"><table>
+  <tr><th>English task</th><th>a=0</th><th>a=0.2</th><th>a=0.4</th><th>a=0.6</th><th>a=1</th></tr>
+  <tr><td>next-word</td><td><strong>22.5 / 35.0</strong></td><td>22.0 / 34.0</td><td>16.5 / 32.5</td><td>14.5 / 34.0</td><td>12.0 / 26.5</td></tr>
+  <tr><td>prefix-2</td><td><strong>63.5 / 78.6</strong></td><td>62.5 / 75.0</td><td>42.2 / 73.4</td><td>29.2 / 72.4</td><td>21.9 / 56.8</td></tr>
+  <tr><td>corrupted</td><td><strong>35.4 / 51.6</strong></td><td>32.3 / 50.5</td><td>24.5 / 50.0</td><td>21.4 / 47.9</td><td>17.7 / 39.1</td></tr>
+</table></div>
+
+<p>Czech behaves the same way. Every row falls as the model's weight rises, and the two places it does not are inside the noise of 200 pairs. A 27B scoring our own candidates, with exact probabilities and no interface loss, does not rank them better than three tables of counts.</p>
+
+<div class="note">One caveat: the engine side of the blend is a 1/rank stand-in, not the engine's real scores. A mixture tuned against real scores could behave differently, but it would have to overturn a loss of 10 points at a=0.2.</div>
 
 <h2 id="think">Reasoning made it worse</h2>
 <p>Thinking mode cost 32 s per strip against 0.2 s, and scored no better. At temperature 0 it looped: on the case <code>smoo</code> it wrote 10306 tokens, most of them the line <code>"smoothe" no.</code> repeated, then ended its turn with no answer. Two cases died that way even at the recommended temperature 0.6.</p>
@@ -239,14 +268,17 @@
 <h2 id="dir8">What it changes for direction 8</h2>
 <p>The direction survives and its shape narrows.</p>
 <ul>
-  <li><strong>A big model is not a better strip.</strong> Worse at the per-keystroke job in both languages, and not because of size or Czech.</li>
-  <li><strong>The win is phrase level and meaning level.</strong> 8 of 14 against 7 is thin, and it is the only win.</li>
-  <li><strong>The text-only interface costs more than it seemed.</strong> Direction 8 assumed candidates the merge weighs by <code>langPosterior()</code>. That needs numbers. A chat model gives an order and nothing else, and this is what an order alone is worth.</li>
+  <li><strong>A big model is not a better strip, and access does not save it.</strong> Three levels, six held-out measurements, one win.</li>
+  <li><strong>The wins are phrase level and the vocabulary tail.</strong> 8 of 14 in chat mode, and the beam's rank-1 answer on a Czech word we do not hold.</li>
+  <li><strong>The text-only interface costs a measurable 7 points.</strong> Direction 8 assumed candidates the merge weighs by <code>langPosterior()</code>. Now that assumption has a price attached. On iOS there is no choice about the interface; on a server there is.</li>
+  <li><strong>Direction 5 loses its most likely candidate.</strong> The biggest model this project can reach fails to reorder six chips better than the tables that produced them.</li>
   <li><strong>Reasoning models are the wrong tool here.</strong> Use the non-thinking path or a base model.</li>
 </ul>
 
-<h2 id="next">The open lead: logprobs</h2>
-<p>This server allows logprobs. vLLM returns the top-N alternatives per generated token on <code>/v1/completions</code>, which is enough to run the same constrained beam <code>lm-predict.py</code> uses locally, against a 27B we could never load here. That would separate the two causes this study confounds: what the model does not know, and what the chat interface throws away. Cheapest next experiment on this hardware, and it needs no new model.</p>
+<h2 id="next">What is still open on this hardware</h2>
+<p><strong>Raise the server's logprob cap.</strong> vLLM's <code>--max-logprobs</code> defaults to 20, and that single number is what breaks prefix completion by beam. With 100 or 200 the beam sees the tokens it is missing, and the one measurement that already beats our engine is the one that would grow. This needs a server restart, no new model and no new code.</p>
+
+<p><strong>Use the beam where it won.</strong> It answered a Czech word outside our vocabulary at rank 1. That is roadmap direction 7's job, the out-of-vocabulary tail, which currently plans to solve the same problem with an aspell bucket file. The two should be measured against each other on the tail cases alone.</p>
 
 <footer>
 Researched 2026-08-29. Markdown twin: <a href="https://github.com/urza/phonekeeb/blob/main/served-model-research.md">served-model-research.md</a>.
