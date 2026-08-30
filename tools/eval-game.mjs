@@ -8,14 +8,15 @@
 // Usage: node tools/eval-game.mjs
 
 import { Predictor, matchKey } from '../prediction.js';
-import { WORDS as WEN } from '../words-en.js';
-import { WORDS as WCS } from '../words-cs.js';
 import { BIGRAMS as BEN } from '../bigrams-en.js';
 import { BIGRAMS as BCS } from '../bigrams-cs.js';
 import { TRIGRAMS as TEN } from '../trigrams-en.js';
 import { TRIGRAMS as TCS } from '../trigrams-cs.js';
-import { WORDS_EXT as XEN } from '../words-ext-en.js';
-import { WORDS_EXT as XCS } from '../words-ext-cs.js';
+// Word lists come through the loader so WORDS_DIR can point the harness
+// at a candidate vocabulary; the n-gram tables always come from here.
+import { WORDS, WORDS_EXT, WORDS_DIR } from './load-words.mjs';
+
+const [WEN, WCS, XEN, XCS] = [WORDS.en, WORDS.cs, WORDS_EXT.en, WORDS_EXT.cs];
 // The cases live in tools/game-cases.mjs so that this harness and the
 // served-model harness (tools/api-lm-predict.mjs) score the same 14.
 import { CASES } from './game-cases.mjs';
@@ -49,3 +50,5 @@ for (const c of CASES) {
   console.log(`    ${verdict}${inv}`);
 }
 console.log(`\n${hits}/${CASES.length} wanted words on the strip`);
+console.log(`vocabulary: en ${WEN.length}+${XEN.length}, `
+  + `cs ${WCS.length}+${XCS.length}, from ${WORDS_DIR}`);

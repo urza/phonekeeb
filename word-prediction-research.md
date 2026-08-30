@@ -742,6 +742,265 @@ the ones this direction cannot reach. Cases 4 and 6 are phrase-and-
 person tail that the personal model owns, 9 is the zaplat* morphology
 cluster, and 10 waits on the prefix-scaled language floor.
 
+## The corpus was the bug (2026-08-30)
+
+Prediction game case 16, `listening to playl`, wants `playlists`. The
+engine answered with five typo hypotheses over `play*`, because neither
+`playlist` nor `playlists` was in the vocabulary at any tier. Counted in
+the same 400 MB English slice the lists were built from:
+
+```
+online 1402   download 1150   website 507   email 279
+meaner 271    bogeyman 253    racquetball 252     <- all three shipped
+selfie 16     playlist 11     wifi 6      playlists 4   apps 1
+```
+
+The extension cutoff was a rescaled count of 50. `racquetball` shipped
+in a phone keyboard and `playlist` did not, because a film character
+says racquetball more often than a film character says playlist.
+
+### The register argument, split in two
+
+"Register matters: use OpenSubtitles, not web text" above still stands,
+and it was measured on **pairs**: subtitle bigrams beat Norvig's web
+bigrams by 30% relative on hit@3. That comparison was never run for the
+**word list**, and the two questions have different answers. Pairs need
+the register people speak in. The list needs coverage of what people
+type, and a 2018 film-dialogue corpus has no streaming, no apps and no
+group chat.
+
+### wordfreq
+
+`wordfreq` 3.1.1 (pip, Apache-2.0 code, CC-BY-SA 4.0 data with a
+required SUBTLEX credit) ships merged frequencies for 42 languages.
+Per word it takes up to 7 corpora (Wikipedia, subtitles, news, books,
+OSCAR web, Twitter, Reddit; Czech has 5, no books and no Reddit), drops
+the source that rates the word highest and the one that rates it
+lowest, and averages the rest. A word must appear in at least 3 sources
+to be listed at all. That trimmed mean is what a single-corpus count
+cannot do: `racquetball` looks common to subtitles and rare to the
+other six, so the merge demotes it to rank 56999, while `playlist`
+rises to 12831. English lists 321180 words, Czech 606360.
+
+### A straight swap is worse, and the measurement says why
+
+Replacing the ranking outright throws 927 English and 1233 Czech words
+out of the core 3000, and they are the spoken ones:
+
+```
+en   uh huh where's um honey hurry whoa gentlemen bye goddamn hmm how's daddy
+cs   pojď promiňte cože nech řekni počkej promiň abys jdi mami pojďte vidíš dělej
+```
+
+Game case 1 shows the same thing at the strip: `amazing` lost its slot
+to `among`, because written English says `among` more often and spoken
+English says `amazing` more often. A keyboard is typed in the spoken
+register. wordfreq's merge is exactly what removes that register's
+vote.
+
+### The blend
+
+The shipped ranking is `p_wordfreq^0.5 x p_subtitles^0.5`, add-one
+smoothed on the subtitle side so a word the corpus never saw has a
+floor instead of a zero. Geometric, so both sides must support a word
+and neither can veto it. `WF_ALPHA` in `tools/build-wordlists.py`.
+Core words kept, out of today's 3000, against the subtitle share:
+
+| alpha | 0 (wordfreq) | 0.3 | 0.5 (shipped) | 0.7 |
+|---|---|---|---|---|
+| en | 2073 | 2360 | 2522 | 2691 |
+| cs | 1767 | 2144 | 2382 | 2607 |
+
+At 0.5 both properties hold. Blend ranks, which decide the cut:
+
+```
+en   uh 718   among 802   amazing 870   bye 1195   wifi 31074
+     playlist 32480   podcast 41000   playlists 45171   emoji 56109
+cs   pojď 672   promiň 903   počkej 1203   mobil 2015   kuře 4353
+     aplikace 6897   zaplavat 15008   kafíčko 42170   algoritmu 54714
+     predikce 144627
+```
+
+Three of those entries close known gaps: `algoritmu` (game case 14's
+wanted word), `ahojky` (case 12's greeting, which no earlier list held
+in any form) and `playlists` (case 16). Two stay out and belong to the
+personal model: `predikčního` and `zebřičko`.
+
+### The blend chooses the vocabulary; the corpus ranks it
+
+Ranking the strip by the blend was the wrong half of the idea, and the
+unit tests caught it. Three failures, all the same shape:
+
+- `you` fell off the neutral strip, behind `the`. Written English leads
+  with `the`; a person opening a message leads with `you` and `I`.
+- `hello` fell from rank 210 to 519, below `hell`, and out of the strip
+  for the typo `helo` entirely.
+- `amazing` lost its slot to `among` (game case 1, a hit before).
+
+Every one is the written register outvoting the spoken one, on words a
+phone types constantly. The fix separates the two questions the blend
+was answering at once:
+
+- **Which words the keyboard holds** is a coverage question. The blend
+  answers it, and the depth cut is a rank in the blend.
+- **How they rank on the strip** is a register question. The
+  OpenSubtitles probability alone answers it, add-one smoothed, so a
+  word the corpus never says gets the floor rather than a zero.
+
+`playlist` then sits deep in the list with a small count, which is the
+honest estimate: nothing says people speak it often. It still wins its
+own prefix, because nothing else starts with `playl`. The order in the
+file follows the count, so the core tier is still the 3000 words the
+keyboard predicts from context, and the n-gram tables are built from
+exactly that tier.
+
+### Three exceptions to the aspell gate
+
+The gate stays (deep ranks are full of misspellings), with three rules
+that earn their place, all in `tools/build-wordlists.py`:
+
+- **Cross-language guard.** A word the OTHER language's aspell holds is
+  that language leaking in. It removes `that, red, so, big, this, we,
+  with` from the Czech ranking, and cross-language leak under a short
+  prefix is a known failure of this engine (cause D).
+- **`needs_apostrophe()`.** `didnt`, `thats`, `ive` stay out, so the
+  strip can offer `didn't`. Game case 5 is the whole reason `matchKey`
+  folds the apostrophe; listing the bare form would undo it.
+- **`WF_LOOSE_RANK` = 15000.** Above that rank an aspell reject is
+  admitted: aspell holds standard written language and the top of a
+  chat ranking is `lmao, wtf, tbh, idk, kámo, furt, míň, svý`. Below
+  it the gate stays shut, which is where `opressed` and `onsie` live.
+
+`CLITIC_BLOCK` was added after `its's` (rank 67585) reached the strip
+for the prefix `its`, where almost nothing else matches. The clitic rule
+must not build a second possessive for a word that already has one.
+
+### Depth: 50000 English, 150000 Czech
+
+`vocabulary-depth-analysis.md` reads the words at each depth by hand and
+finds the two languages run out at very different points: English falls
+below half good between 20000 and 30000 and is junk past 75000, Czech is
+still 88% good at 150000. Its recommendation is 30000 English (50000 as
+the outer limit) and 150000 Czech.
+
+That note was then re-measured against this blend, 350 more words
+labelled in the blended order, and the blend moves the English cliff
+outward by a lot: 20000-30000 goes from 40% good to 64%, 40000-50000
+from 20% to 52%, because the junk the blend removes is junk subtitles
+never contain (web names, brands, handles) and English was full of it.
+Czech barely moves, being short of that junk to begin with. The
+recommendation after the re-measurement is unchanged: 30000 English,
+150000 Czech, with 50000 as the English ceiling.
+
+**English ships at 50000, and the reason is case 16 itself.** The blend
+pushes modern words deeper (`playlist` 32480 against 12831 raw), and
+the wanted word is the plural, `playlists`, at 45171. A 30000 cut would
+leave the case that started this work still missing.
+
+One coordinate trap sits under those numbers, and it is why the depth
+note first recommended 30000. Its bands are ranks in the **candidate
+stream**, before the aspell gate. The gate then removes entries, and it
+removes more of them with depth, so a shipped position is a deeper
+stream rank: shipped 50000 is stream rank 63793 in English, shipped
+150000 is stream 182909 in Czech. The gate does not cut at random
+either, it cuts the junk, so the shipped list at position N is better
+than the stream curve reads at N.
+
+Sampled and labelled from the finished files, which is the measurement
+that decides:
+
+| band (shipped position) | good | marginal | bad |
+|---|---|---|---|
+| en 30000-40000 | 80% | 20% | 0% |
+| en 40000-50000 | 56% | 40% | 4% |
+| cs 100000-125000 | 88% | 12% | 0% |
+| cs 125000-150000 | 100% | 0% | 0% |
+
+So the price of the last 10000 English entries is marginal words, not
+junk: names and rare forms that cost a strip slot only when their own
+prefix is typed and nothing better matches. Czech at 150000 came back
+clean at 25 of 25. The shipped Czech list covers 95.677% of Czech
+tokens, 2.2 points below the raw stream at the same depth, because the
+gate discards mass along with the junk.
+
+### Size and latency
+
+The extension tier is lazy-loaded and not precached, so this is
+bandwidth and memory, not time to first keystroke. Memory is the one
+number that does not carry to the phone unchanged: 200000 entries as JS
+objects is tens of megabytes, and an iOS keyboard extension gets 40 to
+60 MB in total (`ios-deployment-research.md`). The Swift port needs a
+packed structure for this vocabulary, not an array of objects. That is
+a port requirement this change creates, and `bench.html` reports the JS
+heap where the browser exposes it (Chrome does, Safari does not).
+
+| list | entries | raw | gzip |
+|---|---|---|---|
+| en (was) | 20000 | 300 KB | 91 KB |
+| en (now) | 50000 | 800 KB | 240 KB |
+| cs (was) | 40000 | 600 KB | 203 KB |
+| cs (now) | 150000 | 2.7 MB | 790 KB |
+
+Latency was the real limit, and it needed an engine change first.
+`prediction.js` scanned every entry on every keystroke. Measured with
+`tools/bench-predict.mjs` on the desktop, over 2300 keystrokes:
+
+| vocabulary | before, mean / p95 | after, mean / p95 |
+|---|---|---|
+| 60000 (the old lists) | 3.05 / 8.32 ms | 0.51 / 1.21 ms |
+| 483000 (everything wordfreq has) | 22.24 / 62.19 ms | 2.31 / 7.59 ms |
+
+Two indexes did that, and both port to Swift:
+
+- **A first-letter bucket.** A typed prefix can only match entries whose
+  key starts with its first letter, so one bucket is the whole candidate
+  set. The typo branch needs entries the prefix does not match, but it
+  already skips ext entries, so it scans the core tier instead.
+- **Core only for an empty prefix.** The next-word strip has no prefix
+  to narrow with, and it was the expensive shape (65 ms of the 22 ms
+  mean at 483000 entries). An ext entry has no pair data, because
+  `build-ngrams.py` counts a pair only when both words are core
+  vocabulary, and its unigram probability is below every core word's by
+  construction. So no ext word can reach a 6-slot strip that 6000 core
+  words compete for.
+
+The second one is an invariant, not an optimization: **the n-gram
+tables' vocabulary must be exactly the core tier**. Both tables were
+regenerated with the new core lists in the same change set. Any future
+change to the core list has to do the same.
+
+Regenerating them surfaced an inconsistency in the shipped data. The
+bigram tables came from the 400 MiB corpus slice and the trigram tables
+from an 80 MiB one, so the two levels of one backoff chain were
+estimated from different amounts of text. Both now use 400 MiB. At the
+same evidence bar (context count >= 200) five times the text clears
+five times the contexts, so the trigram tables grew from 12022 to 52484
+Czech contexts and to 67430 English ones, and from ~2.4 MB to 8.7 MB
+(3.2 MB over the wire, gzipped). That is worth the bytes: the tier
+sweep above bought +2.4 hit@1 for 4.3x the size along the pruning axis,
+and this is the same trade along the corpus axis with better-estimated
+counts. It is also lazy, behind the "Trigram data" toggle, and cached
+per build by the service worker, which did not exist when the original
+"a quarter of the bytes" choice was made. `MIN_CONTEXT` in
+`tools/build-trigrams.py` is the one constant to raise if the phone
+says otherwise.
+
+The re-estimation is visible in the game. Case 10's context `dám si`
+offered `to, ještě, jednu, jen, s, kafe, kávu` from 80 MiB and offers
+`to, ještě, na, pivo, něco, pozor, jen` from 400 MiB. Neither holds the
+wanted `kuře`; the second is simply what a larger sample says people
+order.
+
+All 15 game strips and all 24 prediction unit tests were byte-identical
+before and after the index change, on the old vocabulary. The remaining
+slow shape is a 1-letter prefix, which scans a whole bucket, about a
+26th of the list. Sorting each bucket by unigram probability would let
+it stop early; not built, because the phone numbers should decide.
+
+`bench.html` is the phone twin of the desktop harness, linked from the
+keyboard menu, so the same measurement can be taken on the device that
+has to run it.
+
 ## Personalization plan (added 2026-08-25)
 
 Status 2026-08-26: Component A (learning while typing) is shipped —

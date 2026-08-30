@@ -9,6 +9,25 @@ Extension mode (words-ext-*.js, the unigram-only tail tier):
   python3 tools/build-wordlists.py ext en big_dump.gz dict-en.txt \\
       words-en.js words-ext-en.js
 
+wordfreq mode, which writes BOTH tiers from one ranking (the second
+dictionary is the other language's, used to reject words leaking across):
+  python3 tools/build-wordlists.py wordfreq en dict-en.txt dict-cs.txt \\
+      words-en.js words-ext-en.js [N|all]
+Needs `pip install wordfreq` in a build venv; nothing here ships.
+
+Use wordfreq mode. Subtitle counts alone rank the vocabulary wrong: in
+the same 400 MB English slice the OpenSubtitles path reads, racquetball
+occurs 252 times and playlist 11, so the keyboard shipped racquetball
+and had no word for what you listen to (prediction game case 16,
+2026-08-30). wordfreq merges 7 corpora per word (Wikipedia, subtitles,
+news, books, OSCAR web, Twitter, Reddit; Czech has 5 of them), drops
+each word's highest and lowest source, and averages the rest, so no
+single register can carry a word on its own. It ranks playlist 12831
+and racquetball 56999.
+
+The dump modes above stay, because wordfreq is unigrams only and
+bigrams-*.js / trigrams-*.js still come from the OpenSubtitles dump.
+
 The ext list holds ranks beyond the shipped core list, up to
 EXT_TOTAL[lang] combined. Two extra rules apply to the tail (and only
 the tail; the core list is never touched by ext mode):
@@ -151,6 +170,14 @@ def load_dict(path):
 # nothing).
 CLITICS = ("'s", "'ll", "'d", "'re", "'ve", "'m")
 
+# A closed-class word already carries its own possessive, so the clitic
+# rule must not manufacture a second one. Without this, "its's" enters
+# the English list (rank 67585 in the 2026-08-30 build) and then reaches
+# the strip for "its", where hardly anything else matches the prefix.
+CLITIC_BLOCK = {'it', 'its', 'this', 'that', 'us', 'his', 'her', 'hers',
+                'our', 'ours', 'your', 'yours', 'their', 'theirs', 'my',
+                'mine', 'these', 'those', 's'}
+
 # aspell cs holds standard Czech only, but subtitles (and phone typing)
 # are colloquial: admit a form whose standard rewrite is a dictionary
 # word. -uju/-ju first person maps to -uji/-ji (gratuluju), final -ej
@@ -164,11 +191,213 @@ def in_dict(lang, tok, dict_words):
         return True
     if lang == 'en':
         return any(tok.endswith(c) and tok[:-len(c)] in dict_words
+                   and tok[:-len(c)] not in CLITIC_BLOCK
                    for c in CLITICS)
     if lang == 'cs':
         return any(tok.endswith(a) and tok[:-len(a)] + b in dict_words
                    for a, b in CS_COLLOQ)
     return False
+
+
+# wordfreq stores probabilities, the predictor wants integer counts. One
+# scale for both tiers and both languages: count = round(p * SCALE). At
+# 1e9 the rarest word wordfreq lists (Zipf 0, p = 1e-9) still rounds to
+# 1, so no entry is quantized away. The core sum stays the probability
+# denominator in prediction.js, exactly as with the dump modes, so
+# nothing in the scorer changes.
+WF_SCALE = 10 ** 9
+
+
+# Rank above which a word aspell rejects can still get in. aspell holds
+# standard written language, and the top of a chat-register ranking is
+# full of words it never had: lmao, wtf, tbh, idk in English; kámo,
+# furt, míň, svý in Czech. Those are keyboard words. Below this rank the
+# aspell gate stays shut, because that is where the misspellings live
+# (opressed, onsie, or00) and where a wrong entry is never worth it.
+WF_LOOSE_RANK = 15000
+
+# Subtitle share of the blended ranking. wordfreq alone ranks the
+# vocabulary for written language: measured 2026-08-30, a straight swap
+# threw 927 English and 1233 Czech words out of the core 3000, and they
+# were the spoken ones (uh, huh, honey, bye; pojď, počkej, promiň,
+# řekni). Those are the words a phone keyboard exists to type. Blending
+# the two rankings geometrically keeps them and still gains the modern
+# vocabulary subtitles never had: at 0.5 the core keeps 2522 of 3000 in
+# English and 2382 in Czech, playlist lands at 16307 and pojď at 676.
+# 0 is pure wordfreq, 1 is pure subtitles.
+WF_ALPHA = 0.5
+
+
+def needs_apostrophe(word, dict_words):
+    """didnt -> didn't: one apostrophe short of a dictionary word.
+
+    These stay out of the vocabulary on purpose. The strip's job when
+    the user types "didnt" is to offer "didn't" (prediction game case 5,
+    which is why matchKey folds the apostrophe). Listing the bare form
+    would let the wrong spelling win its own prefix.
+    """
+    return any(word[:i] + "'" + word[i:] in dict_words
+               for i in range(1, len(word)))
+
+
+def blend_rank(freqs, subs, alpha):
+    """Order the vocabulary by p_wordfreq^(1-alpha) * p_subtitles^alpha.
+
+    A geometric blend, so a word needs support from both sides to rank
+    high and neither side can veto the other. Subtitle probabilities are
+    add-one smoothed, which is what gives a word the corpus never saw
+    (playlist, emoji) a floor instead of a zero.
+    """
+    if not subs or alpha <= 0:
+        return sorted(freqs.items(), key=lambda kv: -kv[1])
+    n = sum(subs.values()) + len(freqs)
+    scored = ((w, p ** (1 - alpha) * ((subs.get(w, 0) + 1) / n) ** alpha)
+              for w, p in freqs.items())
+    return sorted(scored, key=lambda kv: -kv[1])
+
+
+def wordfreq_lists(lang, dict_words, other_dict, total, subs=None,
+                   alpha=WF_ALPHA):
+    """Rank the vocabulary with wordfreq, return (core, ext, rejected).
+
+    The structural filters are the dump path's: same alphabet, same
+    one-letter whitelist, same DROP set. They still earn their place
+    here, because wordfreq lists digit shapes ("0000"), single letters
+    from initialisms, and a long misspelling tail.
+
+    The aspell gate also stays, for the reason ext mode states: deep in
+    the tail, frequency stops being evidence of wordhood. Three
+    exceptions, in the order they are tested:
+
+    - a word the OTHER language's aspell holds is that language leaking
+      in (live, air, facebook, star in the Czech ranking). Out. This is
+      the guard aspell was quietly providing before, and it matters:
+      cross-language leak under a short prefix is a known failure of
+      this engine (prediction-game-analysis.md, cause D).
+    - an apostrophe-less contraction is out, see needs_apostrophe().
+    - anything else above WF_LOOSE_RANK is in. Seven corpora agreeing a
+      token is common is better evidence than one dictionary's silence.
+    """
+    from wordfreq import get_frequency_dict  # build-time only, see the venv note
+
+    valid = ALPHABET[lang]
+    one_letter = ONE_LETTER[lang]
+    drop = DROP[lang]
+    freqs = get_frequency_dict(lang, wordlist='large')
+    ranked = blend_rank(freqs, subs, alpha)
+
+    chosen, rejected = [], []
+    for word, score in ranked:
+        rank = len(chosen)
+        if rank >= total:
+            break
+        if word in drop or not valid.fullmatch(word):
+            continue
+        if len(word) == 1 and word not in one_letter:
+            continue
+        # The commonest TOP_N are certainly words, whichever dictionary
+        # says otherwise. The gate applies below them.
+        if (rank < TOP_N
+                or in_dict(lang, word, dict_words)
+                or (rank < WF_LOOSE_RANK and word not in other_dict
+                    and not needs_apostrophe(word, dict_words))):
+            chosen.append([word, score])
+        else:
+            rejected.append(word)
+    return chosen, rejected
+
+
+def score_and_split(chosen, subs):
+    """Count the chosen words in the spoken register, then split the tiers.
+
+    The blend decides WHICH words the keyboard holds. It must not decide
+    how they RANK on the strip, because the two questions have different
+    right answers. Measured 2026-08-30, ranking by the blend:
+    `you` fell off the neutral strip behind `the`, `hello` fell below
+    `hell` and out of the strip for the typo `helo`, and `amazing` lost
+    its slot to `among` (game case 1). All three are the written
+    register outvoting the spoken one, and all three are words a phone
+    keyboard types constantly.
+
+    So the count is the subtitle probability, add-one smoothed. A word
+    the corpus never says (playlist, emoji) gets the floor, which is the
+    honest estimate: we have no evidence anyone speaks it, and it still
+    wins its own prefix, where nothing competes. The order in the file
+    follows the count, so the core tier is the 3000 words the keyboard
+    predicts from context, and the n-gram tables are built from it.
+    """
+    n = sum(subs.values()) + len(chosen) if subs else 0
+    # Ties (every word the corpus never saw) keep the blend's order,
+    # because Python's sort is stable and `chosen` arrives blend-ranked.
+    if subs:
+        scored = [[w, (subs.get(w, 0) + 1) / n] for w, _ in chosen]
+        scored.sort(key=lambda r: -r[1])
+    else:
+        scored = [[w, s] for w, s in chosen]
+    core, ext = scored[:TOP_N], scored[TOP_N:]
+    # prediction.js divides every count by the CORE list's sum, so that
+    # sum is the scale. Fixing it here keeps both tiers on one scale and
+    # keeps the two languages comparable the way the dump modes leave
+    # them: each language's probabilities are its own share of its own
+    # core mass.
+    scale = WF_SCALE / sum(s for _, s in core)
+    for row in scored:
+        row[1] = max(1, round(row[1] * scale))
+    return core, ext
+
+
+def wordfreq_main():
+    lang, dict_path, other_path = sys.argv[2], sys.argv[3], sys.argv[4]
+    core_out, ext_out = sys.argv[5], sys.argv[6]
+    arg = sys.argv[7] if len(sys.argv) > 7 else str(EXT_TOTAL[lang])
+    dump_path = sys.argv[8] if len(sys.argv) > 8 else None
+    alpha = float(sys.argv[9]) if len(sys.argv) > 9 else WF_ALPHA
+    # "all" means every word wordfreq lists that survives the filters.
+    total = 10 ** 9 if arg == 'all' else int(arg)
+
+    subs = None
+    if dump_path:
+        subs, lines = count_words(lang, dump_path)
+        print(f"{lang}: {lines} subtitle lines, {len(subs)} distinct words, "
+              f"blending at alpha {alpha}")
+    dict_words = load_dict(dict_path)
+    chosen, rejected = wordfreq_lists(lang, dict_words,
+                                      load_dict(other_path), total,
+                                      subs, alpha)
+    core, ext = score_and_split(chosen, subs)
+
+    credit = (
+        f"// Generated by tools/build-wordlists.py (wordfreq mode) from\n"
+        f"// wordfreq's large {lang} list: 7 corpora merged per word with the\n"
+        f"// highest and lowest source dropped. Data CC-BY-SA 4.0, with\n"
+        f"// credit to the SUBTLEX authors (Brysbaert et al.) and to the\n"
+        f"// other sources wordfreq names; code Apache-2.0.\n"
+        f"// WHICH words: a geometric blend of that ranking with the\n"
+        f"// OpenSubtitles v2018 counts (attribution:\n"
+        f"// https://www.opensubtitles.org), subtitle share {alpha}.\n"
+        f"// HOW THEY RANK: the OpenSubtitles probability alone, add-one\n"
+        f"// smoothed. The strip must rank in the register it is typed in.\n"
+        f"// Counts scale the core sum to {WF_SCALE:.0e}, both tiers together.\n"
+    )
+    dump = lambda rows: json.dumps(rows, ensure_ascii=False,  # noqa: E731
+                                   separators=(',', ':'))
+    Path(core_out).write_text(
+        credit
+        + f"// Core tier: top {len(core)} {lang} words as [word, count].\n"
+        + f"// One-letter words and in-word apostrophes are deliberate: see\n"
+        + f"// the \"Vocabulary bug\" section of word-prediction-research.md.\n"
+        + f"export const WORDS = {dump(core)};\n", encoding='utf-8')
+    Path(ext_out).write_text(
+        credit
+        + f"// Extension tier: {len(ext)} {lang} words below the core top\n"
+        + f"// {len(core)}, aspell-filtered, lazy-loaded after first paint.\n"
+        + f"export const WORDS_EXT = {dump(ext)};\n", encoding='utf-8')
+
+    print(f"{lang}: core {len(core)} -> {core_out}, "
+          f"ext {len(ext)} -> {ext_out}, rejected {len(rejected)}")
+    print(f"  core last 8: {', '.join(w for w, _ in core[-8:])}")
+    print(f"  ext last 8:  {', '.join(w for w, _ in ext[-8:])}")
+    print(f"  rejected e.g. {', '.join(rejected[:12])}")
 
 
 def ext_main():
@@ -220,6 +449,9 @@ def ext_main():
 def main():
     if sys.argv[1] == 'ext':
         ext_main()
+        return
+    if sys.argv[1] == 'wordfreq':
+        wordfreq_main()
         return
     lang, dump_path, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
     counts, lines = count_words(lang, dump_path)

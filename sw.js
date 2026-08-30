@@ -9,11 +9,11 @@
 //   revalidates GitHub Pages' 10-minute HTTP cache. An online launch
 //   therefore gets the newest index (and with it the newest ?v= set)
 //   right away; the cached copy is served only when the network fails.
-const BUILD = 37;
+const BUILD = 38;
 const CACHE = `phonekeeb-b${BUILD}`;
 
 // Everything a launch needs, pinned to this build. The trigram tables
-// are deliberately absent: they are ~2.4 MB and lazy-loaded behind the
+// are deliberately absent: they are ~8.7 MB and lazy-loaded behind the
 // "Trigram data" toggle, so precaching them would defeat the toggle's
 // data saving. They are runtime-cached in the fetch handler instead.
 const ASSETS = [
@@ -22,11 +22,16 @@ const ASSETS = [
   './cards.html',
   './game.html',
   './dictionary.html',
+  './bench.html',
   `./style.css?v=${BUILD}`,
   `./main.js?v=${BUILD}`,
   `./cards.js?v=${BUILD}`,
   `./game.js?v=${BUILD}`,
   `./dictionary.js?v=${BUILD}`,
+  // The bench page is precached but its heavy imports are not: it
+  // measures fetch and parse time, and a precached list would make
+  // that number a lie.
+  `./bench.js?v=${BUILD}`,
   `./wheel-svg.js?v=${BUILD}`,
   `./qwerty-map.js?v=${BUILD}`,
   // Lazy-loaded on the first emoji-button press, but precached anyway:

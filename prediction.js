@@ -546,9 +546,27 @@ export class Predictor {
     this.byWord = byWord;
     this.entries = [...byWord.values()];
     this.known = new Set(byWord.keys());
+    // Two indexes over the same entries, both there so vocabulary size
+    // stops driving per-keystroke cost (measured 2026-08-30: a 483000
+    // word list took 65 ms for one next-word strip against 8.5 ms for
+    // 60000, on a desktop). Kept as plain arrays, which is what the
+    // scan wants and what the Swift port will hold.
+    this.byFirst = new Map(); // first letter of the match key -> entries
+    this.coreEntries = [];    // entries that carry context, see predict()
+    for (const e of this.entries) this.index(e);
     this.personal = null;
     this.personalEntries = [];
     this.personalVersion = -1;
+  }
+
+  // File one entry into both indexes. Ext entries are unigram-only, so
+  // they never join coreEntries.
+  index(e) {
+    const c = e.key[0] ?? '';
+    let bucket = this.byFirst.get(c);
+    if (!bucket) this.byFirst.set(c, (bucket = []));
+    bucket.push(e);
+    if (!e.ext) this.coreEntries.push(e);
   }
 
   // Attach a language's trigram table ("w1 w2" contexts in the packed
@@ -583,6 +601,7 @@ export class Predictor {
       if (!e) {
         this.byWord.set(word, (e = { word, key, p: {}, ext: true }));
         this.entries.push(e);
+        this.index(e);
         this.known.add(word);
       }
       if (!(id in e.p)) e.p[id] = p;
@@ -696,12 +715,40 @@ export class Predictor {
     // block decisions still has to enforce them.
     const blocked = this.personal?.blocked.size ? this.personal.blocked : null;
 
+    // Which entries can win this strip. Scanning all of them is only
+    // necessary when the prefix is empty, and even then it is not:
+    //
+    // - empty prefix (the next-word strip): an ext entry has no pair
+    //   data at all (build-ngrams.py counts a pair only when both words
+    //   are core vocabulary), and its unigram probability is below
+    //   every core word's by construction. So no ext word can reach a
+    //   6-slot strip that 6000 core words compete for. Core only.
+    // - a typed prefix: exact matches all share the first letter, so
+    //   one bucket holds them. The typo branch needs entries the prefix
+    //   does NOT match, but it already skips ext entries, so scanning
+    //   coreEntries covers it. The two branches are exclusive on any
+    //   one entry (startsWith decides), so nothing is scored twice.
+    // Each pass states which branch it serves, so an entry that appears
+    // in two passes is scored once: the bucket holds the exact matches,
+    // the core pass holds the typo hypotheses, and only the personal
+    // entries (never in the bucket index) serve both.
+    const lists = [];
+    if (p) {
+      lists.push([this.byFirst.get(p[0]) ?? [], 'exact']);
+      if (p.length > 1) lists.push([this.coreEntries, 'typo']);
+    } else {
+      lists.push([this.coreEntries, 'both']);
+    }
+    lists.push([this.personalEntries, 'both']);
+
     const scored = [];
-    for (const list of [this.entries, this.personalEntries]) {
+    for (const [list, mode] of lists) {
       for (const e of list) {
         if (blocked?.has(e.word)) continue;
         let mult = 1;
-        if (!e.key.startsWith(p)) {
+        const exact = e.key.startsWith(p);
+        if (exact ? mode === 'typo' : mode === 'exact') continue;
+        if (!exact) {
           // Typo hypotheses: one edit inside the prefix, admitted at a
           // heavy discount. A 1-letter prefix is skipped: within one
           // edit it would match the whole vocabulary. Ext entries are

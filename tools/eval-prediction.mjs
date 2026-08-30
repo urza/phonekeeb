@@ -44,6 +44,9 @@ import { createGunzip } from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Predictor, matchKey } from '../prediction.js';
+// Word lists through the loader, so WORDS_DIR can point this harness at
+// a candidate vocabulary without swapping files in the working tree.
+import { WORDS as LISTS, WORDS_EXT as LISTS_EXT } from './load-words.mjs';
 
 const HOLDOUT_MOD = 100; // keep in sync with build-ngrams.py
 const PREFIX_BYTES = (Number(process.env.EVAL_PREFIX_MB) || 80) * 1024 * 1024;
@@ -215,7 +218,7 @@ const sources = {};
 const pairsByLang = {};
 const vocabByLang = {};
 for (const lang of langs) {
-  const { WORDS } = await import(`../words-${lang}.js`);
+  const WORDS = LISTS[lang];
   const { BIGRAMS } = await import(`../bigrams-${lang}.js`);
   sources[lang] = { id: lang, words: WORDS, bigrams: BIGRAMS };
   const vocab = new Set(WORDS.map(([w]) => w));
@@ -269,12 +272,9 @@ if (TRI) {
 // line is the headline: what share of structurally valid held-out
 // tokens each tier can represent.
 let EXT = {};
-try {
-  for (const lang of langs) {
-    EXT[lang] = (await import(`../words-ext-${lang}.js`)).WORDS_EXT;
-  }
-} catch {
-  EXT = null;
+for (const lang of langs) {
+  EXT[lang] = LISTS_EXT[lang];
+  if (!EXT[lang]) EXT = null;
 }
 if (TRI && EXT) {
   const label = langs.length > 1 ? 'mixed-' : '';
