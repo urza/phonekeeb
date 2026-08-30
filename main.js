@@ -731,7 +731,8 @@ function draw() {
   ctx.fillStyle = colors.hud;
   ctx.font = '13px sans-serif';
   ctx.textAlign = 'left';
-  const hud = `state:${currentSnapshot.state}  sector:${currentSnapshot.sector ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}  b${BUILD}`;
+  const hud = `state:${currentSnapshot.state}  sector:${currentSnapshot.sector ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}  b${BUILD}`
+    + (extError ? `  ext:${extError}` : '');
   ctx.fillText(hud, 10, 16);
 }
 
@@ -837,6 +838,10 @@ layoutModeEl.addEventListener('change', () => {
 // combined tiers, ~0.9 MB raw), lazy like the trigrams so first paint
 // types on the core tables. Not behind the data toggle: coverage is
 // core behavior, not an extra. The body marker mirrors data-trigrams.
+// Set when the extension tier could not load, and shown in the HUD: a
+// keyboard running on 6000 words instead of 200000 must say so.
+let extError = '';
+
 async function loadExtWords() {
   if (document.body.dataset.extWords === '1') return;
   try {
@@ -855,8 +860,16 @@ async function loadExtWords() {
         await new Promise((r) => requestAnimationFrame(r));
       }
     }
-  } catch {
-    return; // offline with an old cache: the core vocabulary keeps working
+  } catch (e) {
+    // Offline with an old cache: the core vocabulary keeps working, so
+    // this must not throw. But a silent catch hid a real fault for
+    // days: Safari could not parse the old array-literal form of
+    // words-ext-cs.js at all ("Maximum call stack size exceeded"), so
+    // the phone typed on 6000 words while the desktop had 200000 and
+    // nothing anywhere said so. The HUD now carries it.
+    document.body.dataset.extWords = 'failed';
+    extError = e?.message ? String(e.message).slice(0, 40) : 'failed';
+    return;
   }
   document.body.dataset.extWords = '1';
   renderSuggestions();

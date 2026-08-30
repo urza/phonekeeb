@@ -1001,6 +1001,58 @@ it stop early; not built, because the phone numbers should decide.
 keyboard menu, so the same measurement can be taken on the device that
 has to run it.
 
+### The phone answered, 2026-08-30
+
+iPhone, iOS 18.7, Safari 26.6, 4 cores, 375x812 at 3x. Full shipped
+vocabulary, 200000 words, trigram tables attached:
+
+| prefix | mean | worst batch of 10 |
+|---|---|---|
+| next word | 0.93 ms | 1.00 |
+| 1 letter | 1.91 ms | 2.40 |
+| 2 letters | 1.05 ms | 1.50 |
+| 3 letters | 0.58 ms | 0.80 |
+| 5 letters | 0.53 ms | 1.00 |
+
+Load: core build 33 ms, extension tier 29 ms to fetch and parse, 62 ms
+to add, trigram tables 224 ms.
+
+**Vocabulary size has stopped being a latency question.** Every shape is
+under 2.5 ms on a four-core phone, against a 16 ms frame. The 1-letter
+prefix stays the worst one, as the desktop numbers predicted, and at
+1.91 ms it does not need the sorted-bucket optimization that was left
+open above. That idea is closed, not deferred. What limits the list now
+is what `vocabulary-depth-analysis.md` measures: the depth at which the
+words stop being words.
+
+Two measurement notes worth keeping. Safari clamps `performance.now()`
+to 1 ms, so the first phone run read "mean 0.44, p95 1.00" for work that
+never took a millisecond; the bench times batches of 10 calls for that
+reason, and prints the measured clock step. And the run that produced
+these numbers is the first one that finished: before it, the phone was
+failing at the extension tier with "Maximum call stack size exceeded",
+which is the Safari parser bug the next section describes.
+
+### Safari cannot parse a large array literal
+
+JavaScriptCore recurses through an array literal while parsing it, and
+`words-ext-cs.js` is 147000 nested pairs, so importing it overflowed the
+stack. The extension vocabulary had been loading on desktop and failing
+on the phone the keyboard is built for. Nothing reported it, because
+`main.js` catches the import failure and keeps typing on the core tier
+(the offline fallback doing its job, hiding a different fault).
+
+Every generated data file is now `export const X = JSON.parse(\`...\`)`,
+emitted by `js_export()` in `tools/build-wordlists.py`, which both
+n-gram builders import. JSON.parse reads the same bytes iteratively, and
+the backtick makes the change free: inside a template literal the JSON's
+own double quotes need no escaping, so the files are the same size to
+the byte. It is also fast, 29 ms to fetch and parse 3.4 MB of word lists
+on that phone.
+
+The rule this leaves: a generated data file in this repo is never a
+plain literal. features.md carries it in the constants table.
+
 ## Personalization plan (added 2026-08-25)
 
 Status 2026-08-26: Component A (learning while typing) is shipped —

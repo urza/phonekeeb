@@ -11,7 +11,7 @@
      sw.js caches one pinned build for offline use; freshness still
      comes from the ?v= pinning below (the worker fetches navigations
      network-first and never mixes two builds). -->
-<link rel="manifest" href="manifest.webmanifest?v=41" />
+<link rel="manifest" href="manifest.webmanifest?v=42" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -24,7 +24,7 @@
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file, in cards.html, and the BUILD constant
      in sw.js together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=41" />
+<link rel="stylesheet" href="style.css?v=42" />
 </head>
 <body>
 <header>
@@ -154,25 +154,25 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=41",
-    "./layout.js": "./layout.js?v=41",
-    "./layouts.js": "./layouts.js?v=41",
-    "./themes.js": "./themes.js?v=41",
-    "./prediction.js": "./prediction.js?v=41",
-    "./words-en.js": "./words-en.js?v=41",
-    "./words-cs.js": "./words-cs.js?v=41",
-    "./bigrams-en.js": "./bigrams-en.js?v=41",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=41",
-    "./trigrams-en.js": "./trigrams-en.js?v=41",
-    "./trigrams-cs.js": "./trigrams-cs.js?v=41",
-    "./words-ext-en.js": "./words-ext-en.js?v=41",
-    "./words-ext-cs.js": "./words-ext-cs.js?v=41",
-    "./emoji-picker.js": "./emoji-picker.js?v=41",
-    "./emoji-data.js": "./emoji-data.js?v=41",
-    "./symbols-pad.js": "./symbols-pad.js?v=41"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=42",
+    "./layout.js": "./layout.js?v=42",
+    "./layouts.js": "./layouts.js?v=42",
+    "./themes.js": "./themes.js?v=42",
+    "./prediction.js": "./prediction.js?v=42",
+    "./words-en.js": "./words-en.js?v=42",
+    "./words-cs.js": "./words-cs.js?v=42",
+    "./bigrams-en.js": "./bigrams-en.js?v=42",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=42",
+    "./trigrams-en.js": "./trigrams-en.js?v=42",
+    "./trigrams-cs.js": "./trigrams-cs.js?v=42",
+    "./words-ext-en.js": "./words-ext-en.js?v=42",
+    "./words-ext-cs.js": "./words-ext-cs.js?v=42",
+    "./emoji-picker.js": "./emoji-picker.js?v=42",
+    "./emoji-data.js": "./emoji-data.js?v=42",
+    "./symbols-pad.js": "./symbols-pad.js?v=42"
   }
 }
 </script>
-<script type="module" src="main.js?v=41"></script>
+<script type="module" src="main.js?v=42"></script>
 </body>
 </html>
