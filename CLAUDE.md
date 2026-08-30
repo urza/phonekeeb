@@ -117,9 +117,10 @@ that file before design work.
 - `served-model-research.md` (phone twin: `served-model-research.html`)
   measures a real big model on this project's own tasks: a 27B served by
   vLLM on the user's network, at three levels of access (asked in words,
-  a constrained beam over logprobs, and re-ranking our own chips). One
-  win in six held-out measurements, and it is the first time any model
-  beat the shipped tables. Harness: `tools/api-lm-predict.mjs`, which
+  a constrained beam over logprobs, and re-ranking our own chips). It
+  loses every score column to our tables and rescues 23.9% of the
+  English next-word rows they miss, which is the number that decides
+  direction 8. Harness: `tools/api-lm-predict.mjs`, which
   plays the game or the held-out pairs against any OpenAI-compatible
   endpoint at all three levels, and shares the game cases with
   `tools/eval-game.mjs` through `tools/game-cases.mjs`. Measured

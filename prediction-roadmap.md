@@ -196,29 +196,40 @@ accepts goes into the personal model, so it teaches the small engine
 instead of becoming a permanent dependency.
 
 A 27B model, served over the user's own network, was measured on
-2026-08-29 at three levels of access: `served-model-research.md`. Asked
-in words, which is the shape iOS forces, it wins the game 8 of 14
-against our 7 and loses every held-out task. Given logprobs and a
-constrained beam, it produces the one win this project has ever seen
-against its own tables: 37.0 hit@3 on English next-word, past our 35.0,
-where the same model asked in words scores 30.0. So the text-only
-interface has a price now, and it is 7 points of hit@3. Used as a
-re-ranker over our own chips it loses everywhere, which is the finding
-recorded under direction 5.
+2026-08-29 and 2026-08-30 at three levels of access:
+`served-model-research.md`. It loses every held-out score column to our
+tables, in both languages, at all three levels. That is not the number
+that decides this direction (user, 2026-08-30). The number that decides
+it is how much of what we miss the model answers.
 
-Two limits sit under those numbers. The server returns at most 20
-logprobs per step, and `" amazing"` is not in the top 20 after
-`"you are"`, so prefix completion by beam collapses. Raising vLLM's
-`--max-logprobs` is the cheapest open experiment on that hardware.
-And reasoning mode is worse than useless: 160 times the latency, no
-better score, and empty strips when the model loops inside its own
-thinking block.
+It answers 23.9% of them in English. On 200 held-out next-word rows the
+engine misses 109 and the beam rescues 26, which lifts coverage at a
+strip of six from 45.5% to 58.5%. Czech rescues 10.3%, half as often,
+which supports the two-specialist plan again. On the 14 game cases the
+engine answers 7, and engine plus this model answers 11.
 
-One beam result belongs to direction 7, not here. Game case 13 wants
-`predikčního`, a word our vocabulary does not hold, and the beam put it
-at rank 1. That is the out-of-vocabulary tail answered by a model
-instead of by an aspell bucket file, and the two should be measured
-against each other on the tail cases alone.
+The rescues are semantic, and they are exactly the ceiling named at the
+end of this file. `"it's no place for a"` wants `woman` and our tables
+offer `while, long, minute`, because `for a while` is what counting
+knows. Only the sentence says otherwise.
+
+Three constraints on the merge, all measured. It must add candidates and
+never replace ours: the same beam loses 31 rows the engine had for the
+26 it rescues, so trusting the model wherever it disagrees costs more
+than it gains. It cannot be a re-ranker, which is the finding recorded
+under direction 5. And the decision rule for which candidates to show,
+once both sets are on the table, is unmeasured and is the open work.
+
+Game case 13 belongs to direction 7. It wants `predikčního`, a word our
+vocabulary does not hold at any tier, and the beam put it at rank 1. The
+held-out pairs cannot see that case at all, because the pair dump keeps
+only in-vocabulary targets, so the rescue rates above are a floor. A
+pair set built without that filter is the next measurement, and it
+decides how much of direction 7 a served model could replace.
+
+Reasoning mode is worse than useless: 160 times the latency, no better
+score, and empty strips when the model loops inside its own thinking
+block.
 
 The iOS half of this direction is now researched:
 `apple-foundation-models-research.md` (2026-08-29). Four findings change

@@ -187,27 +187,30 @@ function trimWord(w) {
   return s;
 }
 
-// Constrained beam search over whole words, the method of lm-predict.py, run
-// over HTTP.
+// One constrained beam search over whole words, from one prompt.
 //
 // Two things make this a suggestion strip and not a text generator. The typed
-// prefix goes INTO the prompt, so every beam already spells it and no beam
-// slot is wasted on a word that breaks it. And two token paths that spell the
-// same word are one candidate, summed in probability, because "zaplavat" is
-// one word whether the model reached it as zapla+vat or zap+lavat.
-async function stripBeam({ left, prefix, n = LIMIT }) {
-  const t0 = performance.now();
-  // With a typed prefix the prompt ends mid-word, so the model continues it.
-  // With no prefix the prompt must NOT end in a space: a trailing space
-  // splits the next word away from its word-start token and the whole beam
-  // collapses into fragments.
-  const base = (prefix ? (left ? `${left} ${prefix}` : prefix) : left) || '\n';
+// prefix filters every step of the beam, so no slot is spent on a word that
+// breaks it. And two token paths that spell the same word are one candidate,
+// summed in probability, because "zaplavat" is one word whether the model
+// reached it as zapla+vat or zap+lavat.
+//
+// `spelled` is what the prompt has already committed of the word: empty when
+// the prompt ends at a word boundary, and the typed prefix when the prompt
+// ends mid-word.
+async function beamFrom(base, prefix, spelled, count) {
   const pkey = matchKey(prefix.toLowerCase());
+  // A path stays alive while it agrees with the typed prefix in either
+  // direction: still inside it, or already past it.
+  const compatible = (w) => {
+    const k = matchKey(w.toLowerCase());
+    return k.startsWith(pkey) || pkey.startsWith(k);
+  };
   const covers = (w) => matchKey(w.toLowerCase()).startsWith(pkey);
   // A beam carries two strings. `cont` is what gets appended to the prompt,
   // and `word` is the word being spelled. They differ when the model restates
-  // the typed prefix as part of one token, so neither one alone is enough.
-  let beams = [{ cont: '', word: prefix, lp: 0, open: prefix !== '' }];
+  // the typed prefix inside one token, so neither one alone is enough.
+  let beams = [{ cont: '', word: spelled, lp: 0, open: spelled !== '' }];
   const done = new Map();
   const trace = [];
   let requests = 0;
@@ -224,6 +227,7 @@ async function stripBeam({ left, prefix, n = LIMIT }) {
     requests++;
     const next = new Map();
     const push = (cont, word, score) => {
+      if (!compatible(word)) return;
       const cur = next.get(cont);
       next.set(cont, { cont, word, lp: cur ? logsumexp(cur.lp, score) : score, open: true });
     };
@@ -242,12 +246,11 @@ async function stripBeam({ left, prefix, n = LIMIT }) {
           push(tok, t, score);
           continue;
         }
-        if (startsWord(tok) && b.cont === '' && t && covers(t)) {
-          // The prompt ends mid-word, and the model answers with the WHOLE
+        if (startsWord(tok) && b.cont === '' && spelled && t && covers(t)) {
+          // The prompt ends mid-word and the model answers with the WHOLE
           // word as one token, space and all ("you are am" -> " amazing").
           // That is the word's canonical tokenization, so it is another path
-          // to the same candidate and not a new word. Without this branch the
-          // top-20 cap hides every word the tokenizer spells in one piece.
+          // to the same candidate and not a new word.
           push(tok, t, score);
           continue;
         }
@@ -258,11 +261,47 @@ async function stripBeam({ left, prefix, n = LIMIT }) {
     beams = [...next.values()].sort((a, b) => b.lp - a.lp).slice(0, BEAM);
     // The trace travels back with the result instead of being printed here,
     // so it lands under its own case and not under the previous one.
-    trace.push(`step ${step}: [${beams.map((b) => JSON.stringify(b.cont)).join(' ')}] ${done.size} done`);
+    trace.push(`${count} step ${step}: [${beams.map((b) => JSON.stringify(b.cont)).join(' ')}] ${done.size} done`);
+  }
+  return { done, requests, trace };
+}
+
+// The strip is two beams when a prefix is typed, because the two prompts see
+// different parts of the model's top 20 and each one hides what the other
+// finds.
+//
+// From the context alone, the top 20 after "you are" holds a token compatible
+// with the typed "am" in 84% of eval rows, and holds the whole target word in
+// 51% of English rows. That is the sound measurement: the prompt ends at a
+// word boundary, so the tokenization is the model's own.
+//
+// From the context plus the typed letters, "you are am", the model continues
+// or restates the word. That prompt is mid-word, so the tokenization is
+// forced and the probabilities are not on the same scale. It is recall only:
+// its words are appended under the first beam's, never mixed into its
+// ranking.
+async function stripBeam({ left, prefix, n = LIMIT }) {
+  const t0 = performance.now();
+  const ctx = left || '\n';
+  const a = await beamFrom(ctx, prefix, '', 'ctx');
+  const rank = (m) => [...m.entries()].sort((x, y) => y[1] - x[1]).map(([w]) => w);
+  let chips = rank(a.done);
+  let requests = a.requests;
+  let trace = a.trace;
+
+  if (prefix && chips.length < n) {
+    const b = await beamFrom(left ? `${ctx} ${prefix}` : prefix, prefix, prefix, 'mid');
+    requests += b.requests;
+    trace = trace.concat(b.trace);
+    for (const w of rank(b.done)) if (!chips.includes(w)) chips.push(w);
   }
 
-  const chips = [...done.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([w]) => w);
-  return { chips, ms: performance.now() - t0, raw: `${requests} requests\n    ${trace.join('\n    ')}`, finish: 'stop' };
+  return {
+    chips: chips.slice(0, n),
+    ms: performance.now() - t0,
+    raw: `${requests} requests\n    ${trace.join('\n    ')}`,
+    finish: 'stop',
+  };
 }
 
 // Scores whole candidates the engine already produced, and reorders them.
@@ -545,11 +584,57 @@ async function runPairs() {
     const e = score(sub, (x) => x.engine || []);
     console.log(`| ${task} | ${m.h1} / ${m.h3} | ${e.h1} / ${e.h3} | ${m.n} |`);
   }
+  complement(results, tasks);
   if (MODE === 'rerank') blendSweep(results, tasks, score);
 
   const msAll = results.reduce((a, x) => a + x.ms, 0);
   console.log(`\n${(msAll / results.length / 1000).toFixed(2)}s per request, `
     + `${((performance.now() - t0) / 1000).toFixed(0)}s wall at concurrency ${CONCURRENCY}`);
+}
+
+// The score tables answer "is the big model better". This answers the
+// question that actually decides direction 8: does it cover what we miss?
+//
+// A rescue is a row where the target is absent from the engine's whole strip
+// and present in the model's. Those are the rows a second opinion would earn
+// its cost on, and they are invisible in a hit@1 column, where a model that
+// only repeats our own good answers looks identical to one that adds new
+// ones.
+//
+// Two limits belong with every number here. The pair dump keeps only targets
+// that are inside our vocabulary, so the rescue rate below cannot see the
+// out-of-vocabulary tail, which is where the game says this model is
+// strongest. And --rerank can never rescue anything by construction: its
+// candidates are the engine's own six.
+function complement(results, tasks) {
+  const has = (chips, w) => chips.some((c) => c.toLowerCase() === w.toLowerCase());
+  console.log(`\nComplementarity: rows the engine misses, that the model answers.`);
+  console.log(`\n| Task | engine misses | model rescues | rescue rate | engine-only | union hit@6 |`);
+  console.log(`|---|---|---|---|---|---|`);
+  const samples = [];
+  for (const task of tasks) {
+    const sub = results.filter((x) => x.task === task);
+    if (!sub.length) continue;
+    let miss = 0; let rescue = 0; let engineOnly = 0; let union = 0;
+    for (const x of sub) {
+      const e = has(x.engine || [], x.r.target);
+      const m = has(x.chips || [], x.r.target);
+      if (!e) miss++;
+      if (!e && m) { rescue++; if (samples.length < 12) samples.push({ task, x }); }
+      if (e && !m) engineOnly++;
+      if (e || m) union++;
+    }
+    const rate = miss ? (100 * rescue / miss).toFixed(1) : '-';
+    console.log(`| ${task} | ${miss} | ${rescue} | ${rate}% | ${engineOnly} | `
+      + `${(100 * union / sub.length).toFixed(1)} |`);
+  }
+  if (!samples.length) return;
+  console.log(`\nRescued rows, up to 12:`);
+  for (const { task, x } of samples) {
+    console.log(`  [${task}] ...${x.r.left.split(' ').slice(-6).join(' ')} -> ${x.r.target}`);
+    console.log(`      engine: ${(x.engine || []).join(' | ')}`);
+    console.log(`      model:  ${(x.chips || []).join(' | ')}`);
+  }
 }
 
 // A re-ranker that replaces our order with the model's is one extreme, and
