@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Phonekeeb Vocabulary Depth</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;700&family=Source+Sans+3:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f4f6f9; --card: #ffffff; --ink: #1a212c; --muted: #576273;
+    --line: #dfe4eb; --accent: #2b5fe3; --link: #2154cf; --chip-bg: #eef1f6;
+    --warn-ink: #815409; --warn-bg: #faf1df; --warn-line: #e8d5a8;
+    --good: #1a7f4b; --mid: #9aa5b4; --bad: #b03a2e; --quote-line: #b9c4d4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151a; --card: #181d24; --ink: #e7eaf0; --muted: #98a2b1;
+      --line: #2a313b; --accent: #5c86f5; --link: #93b0ff; --chip-bg: #232a33;
+      --warn-ink: #e3b76c; --warn-bg: #251e0f; --warn-line: #4a3d1e;
+      --good: #52c98a; --mid: #5d6878; --bad: #ec8377; --quote-line: #3c4756;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151a; --card: #181d24; --ink: #e7eaf0; --muted: #98a2b1;
+    --line: #2a313b; --accent: #5c86f5; --link: #93b0ff; --chip-bg: #232a33;
+    --warn-ink: #e3b76c; --warn-bg: #251e0f; --warn-line: #4a3d1e;
+    --good: #52c98a; --mid: #5d6878; --bad: #ec8377; --quote-line: #3c4756;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.03rem; line-height: 1.55; margin: 0;
+  }
+  .wrap { max-width: 42.5rem; margin: 0 auto; padding: 2.2rem 1.15rem 3.5rem; }
+  .eyebrow {
+    font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(1.9rem, 6vw, 2.5rem); font-weight: 700;
+    letter-spacing: -.015em; line-height: 1.08; text-wrap: balance; margin: 0 0 .7rem;
+  }
+  .dek { font-size: 1.11rem; color: var(--muted); max-width: 34em; margin: 0 0 1.8rem; }
+  h2 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.28rem; font-weight: 700; letter-spacing: -.01em;
+    text-wrap: balance; margin: 2.6rem 0 .8rem;
+  }
+  h3 {
+    font-family: "Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.02rem; font-weight: 700; margin: 1.6rem 0 .4rem;
+  }
+  p { margin: .65rem 0; max-width: 65ch; }
+  a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .mono { font-family: "Spline Sans Mono", "SFMono-Regular", Consolas, monospace; }
+
+  .tldr { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.05rem 1.25rem; margin: 1.6rem 0 0; }
+  .tldr ul { margin: 0; padding-left: 1.1rem; }
+  .tldr li { margin: .5rem 0; }
+  .tldr b { font-weight: 600; }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .45rem .6rem; border-top: 1px solid var(--line); vertical-align: middle; }
+  thead th { border-top: 0; font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; }
+  td.num { text-align: right; font-family: "Spline Sans Mono", monospace; font-size: .84rem; white-space: nowrap; }
+  td:first-child { font-weight: 600; font-family: "Spline Sans Mono", monospace; font-size: .8rem; white-space: nowrap; }
+  tr.cut td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+  /* Stacked good / marginal / bad bar. The whole point of the page is
+     that the English bars go grey then red while the Czech bars stay
+     green far deeper, so the bar column carries the argument and the
+     percentages are only the receipt. */
+  td.bar { width: 42%; min-width: 8rem; padding-right: .8rem; }
+  /* The stacked bar is a span, not the cell itself: a display:flex on the
+     td would take the cell out of the table layout. */
+  .stack { display: flex; height: .62rem; border-radius: 3px; overflow: hidden; background: var(--chip-bg); }
+  .stack i { display: block; height: 100%; }
+  .g { background: var(--good); }
+  .m { background: var(--mid); }
+  .b { background: var(--bad); }
+  .key { font-size: .82rem; color: var(--muted); margin: .3rem 0 1rem; }
+  .key i { display: inline-block; width: .62rem; height: .62rem; border-radius: 2px; vertical-align: baseline; margin: 0 .18rem 0 .7rem; }
+  .key i:first-of-type { margin-left: 0; }
+
+  .warncard { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: .9rem 1.1rem; margin: 1.3rem 0; }
+  .warncard .tag { font-family: "Spline Sans Mono", monospace; font-size: .72rem; letter-spacing: .12em; color: var(--warn-ink); font-weight: 500; }
+  .warncard p { font-size: .95rem; margin: .4rem 0 0; }
+
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .7rem .95rem; margin: 1rem 0; }
+  summary { cursor: pointer; font-weight: 600; font-size: .95rem; }
+  details .band { margin: .9rem 0 0; }
+  details .band b { font-family: "Spline Sans Mono", monospace; font-size: .74rem; color: var(--muted); font-weight: 500; display: block; }
+  details .band p { font-size: .88rem; margin: .15rem 0 0; max-width: none; }
+  .w-g { color: var(--ink); }
+  .w-m { color: var(--muted); }
+  .w-b { color: var(--bad); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+  ul.need { padding-left: 1.1rem; margin: .4rem 0 0; font-size: .95rem; }
+  ul.need li { margin: .35rem 0; max-width: 62ch; }
+
+  .sources { border-top: 1px solid var(--line); margin-top: 2.6rem; padding-top: 1.2rem; }
+  .sources h2 { margin-top: 0; font-size: 1.05rem; }
+  .repo-note { font-size: .88rem; color: var(--muted); margin-top: 1.3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">Phonekeeb · measured 2026-08-30</p>
+<h1>How deep the word list stays a word list</h1>
+<p class="dek">1250 words sampled from the vocabulary ranking at 50 depth bands, then labelled one by one, to find where each language stops being language.</p>
+
+<div class="tldr">
+  <ul>
+    <li><b>Cut English at 30000 and Czech at 150000.</b> Both sit inside real vocabulary and stop before the junk. One size for both languages is wrong in either direction.</li>
+    <li><b>English breaks early.</b> In wordfreq's own order it falls from 68% to 40% good in one step at 20000. In the blended order that ships, the same cliff waits until about 50000.</li>
+    <li><b>Czech does not break until 200000.</b> It is still 84% good at 150000, because the words down there are ordinary words in a case the shallow ranks never reached.</li>
+    <li><b>Czech tolerates three to five times the depth of English.</b> One Czech verb spreads over 18000 ranks. The English equivalent finishes inside 300.</li>
+    <li><b>aspell cannot answer this question.</b> It calls <span class="mono">waukesha</span> a word and <span class="mono">železnička</span> junk. So the words were read by hand instead.</li>
+  </ul>
+</div>
+
+<h2>What was measured</h2>
+
+<p><span class="mono">tools/vocab-depth.py</span> takes wordfreq's large list per language and applies the build script's structural filters: same alphabet regex, same one-letter whitelist, same DROP set. That leaves 307604 English and 596230 Czech candidates in frequency order.</p>
+
+<p>The script samples 25 random words per band and writes them with no verdict attached. Claude labelled all 1250 by hand, 900 in wordfreq's order and 350 more in the blended order that ships:</p>
+
+<ul class="need">
+  <li><b>Good</b>: the strip should offer this word.</li>
+  <li><b>Marginal</b>: real, but an obscure name, a technical term, or an established foreign word. It costs a prefix slot and rarely helps.</li>
+  <li><b>Bad</b>: a typo, a form with the diacritics stripped, a fragment, an abbreviation, or a word from the other language.</li>
+</ul>
+
+<p><span class="mono">cum</span> is the share of running text the list covers down to that band, from wordfreq's own probabilities. It is the value side of the trade: a band full of junk costs nothing if it carries no text either.</p>
+
+<p>The next two tables rank by wordfreq alone. The shipped ranking blends it with subtitle counts, and that ranking gets its own section further down.</p>
+
+<h2>English: the cliff at 20000</h2>
+
+<p class="key" style="margin-top:-.4rem">wordfreq order</p>
+
+<p class="key"><i class="g"></i>good <i class="m"></i>marginal <i class="b"></i>bad</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>band</th><th>quality</th><th class="num">good</th><th class="num">cum&nbsp;%</th></tr></thead>
+<tbody>
+<tr><td>0–1k</td><td class="bar"><span class="stack"><i class="g" style="width:100%"></i></span></td><td class="num">100%</td><td class="num">71.1</td></tr>
+<tr><td>1k–2k</td><td class="bar"><span class="stack"><i class="g" style="width:100%"></i></span></td><td class="num">100%</td><td class="num">78.5</td></tr>
+<tr><td>2k–3k</td><td class="bar"><span class="stack"><i class="g" style="width:96%"></i><i class="b" style="width:4%"></i></span></td><td class="num">96%</td><td class="num">82.7</td></tr>
+<tr><td>3k–5k</td><td class="bar"><span class="stack"><i class="g" style="width:100%"></i></span></td><td class="num">100%</td><td class="num">87.3</td></tr>
+<tr><td>5k–7.5k</td><td class="bar"><span class="stack"><i class="g" style="width:100%"></i></span></td><td class="num">100%</td><td class="num">90.5</td></tr>
+<tr><td>7.5k–10k</td><td class="bar"><span class="stack"><i class="g" style="width:84%"></i><i class="m" style="width:12%"></i><i class="b" style="width:4%"></i></span></td><td class="num">84%</td><td class="num">92.4</td></tr>
+<tr><td>10k–15k</td><td class="bar"><span class="stack"><i class="g" style="width:76%"></i><i class="m" style="width:16%"></i><i class="b" style="width:8%"></i></span></td><td class="num">76%</td><td class="num">94.7</td></tr>
+<tr class="cut"><td>15k–20k</td><td class="bar"><span class="stack"><i class="g" style="width:68%"></i><i class="m" style="width:24%"></i><i class="b" style="width:8%"></i></span></td><td class="num">68%</td><td class="num">95.9</td></tr>
+<tr><td>20k–30k</td><td class="bar"><span class="stack"><i class="g" style="width:40%"></i><i class="m" style="width:48%"></i><i class="b" style="width:12%"></i></span></td><td class="num">40%</td><td class="num">97.3</td></tr>
+<tr><td>30k–40k</td><td class="bar"><span class="stack"><i class="g" style="width:36%"></i><i class="m" style="width:60%"></i><i class="b" style="width:4%"></i></span></td><td class="num">36%</td><td class="num">98.0</td></tr>
+<tr><td>40k–50k</td><td class="bar"><span class="stack"><i class="g" style="width:20%"></i><i class="m" style="width:68%"></i><i class="b" style="width:12%"></i></span></td><td class="num">20%</td><td class="num">98.5</td></tr>
+<tr><td>50k–75k</td><td class="bar"><span class="stack"><i class="g" style="width:4%"></i><i class="m" style="width:68%"></i><i class="b" style="width:28%"></i></span></td><td class="num">4%</td><td class="num">99.1</td></tr>
+<tr><td>75k–100k</td><td class="bar"><span class="stack"><i class="m" style="width:48%"></i><i class="b" style="width:52%"></i></span></td><td class="num">0%</td><td class="num">99.4</td></tr>
+<tr><td>100k–150k</td><td class="bar"><span class="stack"><i class="g" style="width:4%"></i><i class="m" style="width:52%"></i><i class="b" style="width:44%"></i></span></td><td class="num">4%</td><td class="num">99.7</td></tr>
+<tr><td>150k–200k</td><td class="bar"><span class="stack"><i class="m" style="width:24%"></i><i class="b" style="width:76%"></i></span></td><td class="num">0%</td><td class="num">99.8</td></tr>
+<tr><td>200k–300k</td><td class="bar"><span class="stack"><i class="m" style="width:24%"></i><i class="b" style="width:76%"></i></span></td><td class="num">0%</td><td class="num">100.0</td></tr>
+<tr><td>300k–308k</td><td class="bar"><span class="stack"><i class="m" style="width:16%"></i><i class="b" style="width:84%"></i></span></td><td class="num">0%</td><td class="num">100.0</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>English holds a clean 100% to rank 7500. From 20000 to 75000 the list is mostly real but marginal, about half obscure proper names (<span class="mono">annette</span>, <span class="mono">westchester</span>, <span class="mono">mulroney</span>) and half low-use vocabulary (<span class="mono">dereliction</span>, <span class="mono">foreshore</span>, <span class="mono">peptic</span>). Past 75000 junk wins outright.</p>
+
+<h2>Czech: no cliff until 200000</h2>
+
+<p class="key" style="margin-top:-.4rem">wordfreq order</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>band</th><th>quality</th><th class="num">good</th><th class="num">cum&nbsp;%</th></tr></thead>
+<tbody>
+<tr><td>0–1k</td><td class="bar"><span class="stack"><i class="g" style="width:96%"></i><i class="b" style="width:4%"></i></span></td><td class="num">96%</td><td class="num">56.9</td></tr>
+<tr><td>1k–2k</td><td class="bar"><span class="stack"><i class="g" style="width:96%"></i><i class="b" style="width:4%"></i></span></td><td class="num">96%</td><td class="num">63.9</td></tr>
+<tr><td>2k–3k</td><td class="bar"><span class="stack"><i class="g" style="width:100%"></i></span></td><td class="num">100%</td><td class="num">68.1</td></tr>
+<tr><td>3k–5k</td><td class="bar"><span class="stack"><i class="g" style="width:96%"></i><i class="b" style="width:4%"></i></span></td><td class="num">96%</td><td class="num">73.4</td></tr>
+<tr><td>5k–7.5k</td><td class="bar"><span class="stack"><i class="g" style="width:88%"></i><i class="b" style="width:12%"></i></span></td><td class="num">88%</td><td class="num">77.6</td></tr>
+<tr><td>7.5k–10k</td><td class="bar"><span class="stack"><i class="g" style="width:96%"></i><i class="b" style="width:4%"></i></span></td><td class="num">96%</td><td class="num">80.5</td></tr>
+<tr><td>10k–15k</td><td class="bar"><span class="stack"><i class="g" style="width:88%"></i><i class="m" style="width:12%"></i></span></td><td class="num">88%</td><td class="num">84.3</td></tr>
+<tr><td>15k–20k</td><td class="bar"><span class="stack"><i class="g" style="width:88%"></i><i class="m" style="width:12%"></i></span></td><td class="num">88%</td><td class="num">86.9</td></tr>
+<tr><td>20k–30k</td><td class="bar"><span class="stack"><i class="g" style="width:92%"></i><i class="b" style="width:8%"></i></span></td><td class="num">92%</td><td class="num">90.1</td></tr>
+<tr class="cut"><td>30k–40k</td><td class="bar"><span class="stack"><i class="g" style="width:96%"></i><i class="b" style="width:4%"></i></span></td><td class="num">96%</td><td class="num">92.1</td></tr>
+<tr><td>40k–50k</td><td class="bar"><span class="stack"><i class="g" style="width:88%"></i><i class="m" style="width:8%"></i><i class="b" style="width:4%"></i></span></td><td class="num">88%</td><td class="num">93.4</td></tr>
+<tr><td>50k–75k</td><td class="bar"><span class="stack"><i class="g" style="width:88%"></i><i class="m" style="width:12%"></i></span></td><td class="num">88%</td><td class="num">95.4</td></tr>
+<tr><td>75k–100k</td><td class="bar"><span class="stack"><i class="g" style="width:80%"></i><i class="m" style="width:16%"></i><i class="b" style="width:4%"></i></span></td><td class="num">80%</td><td class="num">96.6</td></tr>
+<tr><td>100k–150k</td><td class="bar"><span class="stack"><i class="g" style="width:88%"></i><i class="m" style="width:12%"></i></span></td><td class="num">88%</td><td class="num">97.8</td></tr>
+<tr><td>150k–200k</td><td class="bar"><span class="stack"><i class="g" style="width:76%"></i><i class="m" style="width:20%"></i><i class="b" style="width:4%"></i></span></td><td class="num">76%</td><td class="num">98.6</td></tr>
+<tr><td>200k–300k</td><td class="bar"><span class="stack"><i class="g" style="width:64%"></i><i class="m" style="width:12%"></i><i class="b" style="width:24%"></i></span></td><td class="num">64%</td><td class="num">99.3</td></tr>
+<tr><td>300k–400k</td><td class="bar"><span class="stack"><i class="g" style="width:32%"></i><i class="m" style="width:36%"></i><i class="b" style="width:32%"></i></span></td><td class="num">32%</td><td class="num">99.7</td></tr>
+<tr><td>400k–500k</td><td class="bar"><span class="stack"><i class="g" style="width:52%"></i><i class="m" style="width:32%"></i><i class="b" style="width:16%"></i></span></td><td class="num">52%</td><td class="num">99.9</td></tr>
+<tr><td>500k–596k</td><td class="bar"><span class="stack"><i class="g" style="width:28%"></i><i class="m" style="width:28%"></i><i class="b" style="width:44%"></i></span></td><td class="num">28%</td><td class="num">100.0</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The Czech good rate sits between 76% and 96% from rank 0 to 200000. It stays flat because the words down there are ordinary: <span class="mono">kafíčko</span> at 53366, <span class="mono">vyzkoušíš</span> near 160000, then <span class="mono">oceníš</span>, <span class="mono">štěňátek</span>, <span class="mono">lidoopi</span>, <span class="mono">špás</span>. The 400k–500k band scoring above the one before it is sampling noise at 25 words, not a recovery.</p>
+
+<p>Czech carries a different junk class instead of English's names: words from the other language. <span class="mono">you</span> sits at rank 1400, then <span class="mono">high</span>, <span class="mono">day</span>, <span class="mono">from</span>, <span class="mono">young</span>, <span class="mono">friendly</span>, <span class="mono">paris</span>, <span class="mono">italy</span>. English words inside a Czech list are the worst entry this keyboard can hold, because both languages share one strip.</p>
+
+<h2>Why: one verb, 18000 ranks</h2>
+
+<p>Czech inflection spreads one word over a long rank range. English does not.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Czech: dělat</th><th class="num">rank</th><th>English: do, make, play</th><th class="num">rank</th></tr></thead>
+<tbody>
+<tr><td>dělat</td><td class="num">244</td><td>do</td><td class="num">49</td></tr>
+<tr><td>dělá</td><td class="num">449</td><td>make</td><td class="num">86</td></tr>
+<tr><td>dělám</td><td class="num">1116</td><td>did</td><td class="num">111</td></tr>
+<tr><td>děláš</td><td class="num">2027</td><td>made</td><td class="num">123</td></tr>
+<tr><td>děláte</td><td class="num">2656</td><td>does</td><td class="num">170</td></tr>
+<tr><td>děláme</td><td class="num">4242</td><td>play</td><td class="num">215</td></tr>
+<tr><td>dělejte</td><td class="num">12193</td><td>doing</td><td class="num">218</td></tr>
+<tr><td>dělaly</td><td class="num">14236</td><td>done</td><td class="num">228</td></tr>
+<tr><td>dělalo</td><td class="num">18158</td><td>makes</td><td class="num">319</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The adjective behaves the same way: <span class="mono">malé</span> 553, <span class="mono">malý</span> 761, <span class="mono">malých</span> 2082, <span class="mono">malými</span> 8307, <span class="mono">malému</span> 14276, <span class="mono">maličký</span> 34703. So the same amount of language needs roughly ten times the rank depth in Czech. wordfreq shows it in the raw counts too: 606360 Czech entries against 321180 English, from a smaller corpus.</p>
+
+<p>Token coverage confirms it from the other direction. The rank needed to cover a share of running text:</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>coverage</th><th class="num">English</th><th class="num">Czech</th><th class="num">ratio</th></tr></thead>
+<tbody>
+<tr><td>90%</td><td class="num">7002</td><td class="num">29542</td><td class="num">4.2×</td></tr>
+<tr><td>95%</td><td class="num">16127</td><td class="num">68725</td><td class="num">4.3×</td></tr>
+<tr><td>98%</td><td class="num">39409</td><td class="num">158715</td><td class="num">4.0×</td></tr>
+<tr><td>99%</td><td class="num">70510</td><td class="num">250449</td><td class="num">3.6×</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Czech needs four times the entries for the same coverage, and the quality measurement says it can have them. The two facts fit: the extra Czech ranks are inflected forms of words the list already holds, and an inflected form of a real word is a real word.</p>
+
+<h2>The same measurement on the ranking that ships</h2>
+
+<p>The tables above rank by wordfreq alone. The keyboard does not. The build script ranks by a geometric blend, half wordfreq and half the OpenSubtitles counts (<span class="mono">WF_ALPHA = 0.5</span>). So the sampling was repeated against the blended order, over the bands where the answer could change. Same tool, same 25 words per band, same labeller.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>band</th><th class="num">en pure</th><th class="num">en blend</th><th class="num">cs pure</th><th class="num">cs blend</th></tr></thead>
+<tbody>
+<tr><td>10k–15k</td><td class="num">76%</td><td class="num">72%</td><td class="num">88%</td><td class="num">·</td></tr>
+<tr><td>15k–20k</td><td class="num">68%</td><td class="num">88%</td><td class="num">88%</td><td class="num">·</td></tr>
+<tr><td>20k–30k</td><td class="num">40%</td><td class="num">64%</td><td class="num">92%</td><td class="num">·</td></tr>
+<tr><td>30k–40k</td><td class="num">36%</td><td class="num">48%</td><td class="num">96%</td><td class="num">·</td></tr>
+<tr><td>40k–50k</td><td class="num">20%</td><td class="num">52%</td><td class="num">88%</td><td class="num">92%</td></tr>
+<tr><td>50k–75k</td><td class="num">4%</td><td class="num">24%</td><td class="num">88%</td><td class="num">80%</td></tr>
+<tr><td>75k–100k</td><td class="num">0%</td><td class="num">8%</td><td class="num">80%</td><td class="num">88%</td></tr>
+<tr><td>100k–150k</td><td class="num">4%</td><td class="num">0%</td><td class="num">88%</td><td class="num">84%</td></tr>
+<tr><td>150k–200k</td><td class="num">0%</td><td class="num">·</td><td class="num">76%</td><td class="num">80%</td></tr>
+<tr><td>200k–300k</td><td class="num">0%</td><td class="num">·</td><td class="num">64%</td><td class="num">48%</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Percentages are good words. The blend moves the English cliff from 20000 out to about 50000, and leaves Czech where it was.</p>
+
+<p>That asymmetry is the same finding again. The junk the blend removes is junk subtitles never contain: web names, brands, handles, transliterations. English carries a mountain of those, so demanding subtitle support repairs the English tail. Czech never had that problem, so nothing changes. What English gains at 15000 to 30000 is ordinary speech that wordfreq under-ranked: <span class="mono">gator</span>, <span class="mono">autism</span>, <span class="mono">beetles</span>, <span class="mono">nemesis</span>, <span class="mono">forgave</span>, <span class="mono">socialize</span>, <span class="mono">dugout</span>, <span class="mono">rappers</span>.</p>
+
+<p>The blended English tail past 50000 still fails the same way: <span class="mono">tanguy</span>, <span class="mono">rossendale</span>, <span class="mono">kleist</span>, <span class="mono">bandra</span>, <span class="mono">mcelwaine</span>, <span class="mono">hollyweird</span>, <span class="mono">amzn</span>, <span class="mono">ilb</span>. The blended Czech tail at 150000 to 200000 is still ordinary Czech: <span class="mono">prodání</span>, <span class="mono">nevycházej</span>, <span class="mono">rozzářený</span>, <span class="mono">uhodíte</span>, <span class="mono">blankytná</span>, <span class="mono">meditačních</span>, <span class="mono">nastupovaly</span>.</p>
+
+<h2>What the cuts should be</h2>
+
+<p><b>English: 30000.</b> In the shipped blended ranking, 20000–30000 is 64% good and 30000–50000 is about half. So 30000 sits inside real vocabulary, and 50000 is the ceiling rather than the target. Marginal entries are cheaper than they look, because a rank-25000 word is too rare to outrank a good word on a short prefix. It surfaces only on a long prefix where nothing better matches. Past 50000 the good share falls to 24%, then 8%. An English list at 90000 spends its last 40000 entries on <span class="mono">mcelwaine</span>, <span class="mono">hollyweird</span>, <span class="mono">amzn</span> and <span class="mono">ilb</span>.</p>
+
+<p><b>Czech: 150000.</b> Ranks 40000 to 150000 stay between 80% and 92% good in both rankings, and carry 5.8% of Czech running text. That is more text than the entire English tail from 20000 to 300000 carries. Czech at 40000 is too shallow by a wide margin. If size forbids 150000, 100000 still keeps 4.5% of that text.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>list</th><th class="num">entries</th><th class="num">raw</th><th class="num">gzip</th></tr></thead>
+<tbody>
+<tr><td>en</td><td class="num">20000</td><td class="num">339 KiB</td><td class="num">94 KiB</td></tr>
+<tr class="cut"><td>en</td><td class="num">30000</td><td class="num">507 KiB</td><td class="num">142 KiB</td></tr>
+<tr><td>cs</td><td class="num">40000</td><td class="num">715 KiB</td><td class="num">200 KiB</td></tr>
+<tr><td>cs</td><td class="num">100000</td><td class="num">1775 KiB</td><td class="num">508 KiB</td></tr>
+<tr class="cut"><td>cs</td><td class="num">150000</td><td class="num">2661 KiB</td><td class="num">765 KiB</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>The extension tier is lazy-loaded after first paint, so the cost is bandwidth and memory, not time to first keystroke. The size choice needs <span class="mono">tools/bench-predict.mjs</span> numbers beside these. This page answers only the quality half.</p>
+
+<h2>Two junk classes no depth cut removes</h2>
+
+<p><b>English contractions without the apostrophe.</b> <span class="mono">havent</span> sits near rank 14000, inside any English cut. The build script already rejects these with <span class="mono">needs_apostrophe()</span>, and the sample confirms the rule earns its place.</p>
+
+<p><b>Czech words with the diacritics stripped.</b> <span class="mono">nove</span>, <span class="mono">svuj</span>, <span class="mono">ted</span>, <span class="mono">neni</span>, <span class="mono">nevim</span>, <span class="mono">myslim</span>, <span class="mono">muj</span>, <span class="mono">kdyz</span>. People type without diacritics and wordfreq counts the result as a word. The class grows with depth: 0.1% of the top 5000, 0.7% at 100000–150000, 1.5% at the bottom. About 796 of them sit in the top 150000.</p>
+
+<div class="warncard">
+  <span class="tag">DO NOT SHIP THE OBVIOUS FILTER</span>
+  <p>Rejecting a plain form whose accented twin is 20 times more frequent also kills <span class="mono">rad</span> (genitive plural of <span class="mono">rada</span>), <span class="mono">cech</span> (a guild), <span class="mono">dum</span>, <span class="mono">site</span> and <span class="mono">par</span>. aspell cannot rescue them either: aspell cs itself carries <span class="mono">mam</span>, <span class="mono">novy</span>, <span class="mono">proc</span> and <span class="mono">dobry</span>. The class is worth about 0.5% of a 150000-word Czech list, and removing it needs a real Czech lexicon, not a strip rule.</p>
+</div>
+
+<h2>What depth cannot buy</h2>
+
+<p><span class="mono">železnička</span> sits at rank 366885, below the point where the Czech list is more junk than language. No cut reaches it without taking the junk too. The same holds for any word that is rare in the corpus but common for one person. That is the personal model's job, not the vocabulary size's. Depth fixes words that are common everywhere and merely late in the ranking. It does not fix words that are common only for you.</p>
+
+<h2>The words themselves</h2>
+
+<p>Every sampled word, with its label. Struck through and red is bad, grey is marginal, plain is good. Seed 20260830, 25 words per band.</p>
+
+<details>
+<summary>English, 425 words</summary>
+<div class="band"><b>0–1000</b><p><span class="w-g">an, his, there, should, name, government, went, five, heart, quite, held, main, similar, church, sent, itself, serious, seven, created, mark, ten, ball, rock, create, limited</span></p></div>
+<div class="band"><b>1000–2000</b><p><span class="w-g">dad, goals, plus, anymore, records, fully, cent, missed, owner, african, jack, projects, method, window, cat, fifth, function, mary, believed, responsibility, injury, jones, spanish, communities, terrible</span></p></div>
+<div class="band"><b>2000–3000</b><p><span class="w-g">survey, exercise, requires, internal, milk, taxes, approved, documents, collected</span>, <span class="w-b">iii</span>, <span class="w-g">stadium, jail, assembly, cheese, promote, messages, politicians, introduction, principal, recognized, cap, clinical, quote, graduate, marked</span></p></div>
+<div class="band"><b>3000–5000</b><p><span class="w-g">chocolate, marks, visitors, province, losses, math, refer, sisters, inspiration, mum, spiritual, suitable, cents, expand, boxes, arena, instagram, legislative, dynamic, sole, stunning, garage, handled, assuming, disgusting</span></p></div>
+<div class="band"><b>5000–7500</b><p><span class="w-g">bug, trusted, anytime, cried, oak, hitler, eliminate, translated, associates, teenage, chains, faithful, contributing, merchant, obligation, hack, lineup, congrats, kindly, evident, uncertain, sequel, armor, compatible, cincinnati</span></p></div>
+<div class="band"><b>7500–10000</b><p><span class="w-g">puzzle, theirs, ambitious, factories</span>, <span class="w-m">kane</span>, <span class="w-g">berkeley, buys, mitch, shepherd</span>, <span class="w-b">br</span>, <span class="w-g">launches, knocking, militia, gem, renaissance, sodium, uncommon, abundance, mock, louisville, swamp</span>, <span class="w-m">cyrus</span>, <span class="w-g">sorted, elvis</span>, <span class="w-m">flynn</span></p></div>
+<div class="band"><b>10000–15000</b><p><span class="w-g">economists, stellar, paula</span>, <span class="w-m">ty</span>, <span class="w-g">ish, bans, addict, breeds, circumstance</span>, <span class="w-m">plc</span>, <span class="w-g">contagious, resisting, undergone, hobbies, planetary</span>, <span class="w-m">gil</span>, <span class="w-g">obstruction</span>, <span class="w-b">ci</span>, <span class="w-g">comb, specifics</span>, <span class="w-m">tex</span>, <span class="w-g">broadcasts, decency, handler</span>, <span class="w-b">havent</span></p></div>
+<div class="band"><b>15000–20000</b><p><span class="w-g">ceremonial, conducts, kiev, sneaking, artworks</span>, <span class="w-m">doncaster, fife</span>, <span class="w-g">landowners</span>, <span class="w-m">midi</span>, <span class="w-g">landings, clover, necessities, administration's, latch</span>, <span class="w-m">napoli</span>, <span class="w-b">unc</span>, <span class="w-g">werewolf, dawg, fag, reindeer</span>, <span class="w-m">kyrie</span>, <span class="w-g">summaries, budding</span>, <span class="w-m">cuomo</span>, <span class="w-b">msm</span></p></div>
+<div class="band"><b>20000–30000</b><p><span class="w-m">zealand's, annette</span>, <span class="w-g">estranged</span>, <span class="w-m">mendes, vidal, gaston, westchester</span>, <span class="w-b">aud</span>, <span class="w-g">loyalists</span>, <span class="w-b">thi</span>, <span class="w-g">fortitude</span>, <span class="w-m">atv</span>, <span class="w-g">dredging, grated</span>, <span class="w-b">jv</span>, <span class="w-m">addis</span>, <span class="w-g">deduct</span>, <span class="w-m">sutter</span>, <span class="w-g">videotape, harrowing, carpenters</span>, <span class="w-m">linn, natured, gower</span>, <span class="w-g">socializing</span></p></div>
+<div class="band"><b>30000–40000</b><p><span class="w-g">diagonally</span>, <span class="w-m">rwandan</span>, <span class="w-g">untapped</span>, <span class="w-m">cath, elba</span>, <span class="w-g">hovered, lengthened</span>, <span class="w-b">gai</span>, <span class="w-m">kona, axioms, urea</span>, <span class="w-g">cuss, manipulations</span>, <span class="w-m">conclave, asgard, vitae</span>, <span class="w-g">savour</span>, <span class="w-m">angina, eradicating, rowers, sorceress</span>, <span class="w-g">stank</span>, <span class="w-m">kingship</span>, <span class="w-g">workloads</span>, <span class="w-m">cryptographic</span></p></div>
+<div class="band"><b>40000–50000</b><p><span class="w-g">saluted</span>, <span class="w-m">halibut, hefner</span>, <span class="w-g">civilisations, koalas</span>, <span class="w-m">pegging, gipsy, ian's</span>, <span class="w-g">resents</span>, <span class="w-b">hahahah</span>, <span class="w-g">minimising</span>, <span class="w-m">slayers</span>, <span class="w-b">strom</span>, <span class="w-m">foreshore, implicating, misdirection, bodie, residencies, moslem</span>, <span class="w-b">sidi</span>, <span class="w-m">ashoka, dereliction, prepayment, dissipates, saxe</span></p></div>
+<div class="band"><b>50000–75000</b><p><span class="w-b">iii's</span>, <span class="w-g">springy</span>, <span class="w-m">cranny, skidmore, alts, cloakroom, kwong, mulroney, isak</span>, <span class="w-b">leppard</span>, <span class="w-m">centralisation, onsen, glamor</span>, <span class="w-b">riz</span>, <span class="w-m">steamroller, seger, witless</span>, <span class="w-b">illa, rz</span>, <span class="w-m">gurkha, pounces</span>, <span class="w-b">knoweth</span>, <span class="w-m">peptic, transboundary</span>, <span class="w-b">ity</span></p></div>
+<div class="band"><b>75000–100000</b><p><span class="w-m">squalls, stably, bosnians, sloppiness</span>, <span class="w-b">alvis</span>, <span class="w-m">grampians, purkinje</span>, <span class="w-b">chode, mantri, gopalakrishnan</span>, <span class="w-m">sniggering, aquaponics, sophomoric</span>, <span class="w-b">ksp, goble</span>, <span class="w-m">reduplication</span>, <span class="w-b">catonsville, stuy, swayne</span>, <span class="w-m">fabiola, spellers</span>, <span class="w-b">csh, aashto, bilt, saam</span></p></div>
+<div class="band"><b>100000–150000</b><p><span class="w-m">carnegie's, detainer, lexicographers</span>, <span class="w-b">gyeongju, grob, kakkar</span>, <span class="w-g">misgendered</span>, <span class="w-m">boogies</span>, <span class="w-b">sethu</span>, <span class="w-m">knicker, cheerless, vaster, croplands, brushfire</span>, <span class="w-b">munakata, bergy, sufyan, redding's</span>, <span class="w-m">seminiferous, stupefy</span>, <span class="w-b">rintoul, angol, bothnia</span>, <span class="w-m">trezor, gladdens</span></p></div>
+<div class="band"><b>150000–200000</b><p><span class="w-b">anual</span>, <span class="w-m">salines</span>, <span class="w-b">worf's, avd, dobler, menefee</span>, <span class="w-m">sniffled</span>, <span class="w-b">parrish's, bassil, etling, moonshadow, qotsa</span>, <span class="w-m">basophil</span>, <span class="w-b">cooney's, darent, mitsurugi</span>, <span class="w-m">sybarite</span>, <span class="w-b">kovalam, wjr, aschoff, habicht</span>, <span class="w-m">aggravations, doorstops</span>, <span class="w-b">barkis, byas</span></p></div>
+<div class="band"><b>200000–300000</b><p><span class="w-m">circus's</span>, <span class="w-b">everpresent, calander</span>, <span class="w-m">buskin</span>, <span class="w-b">annibal</span>, <span class="w-m">panthenol</span>, <span class="w-b">mascia</span>, <span class="w-m">propagule</span>, <span class="w-b">shirasu, syncom</span>, <span class="w-m">illogicality</span>, <span class="w-b">ruddington, velten, parihar, prixs, strutters, taffe, bricken, apocynum, honies</span>, <span class="w-m">skatole</span>, <span class="w-b">tamkin, geraud, kleopatra, vetti</span></p></div>
+<div class="band"><b>300000–307604</b><p><span class="w-b">bajos, bgen, chubbed, francesi</span>, <span class="w-m">hafts, intertubes</span>, <span class="w-b">mettam, perla's, saza, zemer, achillies, brini, detter, greatist, hardeeville, hormann, konkel</span>, <span class="w-m">microformat</span>, <span class="w-b">neuengamme</span>, <span class="w-m">response's</span>, <span class="w-b">shaibani, shimmie, slocomb, tuomioja, vinexpo</span></p></div>
+</details>
+
+<details>
+<summary>Czech, 475 words</summary>
+<div class="band"><b>0–1000</b><p><span class="w-g">když, byl, tam, všechny, tě, snad, patří, světě, petr, konečně, malé, služby, stal, metrů, škole, měsíců, zhruba, kraje, svými, udělal, kolo, mluví, zajímavé</span>, <span class="w-b">ii</span>, <span class="w-g">názor</span></p></div>
+<div class="band"><b>1000–2000</b><p><span class="w-g">kluci, použití, celého, minulosti, úrovni, místech, dodnes, máma, našla</span>, <span class="w-b">you</span>, <span class="w-g">krásný, divadla, spolupráce, brna, hráčů, kus, letadla, praxi, psát, konkrétní, bydlení, amerických, maximální, výrobce, naučit</span></p></div>
+<div class="band"><b>2000–3000</b><p><span class="w-g">soutěži, boha, momentálně, čímž, marek, budoucí, historické, nestalo, bolest, hřiště, poháru, vyšlo, muzea, povrchu, fotografií, rychlý, starosta, mise, oblastí, osn, software, starého, fázi, slavia, třikrát</span></p></div>
+<div class="band"><b>3000–5000</b><p><span class="w-g">kvalitu, správní, cest, občané, výraz, zeď, dárky, pořad, výhody, říkali, změnila, nýbrž, nastoupil, mapa, dokumentu, rozpočet, atmosféru, vlaku, předmětem, porazil, aleš</span>, <span class="w-b">high</span>, <span class="w-g">italské, princezna, týdně</span></p></div>
+<div class="band"><b>5000–7500</b><p><span class="w-b">day</span>, <span class="w-g">snahu, vyhovuje, chodil, cizích, pořádek, hluboko, pochopitelně, region, kámoš, střechy, poptávka, vytváření</span>, <span class="w-b">from</span>, <span class="w-g">židovské, nedostatku, motivace</span>, <span class="w-b">paris</span>, <span class="w-g">scénáře, instalaci, sdělení, labe, náměstek, pohybují, hrubý</span></p></div>
+<div class="band"><b>7500–10000</b><p><span class="w-g">schůzce, velitele, ztratili, klimatu, nejvýše, prázdnin, přidali, hospodářských, hladinu, nástupem, seminář, nabídkou, náskok</span>, <span class="w-b">young</span>, <span class="w-g">fifa, jejími, koukal, luboš, papeže, bojují, iniciativy, požádala, dařilo, náročnější, památník</span></p></div>
+<div class="band"><b>10000–15000</b><p><span class="w-g">úplná, mistrem, zachránili, přípravou, demokratickou, jezdců, čerpání, bezva, oživení, nejblíže, kytarista, sbírat, terorismu, domovů, baletu, přesnost, toalety, záchrana, supermarketu, kytary</span>, <span class="w-m">michelle, kiss</span>, <span class="w-g">mechanismy, nejznámějších</span>, <span class="w-m">nina</span></p></div>
+<div class="band"><b>15000–20000</b><p><span class="w-g">češky, těsto</span>, <span class="w-m">cover</span>, <span class="w-g">nepoznal, uplatňuje, abysme, branou, hradem</span>, <span class="w-m">ken</span>, <span class="w-g">zadržen, myšlenkami, receptů, pohledávek, zahraničními, shrnul, zněla, štrasburku, guru, kauci, popularita, dodání, nedorozumění, běžci</span>, <span class="w-m">ellen</span>, <span class="w-g">nebezpeční</span></p></div>
+<div class="band"><b>20000–30000</b><p><span class="w-g">slavností, řádný, holení, vylepšil</span>, <span class="w-b">nove</span>, <span class="w-g">střehu, vklad, většími</span>, <span class="w-b">italy</span>, <span class="w-g">otroků, vykoupat, vyšetřovatel, albánie, citlivou, gigant, indiány, nejslavnějších, rudém, softwarové, chytli, reorganizaci, říkaj, měkkou, družina, plánováno</span></p></div>
+<div class="band"><b>30000–40000</b><p><span class="w-g">narozeninové, skleněnou, vesmírných, půjčují, tanečního, skýtá, svolat, oslo, procenty, renovaci</span>, <span class="w-b">friendly</span>, <span class="w-g">minulá, průběhem, vzdělávacím, pronikat, konzulátu, uzdravit, brouků, jednáme, programový, odbočky, odstartovat, vzpomínáme, litvínově, ideologické</span></p></div>
+<div class="band"><b>40000–50000</b><p><span class="w-g">loděmi</span>, <span class="w-b">svuj</span>, <span class="w-g">nesetkala, vázaný, vydám, řádném</span>, <span class="w-m">pepe</span>, <span class="w-g">pozůstatků, vykořisťování, hladomoru, likérky, odseděl, patentovat, vychován, úžasu, dekretů, ekvádor</span>, <span class="w-m">rgb</span>, <span class="w-g">cyklistického, kláru, nosorožce, praporem, útěchou, mlhou, třesk</span></p></div>
+<div class="band"><b>50000–75000</b><p><span class="w-g">kafíčko, domluvy, nevole, zakončí, korunoval, nehrálo, nadváha, oddechnout, garantované, izraelskými, fígl, podporujete, zdobeny, jihoamerických, lživé</span>, <span class="w-m">asimov, ženíšek</span>, <span class="w-g">malebná, promlouvat, botanika, advokátních</span>, <span class="w-m">mašín</span>, <span class="w-g">odešlete, rodičovského, doběhne</span></p></div>
+<div class="band"><b>75000–100000</b><p><span class="w-b">honeywell</span>, <span class="w-m">hopper</span>, <span class="w-g">nekalých, čelenku, deformované, moták</span>, <span class="w-m">raspenava</span>, <span class="w-g">šmouhy, ložisky, častém</span>, <span class="w-m">glykosidy</span>, <span class="w-g">mušek, autorovu, početným, traktem, demografickou, nevraživosti, amfetamin, zatažená, klenotník</span>, <span class="w-m">geralt</span>, <span class="w-g">ohodnocením, dořešení, hraničnímu, soustřeďovat</span></p></div>
+<div class="band"><b>100000–150000</b><p><span class="w-g">vystačíte, rozepsal</span>, <span class="w-m">wot</span>, <span class="w-g">přisedl, aukro, depozitu, chlazeného, folklórem, sudích, kolmých, statistickými</span>, <span class="w-m">merci</span>, <span class="w-g">požitkem, komiksovým, pravopisných, zapla, prosvětluje, kloboucích, lidoopi, modrobílý, buržoazii, špás, anachronismus</span>, <span class="w-m">stachelberg</span>, <span class="w-g">barcelonském</span></p></div>
+<div class="band"><b>150000–200000</b><p><span class="w-m">rovensku</span>, <span class="w-g">lávě, neobjasněných, omdlím</span>, <span class="w-m">rubina</span>, <span class="w-g">štěňátek, hajným, psychopatie, airsoftové</span>, <span class="w-m">formanovi</span>, <span class="w-g">nezastává, pojištěnou, vízy</span>, <span class="w-m">vrahovice</span>, <span class="w-g">vyzkoušíš, istanbulském, oportunismus, bulharskými, ovlivnitelná, prohnilého, vestavbu, oceníš, rozrušování</span>, <span class="w-m">pavlenka</span>, <span class="w-b">prin</span></p></div>
+<div class="band"><b>200000–300000</b><p><span class="w-g">pigmentová, relaxoval</span>, <span class="w-b">orest</span>, <span class="w-g">nezvyšovat, nezapamatoval</span>, <span class="w-m">merchandise</span>, <span class="w-g">jilmů, náctiletého, popošel, spolupodíleli</span>, <span class="w-b">macnamara</span>, <span class="w-m">segwaye</span>, <span class="w-g">vypouštějící, sklápěcími</span>, <span class="w-b">swordfish</span>, <span class="w-g">azylanti, biochemička</span>, <span class="w-b">magyarok, malory</span>, <span class="w-g">smlsnul</span>, <span class="w-b">habyarimana</span>, <span class="w-m">janouškové</span>, <span class="w-g">spravujících, fyziologickému, tancujou</span></p></div>
+<div class="band"><b>300000–400000</b><p><span class="w-b">dostavá</span>, <span class="w-g">pyrenejemi, přeběhnu, zuboženého</span>, <span class="w-m">geomorfologii</span>, <span class="w-b">silem</span>, <span class="w-g">pavoučci</span>, <span class="w-m">protistranické</span>, <span class="w-b">meena</span>, <span class="w-m">oblety</span>, <span class="w-b">vinet</span>, <span class="w-g">přivlastnilo</span>, <span class="w-m">espinosová, pseudorománskou</span>, <span class="w-b">opomenuti</span>, <span class="w-m">sadova, thomsonův</span>, <span class="w-b">kurata</span>, <span class="w-g">trnový</span>, <span class="w-m">vyzářený</span>, <span class="w-b">fairweather</span>, <span class="w-g">povážlivý, tlustších</span>, <span class="w-b">elevators</span>, <span class="w-m">telemarkové</span></p></div>
+<div class="band"><b>400000–500000</b><p><span class="w-b">clasic</span>, <span class="w-g">hýbnout, skleníkovou</span>, <span class="w-m">ultimy</span>, <span class="w-g">charakterističtí, svěsila, ušklíbá, hromadnej, klapnou</span>, <span class="w-m">mezoteliomu</span>, <span class="w-b">áva</span>, <span class="w-m">finišer</span>, <span class="w-b">megaphone</span>, <span class="w-m">clintonovo, mandolin, přišlých</span>, <span class="w-g">libore</span>, <span class="w-m">nesoudní</span>, <span class="w-g">zprošťují, ututlá, civilizovaněji</span>, <span class="w-b">cranbrook</span>, <span class="w-g">leváren</span>, <span class="w-m">postřicích</span>, <span class="w-g">válčete</span></p></div>
+<div class="band"><b>500000–596230</b><p><span class="w-b">araujo</span>, <span class="w-g">ostrostřelcem</span>, <span class="w-m">vitariánská</span>, <span class="w-b">blízk, neznášov, rwc, tew</span>, <span class="w-g">vyčesávají</span>, <span class="w-b">záchraného</span>, <span class="w-g">zanechanými, otročího</span>, <span class="w-b">arvi, plaintext</span>, <span class="w-m">translokaci</span>, <span class="w-g">volnýma</span>, <span class="w-m">fyzicích, miskovitého</span>, <span class="w-b">zvlastní</span>, <span class="w-m">rafinačních, bombastičností</span>, <span class="w-b">clearence</span>, <span class="w-m">suplementací</span>, <span class="w-b">clinche</span>, <span class="w-g">nachytávka, vicepremiéři</span></p></div>
+</details>
+
+<h2>Caveats</h2>
+
+<ul class="need">
+  <li>25 words per band is a small sample. Each rate carries about 10 percentage points of error. The headline gap is far larger than that (English 40% good against Czech 92% in the same 20000–30000 band), but no single band should be read to the percent.</li>
+  <li>The labels are one judgement, made by Claude, not a panel. Good and bad are firm. Marginal is the fuzzy class, and it is where another reader would disagree most.</li>
+  <li>wordfreq's data stops at about 2021 and will not be updated, so the tail carries the internet of that time.</li>
+</ul>
+
+<div class="sources">
+<h2>Sources</h2>
+<ul class="need">
+  <li><a href="https://github.com/rspeer/wordfreq">rspeer/wordfreq</a>, version 3.1.1, large lists, data CC-BY-SA 4.0</li>
+  <li>aspell <span class="mono">en</span> and <span class="mono">cs</span> master dumps, used only to show why a dictionary gate cannot answer this</li>
+</ul>
+<p class="repo-note">Text twin of <span class="mono">vocabulary-depth-analysis.md</span>. Measured 2026-08-30. Harness: <span class="mono">tools/vocab-depth.py</span>.</p>
+</div>
+
+</div>
+</body>
+</html>
