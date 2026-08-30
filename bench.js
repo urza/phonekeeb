@@ -105,17 +105,39 @@ function table(title, rows) {
 }
 
 let text = ''; // the copyable report, built as the run goes
+let phase = ''; // the step in flight, so a copied partial run says where it stopped
+
+// Two phone runs came back holding the core table alone, and neither
+// the page nor the paste said whether the next step had failed or was
+// still going. Every phase now names itself in the copied text, and a
+// step that cannot finish says so instead of leaving a status line
+// spinning: a fetch that hangs is a result, not a missing one.
+const STEP_TIMEOUT = 90000;
+const mark = (name) => {
+  phase = name;
+  status(`${name}...`);
+  text += `> ${name}\n`;
+};
+const step = (name, promise) => {
+  mark(name);
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(
+      () => reject(new Error(`gave up after ${STEP_TIMEOUT / 1000}s`)), STEP_TIMEOUT)),
+  ]);
+};
 
 async function run() {
   $('out').innerHTML = '';
   text = '';
   const add = (html, plain) => { $('out').insertAdjacentHTML('beforeend', html); text += plain; };
 
-  status('checking the clock...');
+  mark('checking the clock');
   await frame();
   const quantum = timerQuantum();
+  text += `clock step ${quantum ? quantum.toFixed(3) : '<0.001'} ms\n`;
 
-  status('building the core predictor...');
+  mark('building the core predictor');
   await frame();
   let t = performance.now();
   const predictor = new Predictor([
@@ -126,49 +148,47 @@ async function run() {
 
   const ctx = { prev: WEN[5][0], prev2: WEN[9][0], recent: [WEN[9][0], WEN[5][0]] };
   const coreWords = sampleFrom([WEN, WCS]);
-  status('measuring the core tier...');
+  mark('measuring the core tier');
   await frame();
   const coreRows = bench(predictor, coreWords, ctx);
   add(table(`Core only, ${WEN.length + WCS.length} words`, coreRows),
     `core only ${WEN.length + WCS.length} words, build ${ms(buildMs)} ms\n`
     + coreRows.map((r) => `  prefix ${r.len}: mean ${ms(r.mean)} worst10 ${ms(r.max)}\n`).join(''));
 
-  status('fetching the extension tier...');
   await frame();
   t = performance.now();
-  const [xen, xcs] = await Promise.all([
+  const [xen, xcs] = await step('fetching the extension tier, 3.4 MB', Promise.all([
     import('./words-ext-en.js'),
     import('./words-ext-cs.js'),
-  ]);
+  ]));
   const fetchMs = performance.now() - t;
   t = performance.now();
+  mark('adding the extension words');
+  await frame();
   predictor.addWords('en', xen.WORDS_EXT);
   predictor.addWords('cs', xcs.WORDS_EXT);
   const addMs = performance.now() - t;
 
   const total = WEN.length + WCS.length + xen.WORDS_EXT.length + xcs.WORDS_EXT.length;
-  status('measuring the full vocabulary...');
+  mark('measuring the full vocabulary');
   await frame();
   const fullRows = bench(predictor, sampleFrom([WEN, WCS, xen.WORDS_EXT, xcs.WORDS_EXT]), ctx);
   add(table(`Core plus extension, ${total} words`, fullRows),
     `full ${total} words, fetch+parse ${ms(fetchMs)} ms, addWords ${ms(addMs)} ms\n`
     + fullRows.map((r) => `  prefix ${r.len}: mean ${ms(r.mean)} worst10 ${ms(r.max)}\n`).join(''));
 
-  status('fetching the trigram tables...');
   await frame();
   t = performance.now();
-  try {
-    const [ten, tcs] = await Promise.all([
-      import('./trigrams-en.js'),
-      import('./trigrams-cs.js'),
-    ]);
-    predictor.setTrigrams('en', ten.TRIGRAMS);
-    predictor.setTrigrams('cs', tcs.TRIGRAMS);
-  } catch {
-    status('trigram tables unavailable (offline?)');
-  }
+  const [ten, tcs] = await step('fetching the trigram tables, 8.7 MB', Promise.all([
+    import('./trigrams-en.js'),
+    import('./trigrams-cs.js'),
+  ]));
+  mark('attaching the trigram tables');
+  await frame();
+  predictor.setTrigrams('en', ten.TRIGRAMS);
+  predictor.setTrigrams('cs', tcs.TRIGRAMS);
   const triMs = performance.now() - t;
-  status('measuring with trigrams...');
+  mark('measuring with trigrams');
   await frame();
   const triRows = bench(predictor, sampleFrom([WEN, WCS, xen.WORDS_EXT, xcs.WORDS_EXT]), ctx);
   add(table('With trigram tables', triRows),
@@ -198,7 +218,21 @@ async function run() {
   status('done');
 }
 
-$('run').addEventListener('click', () => { run().catch((e) => status(`failed: ${e.message}`)); });
+// A failure is printed into the page AND into the copied text. The
+// point of this page is that its numbers get pasted somewhere else, so
+// "it stopped here, because of this" has to travel with them.
+$('run').addEventListener('click', () => {
+  $('run').disabled = true;
+  run()
+    .catch((e) => {
+      const line = `FAILED while ${phase}: ${e.message}`;
+      text += `\n${line}\n`;
+      $('out').insertAdjacentHTML('beforeend',
+        `<section><h2>Failed</h2><p class="note">${line}</p></section>`);
+      status(line);
+    })
+    .finally(() => { $('run').disabled = false; });
+});
 $('copy').addEventListener('click', async () => {
   if (!text) return status('run it first');
   try {
