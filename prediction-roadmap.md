@@ -31,9 +31,10 @@ Measured on held-out subtitles, strip of 6 (hit@1 / hit@3):
 | 2-letter prefix | 65.2 / 78.0 | 59.7 / 73.8 |
 | corrupted prefix | 37.1 / 55.7 | 32.8 / 49.3 |
 
-Prediction game: 7 of 14 (case 7, "I w" to "would", entered at rank 4
-with the 2026-08-27 smoothing). The LLM that played it live scored 8 of
-the first 11.
+Prediction game: 7 of 15 (case 7, "I w" to "would", entered at rank 4
+with the 2026-08-27 smoothing; case 16, "listening to playl" to
+"playlists", added 2026-08-30 and missed). The LLM that played it live
+scored 8 of the first 11.
 
 ## The five layers, and which ones we have
 

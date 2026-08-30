@@ -506,8 +506,12 @@ async function runGame() {
       + (bad ? `   ${bad} chip(s) break the prefix` : ''));
     if (VERBOSE) console.log(`    raw: ${JSON.stringify(res.raw).slice(0, 400)}`);
   }
+  // Per-language denominators come from LANG, not from constants: the
+  // case list grows as the game is played (case 16 made English 10).
+  const nLang = { en: 0, cs: 0 };
+  for (const c of CASES) nLang[LANG[c.n]]++;
   console.log(`\n${hits}/${CASES.length} wanted words on the strip`
-    + `  (EN ${byLang.en}/9, CS ${byLang.cs}/5)`);
+    + `  (EN ${byLang.en}/${nLang.en}, CS ${byLang.cs}/${nLang.cs})`);
   console.log(`${wasted} chip(s) broke the typed prefix`);
   if (cut) console.log(`${cut} empty strip(s); the score is a floor, not a result`);
   console.log(`${(totalMs / 1000 / CASES.length).toFixed(1)}s per strip on average`);

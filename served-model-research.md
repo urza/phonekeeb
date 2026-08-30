@@ -177,6 +177,43 @@ personal habit, not a fact about English), case 10 (`kuře`, colloquial Czech)
 and case 12 (`zebřičko`, a nickname). Two of those three belong to the
 personal model, direction 3.
 
+### Re-measured 2026-08-30 with case 16, and a warning about the chat row
+
+The game gained case 16, `listening to playl` wanting `playlists`, so the
+denominator is 15 and the English half is 10. Same server, model named
+`Qwen3.8-27B NVFP4`. Case 16 by level:
+
+```
+--chat    playlists | playlist | playl                                    rank 1
+--beam    playlits | playlsts | playl | playlilst | playluts | playlisy   miss
+--rerank  playing | plays | played | play | player | playl                miss
+engine    play | playing | played | plays | player | playl                miss
+```
+
+The re-ranker cannot answer this case, and the reason is structural, not
+statistical: it reorders the engine's own chips, and no chip holds the
+word. Direction 5 stays closed. The beam spends all six slots on
+misspellings of the word it is trying to reach.
+
+The totals moved down, and not because of the new case:
+
+| Level | 2026-08-29 | 2026-08-30 |
+|---|---|---|
+| `--chat`, no thinking | 8/14 (EN 7, CS 1) | 6/15 (EN 6, CS 0) |
+| `--beam` | 2/14 (EN 0, CS 2) | 3/15 (EN 1, CS 2), a floor |
+| `--rerank` | 7/14 (EN 7, CS 0) | 7/15 (EN 7, CS 0) |
+
+Case 16 is a new chat hit, so the chat level lost three of the cases it
+answered the day before. It now misses `smoo` -> `smooth`, answering
+`smooch, smoochy, smoothe, smoothish`, and `I w` -> `would`. Either the
+served build changed, or one run of the chat level carries more spread
+than a single number can carry. Treat the 8/14 above as one sample, not
+as this model's score. The re-ranker reproduced its earlier result
+exactly, which is expected: it can only permute a deterministic strip.
+
+`tools/api-lm-predict.mjs` also had the per-language denominators
+hardcoded as `/9` and `/5`. Fixed to count them from `LANG`.
+
 ### Held-out pairs: the score columns
 
 Strip of 6, hit@1 / hit@3, 200 pairs per language. The engine column is the

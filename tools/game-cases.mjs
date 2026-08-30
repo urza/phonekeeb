@@ -1,7 +1,12 @@
 // The prediction-game exchanges (prediction-game.md) as data, shared by
 // every harness that replays them: tools/eval-game.mjs (the shipped
 // engine) and tools/api-lm-predict.mjs (a served model). One file so the
-// two columns of any comparison are the same 14 cases.
+// two columns of any comparison are the same 15 cases.
+//
+// `n` is the exchange number in the transcript, not the array index.
+// Exchange 15 was never answered, so the numbers jump from 14 to 16.
+// Scores in the research notes carry their denominator with them: a
+// 7/14 predates case 16 and is not comparable to a 7/15.
 //
 // mode: 'complete' = the last token is a prefix still being typed;
 // 'next' = the last token is committed, the strip predicts the next
@@ -22,8 +27,9 @@ export const CASES = [
   { n: 12, input: 'ahojky zebricko', prefix: 'zebricko', prev: 'ahojky', prev2: '', recent: ['ahojky'], want: 'zebřičko' },
   { n: 13, input: 'zkouška nového predik', prefix: 'predik', prev: 'nového', prev2: 'zkouška', recent: ['zkouška', 'nového'], want: 'predikčního' },
   { n: 14, input: 'zkouška nového predikčního', prefix: '', prev: 'predikčního', prev2: 'nového', recent: ['zkouška', 'nového', 'predikčního'], want: 'algoritmu' },
+  { n: 16, input: 'listening to playl', prefix: 'playl', prev: 'to', prev2: 'listening', recent: ['listening', 'to'], want: 'playlists' },
 ];
 
-// The language each case is written in. The game splits 9 English and 5
+// The language each case is written in. The game splits 10 English and 5
 // Czech, which is how czech-lm-research.md reports every model.
-export const LANG = { 1: 'en', 2: 'en', 3: 'en', 4: 'en', 5: 'en', 6: 'en', 7: 'en', 8: 'en', 11: 'en', 9: 'cs', 10: 'cs', 12: 'cs', 13: 'cs', 14: 'cs' };
+export const LANG = { 1: 'en', 2: 'en', 3: 'en', 4: 'en', 5: 'en', 6: 'en', 7: 'en', 8: 'en', 11: 'en', 16: 'en', 9: 'cs', 10: 'cs', 12: 'cs', 13: 'cs', 14: 'cs' };

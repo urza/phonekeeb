@@ -194,7 +194,10 @@ class WordLM:
 
 
 # --- the prediction game -------------------------------------------------
-# The 11 exchanges of prediction-game.md, in the shape this harness needs.
+# The answered exchanges of prediction-game.md, in the shape this harness
+# needs. The numbers are transcript exchange numbers: 15 was never answered,
+# so they jump from 14 to 16. A score in a research note is only comparable
+# to another one with the same denominator.
 GAME = [
     (1, "you are", "am", "amazing"),
     (2, "", "how", "are"),          # "how" is itself the typed prefix
@@ -210,6 +213,7 @@ GAME = [
     (12, "ahojky", "zebricko", "zebřičko"),
     (13, "zkouška nového", "predik", "predikčního"),
     (14, "zkouška nového predikčního", "", "algoritmu"),
+    (16, "listening to", "playl", "playlists"),
 ]
 # Cases 2 and 4 are next-word questions whose "prefix" column holds context.
 # Case 14 is one too, but it already carries its context in the context

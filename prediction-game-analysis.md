@@ -235,6 +235,48 @@ argue against blaming the scorer:
   the strip, rare-but-known and unknown behave alike. Anything that
   lowers the pair floor for rare heads would show up here first.
 
+## Update 2026-08-30: case 16 puts topical register on the English side
+
+Case 16 (`listening to playl`, wanted `playlists`) misses. Replay is now
+7/15, and the denominator moved: every earlier score in this file and in
+the research notes is out of 11, 12 or 14 exchanges.
+
+Session 4 read the `predik*` gap as topical register and called it
+"Czech-side, not a size problem". That reading was half right. The cause
+is register, and the language was a coincidence of which sentence the
+user happened to type. `playlist` and `playlists` are missing from the
+English tables the same way, with the same shape of neighbourhood
+around them: `playback, playboy, playful, playground, playmate,
+playoffs, playtime, playwright` are all there. The corpus is
+OpenSubtitles v2018. Film dialogue has playboys and playwrights and no
+streaming playlists.
+
+So cause A's topical half is a property of the corpus, not of Czech. It
+predicts the misses to expect next: app words, device words, and the
+vocabulary of typing to someone on a phone, which is the exact register
+this keyboard serves. The two answers stay the ones session 4 named,
+the personal model and a corpus with chat in it, and this case moves
+the second one up. A chat-register word list would fix case 16 without
+touching the engine.
+
+Two engine behaviors worth recording, both correct:
+
+- The strip is all typo hypotheses. Nothing in the tables starts with
+  `playl`, so `withinOneEditPrefix` reads the trailing `l` as an extra
+  letter and every chip comes from `play*`. `TYPO_SLOTS` (2) releases
+  its cap when exact candidates cannot fill the strip, which is why 5
+  of them show. A strip made only of typo chips is a readable signal
+  that the prefix matches no word at all.
+- `playlist` would not have counted. The wanted word is the plural, and
+  the two do not fold to one match key, so the harness scores a full
+  miss. This is the case-12 rule applied to English morphology: a chip
+  that inserts the wrong string is not a hit.
+
+The personal model reaches the word on the second sighting
+(`PERSONAL_MIN_COUNT` is 2), then ranks it first for the prefix and
+first for the next-word slot after `to`. Strips in `prediction-game.md`,
+session 5.
+
 ## Notes
 
 - The game mixes two strip modes (completion vs. next word) and the

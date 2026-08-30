@@ -247,6 +247,10 @@ web crawl holds all of them. All three web-trained models answer case 13
 (ranks 3, 5, 6 by size); only the XL answers case 14, at rank 4. See
 `prediction-game.md`, session 4.
 
+The harness holds 15 cases since 2026-08-30 (case 16, English). Nothing
+above was re-measured against it, so every /14 here stays a /14. Re-run
+any model before you compare it to a number from a later date.
+
 The two Czech cases are the evidence worth reading:
 
 ```

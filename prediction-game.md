@@ -287,3 +287,65 @@ everywhere else in this engine.
 Sizes and speed on this machine, bfloat16: Qwen3-1.7B-Base 3.4 GB and
 1.4 to 4.1 s per strip, GPT-2 XL 3.1 GB and 1.8 to 7.2 s,
 Czech-GPT-2-XL 3.5 GB and 1.7 to 12.2 s.
+
+## Session 5 (2026-08-30)
+
+### 16
+- Input: `listening to playl`
+- Suggestions: 1. playlist 2. playlists 3. playlisted 4. playlisting
+  5. playland
+- Chosen: 2 (playlists), hit at rank 2. Only the first two slots hold
+  words anyone types. `playl` is a prefix with almost no English
+  continuation, so the strip runs out of candidates before slot 5.
+
+## Session 5 summary (2026-08-30)
+
+- 1 exchange: 1 hit at rank 2. Shipped-engine replay is now 7/15.
+  Case 16 in `tools/game-cases.mjs`; the numbering follows the
+  transcript, where exchange 15 was never answered.
+
+```
+#16 "listening to playl"  strip: play | playing | played | plays | player | playl
+```
+
+Miss, and the first English case of cause A, topical register. Neither
+`playlist` nor `playlists` is in the vocabulary, at any list size:
+
+```
+play, played, player, players, playing, plays          words-en.js
+playback, playboy, playful, playground, playmate,
+playoffs, playtime, playwright                         words-ext-en.js
+```
+
+Until now the register argument ran Czech-side only (session 4,
+`predik*`). It is not a Czech problem. The word lists are
+OpenSubtitles v2018, which is people talking in films, and film
+dialogue carries `playboy` and `playwright` but never a streaming
+playlist. Chat is exactly the register the strip has to predict.
+
+Two mechanisms this case shows, both working as designed:
+
+- **The whole strip is the typo layer.** No word in either table has
+  the exact prefix `playl`, so every chip is a one-edit hypothesis:
+  `withinOneEditPrefix` reads the last `l` as an extra letter and
+  matches `play*`. `TYPO_SLOTS` caps such chips at 2, and the cap
+  releases them when exact candidates cannot fill the strip. A strip
+  of 5 typo chips is the shape of "this prefix matches nothing".
+- **Singular is not plural.** A strip that offered `playlist` would
+  still miss `playlists`. The two do not fold to one match key, so the
+  harness scores it a full miss, correctly: the insert would be wrong.
+
+The personal model reaches this word, and the second sighting is what
+does it. Measured with a fresh `PersonalModel`:
+
+```
+after 1x "playlists"   playl -> play | playing | played | plays | player | playl
+after 2x "playlists"   playl -> playlists | play | playing | played | plays | playl
+                       "listening to " -> playlists | me | the | you | your | a
+```
+
+`PERSONAL_MIN_COUNT` is 2, so the first typing of an out-of-vocabulary
+word never enrolls it, and the second one puts it at rank 1 for both
+the prefix and the next-word slot. That is the designed cost of not
+learning one-off typos. Seeding the model from a chat export removes
+it for every word the user already uses, `playlists` included.

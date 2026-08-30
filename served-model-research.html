@@ -258,6 +258,28 @@
 
 <p>The three it does not rescue: case 6 (<code>I</code> wants <code>love</code>, a personal habit and not a fact about English), case 10 (<code>kuře</code>, colloquial Czech), case 12 (<code>zebřičko</code>, a nickname). Two of those three belong to the personal model, direction 3.</p>
 
+<h2 id="case16">Re-measured 2026-08-30: case 16</h2>
+<p>The game gained case 16, <code>listening to playl</code> wanting <code>playlists</code>, so the denominator is 15 and the English half is 10. Same server, model named <code>Qwen3.8-27B NVFP4</code>.</p>
+
+<div class="tablewrap"><table>
+  <tr><th>Level</th><th>Strip for <code>listening to playl</code></th><th></th></tr>
+  <tr><td><code>--chat</code></td><td><strong>playlists</strong> | playlist | playl</td><td>rank 1</td></tr>
+  <tr><td><code>--beam</code></td><td>playlits | playlsts | playl | playlilst | playluts | playlisy</td><td>miss</td></tr>
+  <tr><td><code>--rerank</code></td><td>playing | plays | played | play | player | playl</td><td>miss</td></tr>
+  <tr><td>shipped engine</td><td>play | playing | played | plays | player | playl</td><td>miss</td></tr>
+</table></div>
+
+<p>The re-ranker cannot answer this case, and the reason is structural. It reorders the engine's own chips, and no chip holds the word. Direction 5 stays closed. The beam spends all six slots on misspellings of the word it is reaching for.</p>
+
+<div class="warn"><strong>The chat row is one sample, not a score.</strong> Chat fell from 8/14 to 6/15 while gaining case 16, so it lost three cases it answered the day before, including <code>smoo</code> -&gt; <code>smooth</code> (it offers smooch, smoochy, smoothe, smoothish). Either the served build changed or that level has real run-to-run spread. The re-ranker reproduced its earlier result exactly, as a permutation of a deterministic strip must.</div>
+
+<div class="tablewrap"><table>
+  <tr><th>Level</th><th>2026-08-29</th><th>2026-08-30</th></tr>
+  <tr><td><code>--chat</code>, no thinking</td><td>8/14 (EN 7, CS 1)</td><td>6/15 (EN 6, CS 0)</td></tr>
+  <tr><td><code>--beam</code></td><td>2/14 (EN 0, CS 2)</td><td>3/15 (EN 1, CS 2), a floor</td></tr>
+  <tr><td><code>--rerank</code></td><td>7/14 (EN 7, CS 0)</td><td>7/15 (EN 7, CS 0)</td></tr>
+</table></div>
+
 <h2 id="scores">The score columns</h2>
 <p>200 pairs per language, strip of 6, hit@1 / hit@3. The engine wins every cell.</p>
 
