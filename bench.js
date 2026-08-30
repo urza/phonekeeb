@@ -38,26 +38,53 @@ function sampleFrom(lists) {
   return out;
 }
 
-function bench(predictor, words, ctx) {
-  const byLen = new Map(LENGTHS.map((l) => [l, []]));
-  for (const w of words) {
-    for (const len of LENGTHS) {
-      if (len > w.length) continue;
-      const t = performance.now();
-      predictor.predict(w.slice(0, len), 6, ctx);
-      byLen.get(len).push(performance.now() - t);
-    }
+// The smallest step this browser's clock can report. Safari clamps
+// performance.now() to 1 ms against timing attacks, so a single
+// sub-millisecond call reads as 0 or 1 and nothing in between: a phone
+// reported "mean 0.44, p95 1.00" for work that never took a
+// millisecond. Everything below is timed in batches for that reason.
+function timerQuantum() {
+  let min = Infinity;
+  for (let i = 0; i < 200; i++) {
+    const a = performance.now();
+    let b = a;
+    // Bounded spin: if the clock never moves, give up rather than hang.
+    for (let k = 0; k < 200000 && b === a; k++) b = performance.now();
+    if (b > a) min = Math.min(min, b - a);
   }
+  return min === Infinity ? 0 : min;
+}
+
+// Calls per timed batch. A batch must outlast the clock's quantum by
+// enough that rounding is noise: 10 calls of 0.4 ms is 4 ms, four
+// Safari ticks. The mean stays exact (total time / calls); the worst
+// figure becomes the worst BATCH, which the table header says.
+const BATCH = 10;
+
+function bench(predictor, words, ctx) {
   const rows = [];
   for (const len of LENGTHS) {
-    const ts = byLen.get(len).sort((a, b) => a - b);
-    if (!ts.length) continue;
+    const prefixes = words.filter((w) => w.length >= len).map((w) => w.slice(0, len));
+    if (!prefixes.length) continue;
+    const batchMeans = [];
+    let total = 0;
+    for (let i = 0; i < prefixes.length; i += BATCH) {
+      const slice = prefixes.slice(i, i + BATCH);
+      const t = performance.now();
+      for (const p of slice) predictor.predict(p, 6, ctx);
+      const dt = performance.now() - t;
+      total += dt;
+      batchMeans.push(dt / slice.length);
+    }
+    batchMeans.sort((a, b) => a - b);
+    // No p95: 160 prefixes make 16 batches, and the 95th percentile of
+    // 16 samples IS the last one. Mean and worst batch are what this
+    // sample size can honestly report.
     rows.push({
       len,
-      n: ts.length,
-      mean: ts.reduce((a, b) => a + b, 0) / ts.length,
-      p95: ts[Math.floor(ts.length * 0.95)],
-      max: ts[ts.length - 1],
+      n: prefixes.length,
+      mean: total / prefixes.length,
+      max: batchMeans[batchMeans.length - 1],
     });
   }
   return rows;
@@ -65,14 +92,15 @@ function bench(predictor, words, ctx) {
 
 function table(title, rows) {
   const body = rows.map((r) => {
-    // 16 ms is one frame at 60 Hz: above that a keystroke can drop one.
-    const cls = r.p95 > 16 ? 'slow' : r.p95 < 4 ? 'fast' : '';
+    // 16 ms is one frame at 60 Hz: a strip that costs that much can drop
+    // one. 4 ms leaves the frame to the drawing.
+    const cls = r.max > 16 ? 'slow' : r.max < 4 ? 'fast' : '';
     return `<tr class="${cls}"><td>${r.len === 0 ? 'next word' : `${r.len} letter${r.len > 1 ? 's' : ''}`}</td>`
-      + `<td class="n">${ms(r.mean)}</td><td class="n">${ms(r.p95)}</td>`
+      + `<td class="n">${ms(r.mean)}</td>`
       + `<td class="n">${ms(r.max)}</td><td class="n">${r.n}</td></tr>`;
   }).join('');
   return `<section><h2>${title}</h2><table>
-    <tr><th>prefix</th><th>mean ms</th><th>p95</th><th>max</th><th>n</th></tr>
+    <tr><th>prefix</th><th>mean ms</th><th>worst 10</th><th>n</th></tr>
     ${body}</table></section>`;
 }
 
@@ -82,6 +110,10 @@ async function run() {
   $('out').innerHTML = '';
   text = '';
   const add = (html, plain) => { $('out').insertAdjacentHTML('beforeend', html); text += plain; };
+
+  status('checking the clock...');
+  await frame();
+  const quantum = timerQuantum();
 
   status('building the core predictor...');
   await frame();
@@ -99,7 +131,7 @@ async function run() {
   const coreRows = bench(predictor, coreWords, ctx);
   add(table(`Core only, ${WEN.length + WCS.length} words`, coreRows),
     `core only ${WEN.length + WCS.length} words, build ${ms(buildMs)} ms\n`
-    + coreRows.map((r) => `  prefix ${r.len}: mean ${ms(r.mean)} p95 ${ms(r.p95)}\n`).join(''));
+    + coreRows.map((r) => `  prefix ${r.len}: mean ${ms(r.mean)} worst10 ${ms(r.max)}\n`).join(''));
 
   status('fetching the extension tier...');
   await frame();
@@ -120,7 +152,7 @@ async function run() {
   const fullRows = bench(predictor, sampleFrom([WEN, WCS, xen.WORDS_EXT, xcs.WORDS_EXT]), ctx);
   add(table(`Core plus extension, ${total} words`, fullRows),
     `full ${total} words, fetch+parse ${ms(fetchMs)} ms, addWords ${ms(addMs)} ms\n`
-    + fullRows.map((r) => `  prefix ${r.len}: mean ${ms(r.mean)} p95 ${ms(r.p95)}\n`).join(''));
+    + fullRows.map((r) => `  prefix ${r.len}: mean ${ms(r.mean)} worst10 ${ms(r.max)}\n`).join(''));
 
   status('fetching the trigram tables...');
   await frame();
@@ -141,7 +173,7 @@ async function run() {
   const triRows = bench(predictor, sampleFrom([WEN, WCS, xen.WORDS_EXT, xcs.WORDS_EXT]), ctx);
   add(table('With trigram tables', triRows),
     `with trigrams, load ${ms(triMs)} ms\n`
-    + triRows.map((r) => `  prefix ${r.len}: mean ${ms(r.mean)} p95 ${ms(r.p95)}\n`).join(''));
+    + triRows.map((r) => `  prefix ${r.len}: mean ${ms(r.mean)} worst10 ${ms(r.max)}\n`).join(''));
 
   // Device facts, so a pasted result says which phone produced it.
   // deviceMemory and memory are Chrome-only; Safari reports neither.
@@ -151,6 +183,7 @@ async function run() {
     ['ext fetch + parse', `${ms(fetchMs)} ms`],
     ['ext addWords', `${ms(addMs)} ms`],
     ['trigram load', `${ms(triMs)} ms`],
+    ['clock step', quantum ? `${quantum.toFixed(3)} ms` : 'below measurement'],
     ['screen', `${screen.width}x${screen.height} @${devicePixelRatio}`],
     ['cores', navigator.hardwareConcurrency ?? 'unknown'],
     ['device memory', navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'not reported'],
