@@ -118,7 +118,7 @@
 <div class="tldr">
   <ul>
     <li><b>Cut English at 50000 and Czech at 150000.</b> One size for both languages is wrong in either direction.</li>
-    <li><b>The number moves three times.</b> wordfreq's order says English 30000. The blend with subtitles says 50000. The finished list, after the aspell gate has removed the junk, confirms 50000: its last 10000 entries are 56% good and 4% bad.</li>
+    <li><b>The number moves three times.</b> wordfreq's order says English 30000. The blend with subtitles says 50000. The words that survive the aspell gate confirm 50000: the last 10000 of them are 56% good and 4% bad.</li>
     <li><b>English breaks early.</b> In wordfreq's own order it falls from 68% to 40% good in one step at 20000. In the blended order that ships, the same cliff waits until about 50000.</li>
     <li><b>Czech does not break until 200000.</b> It is still 84% good at 150000, because the words down there are ordinary words in a case the shallow ranks never reached.</li>
     <li><b>Czech tolerates three to five times the depth of English.</b> One Czech verb spreads over 18000 ranks. The English equivalent finishes inside 300.</li>
@@ -279,11 +279,11 @@
 
 <h2>The gate moves the number</h2>
 
-<p>Every band above is a rank in the candidate stream. The shipped list is not that stream. The build script drops each candidate that fails its aspell gate, its cross-language guard, or <span class="mono">needs_apostrophe()</span>. Position N in the shipped list is a deeper stream rank than N, and the gap grows with depth because rejects get denser.</p>
+<p>Every band above is a rank in the candidate stream. The list the keyboard ships is not that stream. The build script drops each candidate that fails its aspell gate, its cross-language guard, or <span class="mono">needs_apostrophe()</span>. Position N in the surviving list is a deeper stream rank than N, and the gap grows with depth because rejects get denser.</p>
 
 <div class="tablewrap">
 <table>
-<thead><tr><th>shipped position</th><th class="num">en stream rank</th><th class="num">cs stream rank</th></tr></thead>
+<thead><tr><th>cut-order position</th><th class="num">en stream rank</th><th class="num">cs stream rank</th></tr></thead>
 <tbody>
 <tr><td>10000</td><td class="num">10026</td><td class="num">·</td></tr>
 <tr><td>20000</td><td class="num">20563</td><td class="num">21077</td></tr>
@@ -296,11 +296,11 @@
 </table>
 </div>
 
-<p>The gate does not remove candidates at random. It removes the junk. So the shipped list at position N is better than the curve above reads at rank N, and the difference is large enough to change the recommendation. Measured on the finished lists, same 25 words per band, same labeller:</p>
+<p>The gate does not remove candidates at random. It removes the junk. So the surviving list at position N is better than the curve above reads at rank N, and the difference is large enough to change the recommendation. Measured on the words that survive, same 25 words per band, same labeller:</p>
 
 <div class="tablewrap">
 <table>
-<thead><tr><th>shipped band</th><th>quality</th><th class="num">good</th></tr></thead>
+<thead><tr><th>cut-order band</th><th>quality</th><th class="num">good</th></tr></thead>
 <tbody>
 <tr><td>en 30k–40k</td><td class="bar"><span class="stack"><i class="g" style="width:80%"></i><i class="m" style="width:20%"></i></span></td><td class="num">80%</td></tr>
 <tr class="cut"><td>en 40k–50k</td><td class="bar"><span class="stack"><i class="g" style="width:56%"></i><i class="m" style="width:40%"></i><i class="b" style="width:4%"></i></span></td><td class="num">56%</td></tr>
@@ -315,20 +315,22 @@
   <p>The first version of this note recommended English 30000. That read the candidate stream, and the keyboard ships the filtered list. English 50000 is the right cut, and the gate is what makes it safe. The last 10000 entries cost 40% marginal and one bad word in 25, not the 24% bad the raw curve predicts at that depth.</p>
 </div>
 
+<p>A position in this section is a position in the <b>cut order</b>, the blended ranking that decides which words are in the list. It is not a position in the shipped file. The file carries a different order on purpose: the count it stores is the OpenSubtitles probability alone, so the strip ranks by spoken frequency (<span class="mono">you</span> first, <span class="mono">hello</span> at 210, <span class="mono">playlist</span> at 48906). Ranking the strip by the blend was tried and reverted, because it pushed <span class="mono">you</span> off the neutral strip and <span class="mono">hello</span> out of reach of the typo <span class="mono">helo</span>. This section is a membership measurement, which is what a cut decision needs. Its four bands name sets of words, not neighbourhoods in the file: in the count order the English sample above is spread from position 14126 to 49777.</p>
+
 <h2>What the cuts should be</h2>
 
-<p><b>English: 50000.</b> Measured on the shipped list, 30000–40000 is 80% good and 40000–50000 is 56% good with one bad word in 25. Position 50000 reaches stream rank 63793, where the gate is doing most of the work. The concrete win at that depth is the word that started this: <span class="mono">playlists</span>, prediction game case 16. Marginal entries are cheaper than they look, because a rank-45000 word is too rare to outrank a good word on a short prefix. It surfaces only on a long prefix where nothing better matches. Do not go past 50000: the stream at 75000 is 8% good, and no gate rescues <span class="mono">mcelwaine</span>, <span class="mono">hollyweird</span> and <span class="mono">amzn</span>.</p>
+<p><b>English: 50000.</b> Measured on the words that survive the gate, cut-order 30000–40000 is 80% good and 40000–50000 is 56% good with one bad word in 25. Position 50000 reaches stream rank 63793, where the gate is doing most of the work. The concrete win at that depth is the word that started this: <span class="mono">playlists</span>, prediction game case 16. Marginal entries are cheaper than they look, because a rank-45000 word is too rare to outrank a good word on a short prefix. It surfaces only on a long prefix where nothing better matches. Do not go past 50000: the stream at 75000 is 8% good, and no gate rescues <span class="mono">mcelwaine</span>, <span class="mono">hollyweird</span> and <span class="mono">amzn</span>.</p>
 
-<p><b>Czech: 150000.</b> The shipped Czech list is 88% good at 100000–125000 and 100% good at 125000–150000. Ranks 40000 to 150000 carry 5.8% of Czech running text, more than the whole English 20000-to-300000 tail carries. Czech at 40000 was too shallow by a wide margin. 150000 covers 95.7% of Czech tokens and still has headroom by this measurement, so going deeper later is defensible. There is no reason to do it yet.</p>
+<p><b>Czech: 150000.</b> The surviving Czech words are 88% good at cut-order 100000–125000 and 100% good at 125000–150000. Ranks 40000 to 150000 carry 5.8% of Czech running text, more than the whole English 20000-to-300000 tail carries. Czech at 40000 was too shallow by a wide margin. 150000 covers 95.7% of Czech tokens and still has headroom by this measurement, so going deeper later is defensible. There is no reason to do it yet.</p>
 
 <div class="tablewrap">
 <table>
 <thead><tr><th>file</th><th class="num">entries</th><th class="num">raw</th><th class="num">gzip</th></tr></thead>
 <tbody>
-<tr><td>words-en.js</td><td class="num">3000</td><td class="num">51 KiB</td><td class="num">21 KiB</td></tr>
-<tr><td>words-ext-en.js</td><td class="num">47000</td><td class="num">791 KiB</td><td class="num">279 KiB</td></tr>
-<tr><td>words-cs.js</td><td class="num">3000</td><td class="num">53 KiB</td><td class="num">22 KiB</td></tr>
-<tr><td>words-ext-cs.js</td><td class="num">147000</td><td class="num">2663 KiB</td><td class="num">904 KiB</td></tr>
+<tr><td>words-en.js</td><td class="num">3000</td><td class="num">50 KiB</td><td class="num">21 KiB</td></tr>
+<tr><td>words-ext-en.js</td><td class="num">47000</td><td class="num">783 KiB</td><td class="num">262 KiB</td></tr>
+<tr><td>words-cs.js</td><td class="num">3000</td><td class="num">53 KiB</td><td class="num">21 KiB</td></tr>
+<tr><td>words-ext-cs.js</td><td class="num">147000</td><td class="num">2637 KiB</td><td class="num">836 KiB</td></tr>
 </tbody>
 </table>
 </div>

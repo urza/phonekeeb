@@ -105,19 +105,21 @@ that file before design work.
   reaching for a pretrained language model.
 - `vocabulary-depth-analysis.md` (phone twin:
   `vocabulary-depth-analysis.html`) answers how deep the shipped word
-  list can go before it stops holding words, per language. 1250 words
-  sampled by `tools/vocab-depth.py` at 50 depth bands, in both the raw
-  wordfreq order and the blended order the build script ships, then
-  labelled by hand, because aspell answers a different question in each
-  language. English falls to half good around 50000 and 8% at 75000;
-  Czech is still 84% good at 150000, because one Czech verb spreads over
-  18000 ranks. Hence the shipped cuts: en 50000, cs 150000. Note that a
-  band in that note is a rank in the CANDIDATE stream; the aspell gate
-  then removes the junk, so shipped position 50000 is stream rank 63793
-  and the shipped list at its own position N is better than the curve
-  reads at N. The note's last section measures the finished lists and
-  gives the conversion. Read it before setting `TOP_N` or `EXT_TOTAL` in
-  `tools/build-wordlists.py`.
+  list can go before it stops holding words, per language. 1350 words
+  sampled by `tools/vocab-depth.py` at 54 depth bands, in the raw
+  wordfreq order, in the blended order that decides membership, and in
+  the words that survive the gate, then labelled by hand, because aspell
+  answers a different question in each language. English falls to half
+  good around 50000 and 8% at 75000; Czech is still 84% good at 150000,
+  because one Czech verb spreads over 18000 ranks. Hence the shipped
+  cuts: en 50000, cs 150000. Two coordinate systems, do not mix them: a
+  band in that note is a rank in the CANDIDATE stream, and the aspell
+  gate then removes the junk, so cut-order position 50000 is stream rank
+  63793 and the surviving list at its own position N is better than the
+  curve reads at N. Neither is a position in the shipped file, which is
+  ordered by subtitle count. The note's "The gate moves the number"
+  section gives the conversion. Read it before setting `TOP_N` or
+  `EXT_TOTAL` in `tools/build-wordlists.py`.
 - `ios-deployment-research.md` (phone twin: `ios-deployment-research.html`)
   documents the path from web prototype to a real iPhone: sideloading
   without the App Store (free Apple ID, 7-day builds), TestFlight, App

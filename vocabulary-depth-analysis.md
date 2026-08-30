@@ -22,10 +22,9 @@ them in order. Most of the note measures wordfreq alone, which is where
 the raw quality curve lives. "The same measurement on the ranking that
 ships" repeats it on the blended wordfreq-plus-subtitles order the build
 script uses, which moves the English cliff out from 20000 to about
-50000. "The gate moves the number" then measures the finished lists,
-after the aspell gate has removed the junk, which is what makes English
-50000 safe. The first version of this note recommended English 30000; it
-was reading the candidate stream instead of the shipped list.
+50000. "The gate moves the number" then measures the words that
+survive the aspell gate, which is what makes English 50000 safe. The first version of this note recommended English 30000; it
+was reading the candidate stream instead of the words that survive.
 
 ## What was measured
 
@@ -37,8 +36,8 @@ English candidates and 596230 Czech candidates in frequency order.
 The script then samples 25 random words per depth band, seed 20260830,
 and writes them with no verdict attached. Claude labelled every sampled
 word by hand: 900 words over 36 bands of wordfreq's own order, 350 over
-14 bands of the blended order the build script ranks by, and 100 over 4
-bands of the finished lists.
+14 bands of the blended order that decides the cut, and 100 over 4
+bands of the words that survive the gate.
 
 - **G**: the strip should offer this word.
 - **M**: real, but marginal. An obscure proper name, a technical term,
@@ -235,13 +234,14 @@ cs 200k-300k daleovi M, pružinové G, coy B, podvrhnout G, masse B, rázněji G
 
 ## The gate moves the number (correction, same day)
 
-Every band above is a rank in the candidate stream. The shipped list is
-not that stream. The build script drops each candidate that fails its
-aspell gate, its cross-language guard, or `needs_apostrophe()`. Position
-N in the shipped list is therefore a deeper stream rank than N, and the
-gap grows with depth, because rejects get denser:
+Every band above is a rank in the candidate stream. The list the
+keyboard ships is not that stream. The build script drops each candidate
+that fails its aspell gate, its cross-language guard, or
+`needs_apostrophe()`. Position N in the surviving list is therefore a
+deeper stream rank than N, and the gap grows with depth, because rejects
+get denser:
 
-| shipped position | English stream rank | Czech stream rank |
+| cut-order position | English stream rank | Czech stream rank |
 |---|---|---|
 | 10000 | 10026 | . |
 | 20000 | 20563 | 21077 |
@@ -252,12 +252,12 @@ gap grows with depth, because rejects get denser:
 | 150000 | . | 182909 |
 
 The gate does not remove candidates at random. It removes the junk. So
-the shipped list at position N is better than the curve above reads at
+the surviving list at position N is better than the curve above reads at
 rank N, and the difference is large enough to change the recommendation.
-Measured directly on the shipped lists, same 25 words per band, same
-labeller:
+Measured directly on the words that survive, same 25 words per band,
+same labeller:
 
-| shipped band | G% | M% | B% |
+| cut-order band | G% | M% | B% |
 |---|---|---|---|
 | en 30000-40000 | 80 | 20 | 0 |
 | en 40000-50000 | 56 | 40 | 4 |
@@ -276,14 +276,27 @@ and 4% bad, not the 24% bad the raw curve predicts at that depth. The
 last 25000 of a 150000-word Czech list cost nothing at all in this
 sample.
 
+A position in this section is a position in the CUT order, the blended
+ranking that decides which words are in the list. It is not a position
+in the shipped file. The file carries a different order on purpose: the
+count it stores is the OpenSubtitles probability alone, so the strip
+ranks by spoken frequency (`you` first, `hello` at 210, `playlist` at
+48906). Ranking the strip by the blend was tried and reverted, because
+it pushed `you` off the neutral strip and `hello` out of reach of the
+typo `helo`. This section is a membership measurement, which is what a
+cut decision needs. The four bands here name sets of words, not
+neighbourhoods in the file: in the count order the English sample above
+is spread from position 14126 to 49777.
+
 So the earlier recommendation of English 30000 was too conservative. It
 read the stream, and the keyboard ships the filtered list. English 50000
 is the right cut, and the gate is what makes it safe.
 
 ## What the cuts should be
 
-**English 50000.** Measured on the shipped list, 30000-40000 is 80% good
-and 40000-50000 is 56% good with one bad word in 25. Position 50000
+**English 50000.** Measured on the words that survive the gate,
+cut-order 30000-40000 is 80% good and 40000-50000 is 56% good with one
+bad word in 25. Position 50000
 reaches stream rank 63793, where the gate is doing most of the work. The
 concrete win at that depth is the word that started this: `playlists`,
 prediction game case 16. Marginal entries are cheaper than they look,
@@ -292,8 +305,8 @@ prefix. It surfaces only on a long prefix where nothing better matches.
 Do not go past 50000: the stream at 75000 is 8% good, and no gate
 rescues `mcelwaine`, `hollyweird` and `amzn`.
 
-**Czech 150000.** The shipped Czech list is 88% good at 100000-125000
-and 100% good at 125000-150000. Ranks 40000 to 150000 carry 5.8% of
+**Czech 150000.** The surviving Czech words are 88% good at cut-order
+100000-125000 and 100% good at 125000-150000. Ranks 40000 to 150000 carry 5.8% of
 Czech running text, more than the whole English 20000-to-300000 tail
 carries. Czech at 40000 was too shallow by a wide margin. 150000 covers
 95.7% of Czech tokens and still has headroom by this measurement, so if
@@ -305,10 +318,10 @@ ext tier is lazy-loaded after first paint:
 
 | file | entries | raw | gzip |
 |---|---|---|---|
-| `words-en.js` | 3000 | 51 KiB | 21 KiB |
-| `words-ext-en.js` | 47000 | 791 KiB | 279 KiB |
-| `words-cs.js` | 3000 | 53 KiB | 22 KiB |
-| `words-ext-cs.js` | 147000 | 2663 KiB | 904 KiB |
+| `words-en.js` | 3000 | 50 KiB | 21 KiB |
+| `words-ext-en.js` | 47000 | 783 KiB | 262 KiB |
+| `words-cs.js` | 3000 | 53 KiB | 21 KiB |
+| `words-ext-cs.js` | 147000 | 2637 KiB | 836 KiB |
 
 The extension tier is lazy-loaded after first paint, so the cost is
 bandwidth and memory, not time to first keystroke. The size choice needs
