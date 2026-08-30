@@ -896,6 +896,7 @@ Tuned constants, one place to read them all:
 | Typo edit penalty | 0.005 per edit, one edit max, prefix of 2+, core words only |
 | Typo strip slots | at most 2 while exact-prefix candidates exist; capped entries refill a short strip |
 | Extension vocabulary | to 50000 en / 150000 cs combined forms; tail must pass aspell, with the three exceptions above; core sum scaled to 1e9 |
+| Data file form | `export const X = JSON.parse(\`...\`)`, never a literal: Safari's parser overflows its stack on a 147000-entry array literal |
 | Vocabulary membership | wordfreq^0.5 x OpenSubtitles^0.5, add-one smoothed on the subtitle side |
 | Vocabulary counts | OpenSubtitles probability alone, add-one smoothed; the core sum is the denominator |
 | Candidate scan | first-letter bucket for a typed prefix, core tier only for an empty one |

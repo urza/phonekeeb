@@ -71,6 +71,25 @@ from pathlib import Path
 
 TOP_N = 3000
 
+
+def js_export(name, data):
+    """One data file's body: `export const NAME = JSON.parse(`...`);`
+
+    NOT a plain JS literal. Safari's parser recurses through a literal
+    and a 147000-entry array of pairs overflows its stack: a phone
+    reported "Maximum call stack size exceeded" importing
+    words-ext-cs.js on 2026-08-30, which is how this was found.
+    JSON.parse reads the same bytes iteratively and is faster in every
+    engine besides. The backtick keeps the JSON's own double quotes
+    unescaped, so the file does not grow; the three replacements below
+    are what a template literal does need, and none of them can fire
+    for the words this project emits.
+    """
+    body = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+    safe = body.replace('\\', '\\\\').replace('`', '\\`').replace('${', '\\${')
+    return f"export const {name} = JSON.parse(`{safe}`);\n"
+
+
 # Combined vocabulary size (core + ext) per language. Czech gets more:
 # its inflection spreads one lemma over many forms, so equal-coverage
 # needs a longer form list.
@@ -379,19 +398,17 @@ def wordfreq_main():
         f"// smoothed. The strip must rank in the register it is typed in.\n"
         f"// Counts scale the core sum to {WF_SCALE:.0e}, both tiers together.\n"
     )
-    dump = lambda rows: json.dumps(rows, ensure_ascii=False,  # noqa: E731
-                                   separators=(',', ':'))
     Path(core_out).write_text(
         credit
         + f"// Core tier: top {len(core)} {lang} words as [word, count].\n"
         + f"// One-letter words and in-word apostrophes are deliberate: see\n"
         + f"// the \"Vocabulary bug\" section of word-prediction-research.md.\n"
-        + f"export const WORDS = {dump(core)};\n", encoding='utf-8')
+        + js_export('WORDS', core), encoding='utf-8')
     Path(ext_out).write_text(
         credit
         + f"// Extension tier: {len(ext)} {lang} words below the core top\n"
         + f"// {len(core)}, aspell-filtered, lazy-loaded after first paint.\n"
-        + f"export const WORDS_EXT = {dump(ext)};\n", encoding='utf-8')
+        + js_export('WORDS_EXT', ext), encoding='utf-8')
 
     print(f"{lang}: core {len(core)} -> {core_out}, "
           f"ext {len(ext)} -> {ext_out}, rejected {len(rejected)}")
@@ -434,8 +451,7 @@ def ext_main():
         f"// \"Vocabulary bug\" section of word-prediction-research.md before\n"
         f"// changing filters.\n"
     )
-    body = json.dumps(ext, ensure_ascii=False, separators=(',', ':'))
-    Path(out_path).write_text(header + f"export const WORDS_EXT = {body};\n",
+    Path(out_path).write_text(header + js_export('WORDS_EXT', ext),
                               encoding='utf-8')
 
     print(f"{lang} ext: {lines} lines, factor {factor:.2f}; "
@@ -464,10 +480,8 @@ def main():
         f"// in-word apostrophes are deliberate: see the \"Vocabulary bug\"\n"
         f"// section of word-prediction-research.md before changing filters.\n"
     )
-    body = json.dumps([[w, c] for w, c in top],
-                      ensure_ascii=False, separators=(',', ':'))
     old = read_old_words(out_path)
-    Path(out_path).write_text(header + f"export const WORDS = {body};\n",
+    Path(out_path).write_text(header + js_export('WORDS', [[w, c] for w, c in top]),
                               encoding='utf-8')
 
     total = sum(counts.values())

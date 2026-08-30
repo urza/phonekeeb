@@ -168,8 +168,7 @@ def main():
         f"// exp(code/{QUANT_K})). Top {TOP_SUCCESSORS} successors,\n"
         f"// pair count >= {MIN_PAIR}, heads in frequency order.\n"
     )
-    body = json.dumps(successors, ensure_ascii=False, separators=(',', ':'))
-    Path(out_path).write_text(header + f"export const BIGRAMS = {body};\n",
+    Path(out_path).write_text(header + bw.js_export("BIGRAMS", successors),
                               encoding='utf-8')
 
     # One '|' per successor plus one in each head token ("T|g").

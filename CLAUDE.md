@@ -241,6 +241,15 @@ Word lists: `words-en.js` / `words-cs.js` (core, 3000, eager) and
 words at very different depths, see `vocabulary-depth-analysis.md`)
 all come from `tools/build-wordlists.py`
 **wordfreq mode**, which needs `pip install wordfreq` in a build venv.
+Every generated data file (`words-*.js`, `bigrams-*.js`,
+`trigrams-*.js`) is written as ``export const X = JSON.parse(`...`)``
+by `js_export()` in `tools/build-wordlists.py`, which the n-gram
+builders import. Never a plain array or object literal: Safari's parser
+recurses through a literal and threw "Maximum call stack size exceeded"
+on a phone importing the 147000-entry `words-ext-cs.js` (2026-08-30).
+The backtick keeps the JSON's own quotes unescaped, so the form costs
+no bytes.
+
 Two sources answer two different questions. WHICH words the list holds
 is a geometric blend, half wordfreq (7 merged corpora, where modern
 words like `playlist` come from) and half the OpenSubtitles v2018

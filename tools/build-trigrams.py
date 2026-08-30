@@ -165,8 +165,7 @@ def main():
         f"// exp(code/{QUANT_K})). Contexts >= {MIN_CONTEXT}, triples >= {MIN_TRIPLE},\n"
         f"// top {TOP_SUCCESSORS} successors. Lazy-loaded; see features.md.\n"
     )
-    body = json.dumps(out, ensure_ascii=False, separators=(',', ':'))
-    Path(out_path).write_text(header + f"export const TRIGRAMS = {body};\n",
+    Path(out_path).write_text(header + bw.js_export("TRIGRAMS", out),
                               encoding='utf-8')
     size = Path(out_path).stat().st_size
     # One '|' per successor plus one in each context token ("T|g").
