@@ -1053,6 +1053,34 @@ on that phone.
 The rule this leaves: a generated data file in this repo is never a
 plain literal. features.md carries it in the constants table.
 
+### The referee, re-run on the new vocabulary
+
+`tools/eval-prediction.mjs`, 4000 pairs per language, 80 MB held-out
+slice, strip of 6. What the rebuild bought, and what it cost:
+
+| | EN before | EN after | CS before | CS after |
+|---|---|---|---|---|
+| token coverage, core | 89.4% | 89.2% | 74.7% | 74.5% |
+| **token coverage, core+ext** | **96.6%** | **97.7%** | **91.0%** | **93.9%** |
+| next-word, core pairs | 21.3 / 36.2 | 22.0 / 37.3 | 19.0 / 33.0 | 20.0 / 33.8 |
+| prefix-2, core pairs | 65.2 / 78.0 | 65.6 / 78.9 | 59.7 / 73.8 | 60.5 / 73.9 |
+| typo-2, core pairs | 37.1 / 55.7 | 38.4 / 53.4 | 32.8 / 49.3 | 33.5 / 47.6 |
+
+Coverage is the point: 2.9 points of Czech running text and 1.1 of
+English that the keyboard previously had no word for at all. Every
+hit@1 rose with it.
+
+Two honest qualifications. The two typo-2 hit@3 cells fell about 2
+points, and the mechanism is the documented one: a bigger vocabulary
+puts more exact-prefix matches in front of the one-edit hypotheses, and
+`TYPO_SLOTS` caps those at 2. And the full-vocabulary pair rows are not
+comparable across this change in either direction, because raising
+coverage changes the pair population itself: CS next-word reads 12.8 /
+22.5 against 14.2 / 24.1 before, on a set that now admits the rare
+words the old list could not represent. A test that gets harder because
+the vocabulary got better is not a regression, but it is also not a
+number to quote as one.
+
 ## Personalization plan (added 2026-08-25)
 
 Status 2026-08-26: Component A (learning while typing) is shipped —

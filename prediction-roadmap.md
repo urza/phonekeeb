@@ -23,18 +23,25 @@ list, a pinned list, and the last 500 committed words. `dictionary.html`
 makes all of it readable and editable, including a review queue for
 learned typos.
 
-Measured on held-out subtitles, strip of 6 (hit@1 / hit@3):
+Measured on held-out subtitles, strip of 6, core-vocabulary pairs
+(hit@1 / hit@3), re-run 2026-08-30 after the vocabulary rebuild:
 
 | Mode | EN | CS |
 |---|---|---|
-| next-word | 21.3 / 36.2 | 19.0 / 33.0 |
-| 2-letter prefix | 65.2 / 78.0 | 59.7 / 73.8 |
-| corrupted prefix | 37.1 / 55.7 | 32.8 / 49.3 |
+| next-word | 22.0 / 37.3 | 20.0 / 33.8 |
+| 2-letter prefix | 65.6 / 78.9 | 60.5 / 73.9 |
+| corrupted prefix | 38.4 / 53.4 | 33.5 / 47.6 |
 
-Prediction game: 7 of 15 (case 7, "I w" to "would", entered at rank 4
+Token coverage is the number the rebuild moved: **97.7% EN and 93.9% CS**
+of held-out running text, from 96.6% and 91.0%. Every hit@1 above rose
+with it; the two corrupted-prefix hit@3 cells fell 2pp, because a bigger
+vocabulary means more words match a corrupted prefix exactly and crowd
+the typo hypotheses out of slots 2 and 3.
+
+Prediction game: 8 of 15. Case 7, "I w" to "would", entered at rank 4
 with the 2026-08-27 smoothing; case 16, "listening to playl" to
-"playlists", added 2026-08-30 and missed). The LLM that played it live
-scored 8 of the first 11.
+"playlists", entered at rank 4 with the 2026-08-30 vocabulary rebuild.
+The LLM that played it live scored 8 of the first 11.
 
 ## The five layers, and which ones we have
 
