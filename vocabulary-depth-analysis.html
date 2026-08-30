@@ -113,15 +113,16 @@
 
 <p class="eyebrow">Phonekeeb · measured 2026-08-30</p>
 <h1>How deep the word list stays a word list</h1>
-<p class="dek">1250 words sampled from the vocabulary ranking at 50 depth bands, then labelled one by one, to find where each language stops being language.</p>
+<p class="dek">1350 words sampled at 54 depth bands, then labelled one by one, to find where each language stops being language.</p>
 
 <div class="tldr">
   <ul>
-    <li><b>Cut English at 30000 and Czech at 150000.</b> Both sit inside real vocabulary and stop before the junk. One size for both languages is wrong in either direction.</li>
+    <li><b>Cut English at 50000 and Czech at 150000.</b> One size for both languages is wrong in either direction.</li>
+    <li><b>The number moves three times.</b> wordfreq's order says English 30000. The blend with subtitles says 50000. The finished list, after the aspell gate has removed the junk, confirms 50000: its last 10000 entries are 56% good and 4% bad.</li>
     <li><b>English breaks early.</b> In wordfreq's own order it falls from 68% to 40% good in one step at 20000. In the blended order that ships, the same cliff waits until about 50000.</li>
     <li><b>Czech does not break until 200000.</b> It is still 84% good at 150000, because the words down there are ordinary words in a case the shallow ranks never reached.</li>
     <li><b>Czech tolerates three to five times the depth of English.</b> One Czech verb spreads over 18000 ranks. The English equivalent finishes inside 300.</li>
-    <li><b>aspell cannot answer this question.</b> It calls <span class="mono">waukesha</span> a word and <span class="mono">železnička</span> junk. So the words were read by hand instead.</li>
+    <li><b>aspell cannot answer where to cut.</b> It calls <span class="mono">waukesha</span> a word and <span class="mono">železnička</span> junk, so it reads as loose in English and tight in Czech. It is still a good junk filter at depth, which is a different job.</li>
   </ul>
 </div>
 
@@ -129,7 +130,7 @@
 
 <p><span class="mono">tools/vocab-depth.py</span> takes wordfreq's large list per language and applies the build script's structural filters: same alphabet regex, same one-letter whitelist, same DROP set. That leaves 307604 English and 596230 Czech candidates in frequency order.</p>
 
-<p>The script samples 25 random words per band and writes them with no verdict attached. Claude labelled all 1250 by hand, 900 in wordfreq's order and 350 more in the blended order that ships:</p>
+<p>The script samples 25 random words per band and writes them with no verdict attached. Claude labelled all 1350 by hand: 900 in wordfreq's order, 350 in the blended order the build script ranks by, and 100 in the finished lists:</p>
 
 <ul class="need">
   <li><b>Good</b>: the strip should offer this word.</li>
@@ -276,26 +277,63 @@
 
 <p>The blended English tail past 50000 still fails the same way: <span class="mono">tanguy</span>, <span class="mono">rossendale</span>, <span class="mono">kleist</span>, <span class="mono">bandra</span>, <span class="mono">mcelwaine</span>, <span class="mono">hollyweird</span>, <span class="mono">amzn</span>, <span class="mono">ilb</span>. The blended Czech tail at 150000 to 200000 is still ordinary Czech: <span class="mono">prodání</span>, <span class="mono">nevycházej</span>, <span class="mono">rozzářený</span>, <span class="mono">uhodíte</span>, <span class="mono">blankytná</span>, <span class="mono">meditačních</span>, <span class="mono">nastupovaly</span>.</p>
 
-<h2>What the cuts should be</h2>
+<h2>The gate moves the number</h2>
 
-<p><b>English: 30000.</b> In the shipped blended ranking, 20000–30000 is 64% good and 30000–50000 is about half. So 30000 sits inside real vocabulary, and 50000 is the ceiling rather than the target. Marginal entries are cheaper than they look, because a rank-25000 word is too rare to outrank a good word on a short prefix. It surfaces only on a long prefix where nothing better matches. Past 50000 the good share falls to 24%, then 8%. An English list at 90000 spends its last 40000 entries on <span class="mono">mcelwaine</span>, <span class="mono">hollyweird</span>, <span class="mono">amzn</span> and <span class="mono">ilb</span>.</p>
-
-<p><b>Czech: 150000.</b> Ranks 40000 to 150000 stay between 80% and 92% good in both rankings, and carry 5.8% of Czech running text. That is more text than the entire English tail from 20000 to 300000 carries. Czech at 40000 is too shallow by a wide margin. If size forbids 150000, 100000 still keeps 4.5% of that text.</p>
+<p>Every band above is a rank in the candidate stream. The shipped list is not that stream. The build script drops each candidate that fails its aspell gate, its cross-language guard, or <span class="mono">needs_apostrophe()</span>. Position N in the shipped list is a deeper stream rank than N, and the gap grows with depth because rejects get denser.</p>
 
 <div class="tablewrap">
 <table>
-<thead><tr><th>list</th><th class="num">entries</th><th class="num">raw</th><th class="num">gzip</th></tr></thead>
+<thead><tr><th>shipped position</th><th class="num">en stream rank</th><th class="num">cs stream rank</th></tr></thead>
 <tbody>
-<tr><td>en</td><td class="num">20000</td><td class="num">339 KiB</td><td class="num">94 KiB</td></tr>
-<tr class="cut"><td>en</td><td class="num">30000</td><td class="num">507 KiB</td><td class="num">142 KiB</td></tr>
-<tr><td>cs</td><td class="num">40000</td><td class="num">715 KiB</td><td class="num">200 KiB</td></tr>
-<tr><td>cs</td><td class="num">100000</td><td class="num">1775 KiB</td><td class="num">508 KiB</td></tr>
-<tr class="cut"><td>cs</td><td class="num">150000</td><td class="num">2661 KiB</td><td class="num">765 KiB</td></tr>
+<tr><td>10000</td><td class="num">10026</td><td class="num">·</td></tr>
+<tr><td>20000</td><td class="num">20563</td><td class="num">21077</td></tr>
+<tr><td>30000</td><td class="num">32562</td><td class="num">·</td></tr>
+<tr><td>40000</td><td class="num">46636</td><td class="num">·</td></tr>
+<tr><td>50000</td><td class="num">63793</td><td class="num">55302</td></tr>
+<tr><td>100000</td><td class="num">·</td><td class="num">116384</td></tr>
+<tr><td>150000</td><td class="num">·</td><td class="num">182909</td></tr>
 </tbody>
 </table>
 </div>
 
-<p>The extension tier is lazy-loaded after first paint, so the cost is bandwidth and memory, not time to first keystroke. The size choice needs <span class="mono">tools/bench-predict.mjs</span> numbers beside these. This page answers only the quality half.</p>
+<p>The gate does not remove candidates at random. It removes the junk. So the shipped list at position N is better than the curve above reads at rank N, and the difference is large enough to change the recommendation. Measured on the finished lists, same 25 words per band, same labeller:</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>shipped band</th><th>quality</th><th class="num">good</th></tr></thead>
+<tbody>
+<tr><td>en 30k–40k</td><td class="bar"><span class="stack"><i class="g" style="width:80%"></i><i class="m" style="width:20%"></i></span></td><td class="num">80%</td></tr>
+<tr class="cut"><td>en 40k–50k</td><td class="bar"><span class="stack"><i class="g" style="width:56%"></i><i class="m" style="width:40%"></i><i class="b" style="width:4%"></i></span></td><td class="num">56%</td></tr>
+<tr><td>cs 100k–125k</td><td class="bar"><span class="stack"><i class="g" style="width:88%"></i><i class="m" style="width:12%"></i></span></td><td class="num">88%</td></tr>
+<tr class="cut"><td>cs 125k–150k</td><td class="bar"><span class="stack"><i class="g" style="width:100%"></i></span></td><td class="num">100%</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="warncard">
+  <span class="tag">CORRECTION</span>
+  <p>The first version of this note recommended English 30000. That read the candidate stream, and the keyboard ships the filtered list. English 50000 is the right cut, and the gate is what makes it safe. The last 10000 entries cost 40% marginal and one bad word in 25, not the 24% bad the raw curve predicts at that depth.</p>
+</div>
+
+<h2>What the cuts should be</h2>
+
+<p><b>English: 50000.</b> Measured on the shipped list, 30000–40000 is 80% good and 40000–50000 is 56% good with one bad word in 25. Position 50000 reaches stream rank 63793, where the gate is doing most of the work. The concrete win at that depth is the word that started this: <span class="mono">playlists</span>, prediction game case 16. Marginal entries are cheaper than they look, because a rank-45000 word is too rare to outrank a good word on a short prefix. It surfaces only on a long prefix where nothing better matches. Do not go past 50000: the stream at 75000 is 8% good, and no gate rescues <span class="mono">mcelwaine</span>, <span class="mono">hollyweird</span> and <span class="mono">amzn</span>.</p>
+
+<p><b>Czech: 150000.</b> The shipped Czech list is 88% good at 100000–125000 and 100% good at 125000–150000. Ranks 40000 to 150000 carry 5.8% of Czech running text, more than the whole English 20000-to-300000 tail carries. Czech at 40000 was too shallow by a wide margin. 150000 covers 95.7% of Czech tokens and still has headroom by this measurement, so going deeper later is defensible. There is no reason to do it yet.</p>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>file</th><th class="num">entries</th><th class="num">raw</th><th class="num">gzip</th></tr></thead>
+<tbody>
+<tr><td>words-en.js</td><td class="num">3000</td><td class="num">51 KiB</td><td class="num">21 KiB</td></tr>
+<tr><td>words-ext-en.js</td><td class="num">47000</td><td class="num">791 KiB</td><td class="num">279 KiB</td></tr>
+<tr><td>words-cs.js</td><td class="num">3000</td><td class="num">53 KiB</td><td class="num">22 KiB</td></tr>
+<tr><td>words-ext-cs.js</td><td class="num">147000</td><td class="num">2663 KiB</td><td class="num">904 KiB</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Measured on the files that ship. The core tier is eager, the ext tier is lazy-loaded after first paint, so the cost is bandwidth and memory, not time to first keystroke. The latency half of the size question belongs to <span class="mono">tools/bench-predict.mjs</span> and <span class="mono">bench.html</span>.</p>
 
 <h2>Two junk classes no depth cut removes</h2>
 

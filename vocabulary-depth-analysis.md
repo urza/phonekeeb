@@ -8,22 +8,24 @@ right cut is, by reading the words at each depth instead of trusting a
 dictionary to say.
 
 **Result: English and Czech run out of words at very different depths.
-In the ranking that ships, English falls to half good at about 50000 and
-is 8% good at 75000. Czech is still 84% good at 150000 and holds to
-200000. Czech tolerates three to five times the depth of English.**
+English falls to half good around 50000 and is 8% good at 75000. Czech
+is still 84% good at 150000 and holds to 200000. Czech tolerates three
+to five times the depth of English.**
 
-Recommended cuts: **English 30000, Czech 150000.** Both are inside good
-vocabulary and both stop before the junk. A symmetric size for the two
-languages is wrong in either direction: 40000 starves Czech of 5.8% of
-its running text, and 100000 fills a third of the English list with
-names and fragments.
+Recommended cuts: **English 50000, Czech 150000.** A symmetric size for
+the two languages is wrong in either direction: 40000 starves Czech of
+5.8% of its running text, and 100000 would fill a third of the English
+list with names and fragments.
 
-Two rankings appear below. Most of the note measures wordfreq alone,
-which is where the raw quality curve lives. The section "The same
-measurement on the ranking that ships" repeats it on the blended
-wordfreq-plus-subtitles order the build script really uses. The blend
-moves the English cliff out from 20000 to about 50000 and leaves Czech
-unchanged, which is the same finding from a second angle.
+Three rankings appear below, and the number moves each time, so read
+them in order. Most of the note measures wordfreq alone, which is where
+the raw quality curve lives. "The same measurement on the ranking that
+ships" repeats it on the blended wordfreq-plus-subtitles order the build
+script uses, which moves the English cliff out from 20000 to about
+50000. "The gate moves the number" then measures the finished lists,
+after the aspell gate has removed the junk, which is what makes English
+50000 safe. The first version of this note recommended English 30000; it
+was reading the candidate stream instead of the shipped list.
 
 ## What was measured
 
@@ -34,8 +36,9 @@ English candidates and 596230 Czech candidates in frequency order.
 
 The script then samples 25 random words per depth band, seed 20260830,
 and writes them with no verdict attached. Claude labelled every sampled
-word by hand: 900 words over 36 bands of wordfreq's own order, and 350
-more over 14 bands of the blended order the keyboard ships.
+word by hand: 900 words over 36 bands of wordfreq's own order, 350 over
+14 bands of the blended order the build script ranks by, and 100 over 4
+bands of the finished lists.
 
 - **G**: the strip should offer this word.
 - **M**: real, but marginal. An obscure proper name, a technical term,
@@ -51,7 +54,8 @@ proper names, so it calls `waukesha` and `dodson` words. Czech aspell
 holds 2.95 million lowercase forms and still misses live derivation, so
 it calls `železnička` and `kafíčko` junk. A gate that is loose in one
 language and tight in the other cannot say which language runs out of
-words first, and that is the whole question.
+words first, and that is the whole question. As a junk filter at depth
+it does work, which is a different job. See "The gate moves the number".
 
 `mass%` is the share of running text the band carries, from wordfreq's
 own probabilities. It is the value side of the trade: a band full of
@@ -229,33 +233,82 @@ cs 150k-200k prodání G, životaschopná G, nevycházej G, eskortován G, krás
 cs 200k-300k daleovi M, pružinové G, coy B, podvrhnout G, masse B, rázněji G, rendlík G, nevypořádala G, shepharda M, rakiji M, kunu G, otřásající G, raonic B, odřeknou G, mikimu M, nechráněna G, rozlehlo G, sdrce B, prati B, lotrinsko G, resch B, roppongi B, metar B, navolno G, kalciového M
 ```
 
+## The gate moves the number (correction, same day)
+
+Every band above is a rank in the candidate stream. The shipped list is
+not that stream. The build script drops each candidate that fails its
+aspell gate, its cross-language guard, or `needs_apostrophe()`. Position
+N in the shipped list is therefore a deeper stream rank than N, and the
+gap grows with depth, because rejects get denser:
+
+| shipped position | English stream rank | Czech stream rank |
+|---|---|---|
+| 10000 | 10026 | . |
+| 20000 | 20563 | 21077 |
+| 30000 | 32562 | . |
+| 40000 | 46636 | . |
+| 50000 | 63793 | 55302 |
+| 100000 | . | 116384 |
+| 150000 | . | 182909 |
+
+The gate does not remove candidates at random. It removes the junk. So
+the shipped list at position N is better than the curve above reads at
+rank N, and the difference is large enough to change the recommendation.
+Measured directly on the shipped lists, same 25 words per band, same
+labeller:
+
+| shipped band | G% | M% | B% |
+|---|---|---|---|
+| en 30000-40000 | 80 | 20 | 0 |
+| en 40000-50000 | 56 | 40 | 4 |
+| cs 100000-125000 | 88 | 12 | 0 |
+| cs 125000-150000 | 100 | 0 | 0 |
+
+```
+en 30k-40k  spic M, unrecognizable G, vegans G, brazilians G, hypothalamus M, advancements G, scalding G, clawing G, citywide G, endorses G, chirps G, sprig G, ramrod M, soaks G, expiring G, convergent M, mowers G, uncaring G, bullhorn G, stranglehold G, thickened G, restorations G, imprisoning G, alphas M, sergeant's G
+en 40k-50k  abyssinia M, evinced M, labor's G, energetically G, overlapped G, tracheal M, cooperstown M, bullet's G, organisational G, unvarnished M, colander G, debauched M, cellphones G, pinkies G, trio's G, pagodas M, rds B, forbear M, compote G, hocks M, pallbearers G, schumann's M, infiltrator G, afterburners G, recyclables G
+cs 100k-125k vynucení G, tobolky G, zariskoval G, albína M, protéz G, bushi M, kniplem M, lijáky G, nevnímáš G, hvězdokupě G, napravování G, kolotočem G, fetišismus G, ohlášením G, tinktura G, neříci G, rozhlíželi G, ztřeštěné G, netahala G, klaunovi G, pročesali G, souběžného G, demolovat G, kolidovat G, bušila G
+cs 125k-150k dovíš G, kalcium G, popadaly G, následovné G, znázorňovat G, fandu G, otočnými G, prohlásíme G, učitelův G, odkoupím G, vylekaný G, realistických G, dušiček G, živelnou G, uváženě G, zákonodárném G, posudcích G, protestantům G, testovaného G, badatelské G, unavili G, vlámských G, milostpán G, poroučíme G, podtlaku G
+```
+
+The last 10000 entries of a 50000-word English list cost 40% marginal
+and 4% bad, not the 24% bad the raw curve predicts at that depth. The
+last 25000 of a 150000-word Czech list cost nothing at all in this
+sample.
+
+So the earlier recommendation of English 30000 was too conservative. It
+read the stream, and the keyboard ships the filtered list. English 50000
+is the right cut, and the gate is what makes it safe.
+
 ## What the cuts should be
 
-**English 30000.** In the shipped blended ranking, 20000-30000 is 64%
-good and 30000-50000 is about half. So 30000 sits inside real
-vocabulary, and 50000 is the ceiling, not the target. Marginal entries
-are cheaper than they look, because a rank-25000 word is too rare to
-outrank a good word on a short prefix. It surfaces only on a long prefix
-where nothing better matches. Past 50000 the good share falls to 24%,
-then 8%, and the gain drops under 0.03% of tokens per 1000 entries. An
-English list at 90000 spends its last 40000 entries on `mcelwaine`,
-`hollyweird`, `amzn` and `ilb`.
+**English 50000.** Measured on the shipped list, 30000-40000 is 80% good
+and 40000-50000 is 56% good with one bad word in 25. Position 50000
+reaches stream rank 63793, where the gate is doing most of the work. The
+concrete win at that depth is the word that started this: `playlists`,
+prediction game case 16. Marginal entries are cheaper than they look,
+because a rank-45000 word is too rare to outrank a good word on a short
+prefix. It surfaces only on a long prefix where nothing better matches.
+Do not go past 50000: the stream at 75000 is 8% good, and no gate
+rescues `mcelwaine`, `hollyweird` and `amzn`.
 
-**Czech 150000.** Ranks 40000 to 150000 stay between 80% and 92% good,
-in both rankings, and carry 5.8% of Czech running text. That is more
-text than the whole English 20000-to-300000 tail carries. Czech at 40000
-is too shallow by a wide margin. If size forbids 150000, 100000 keeps
-4.5% of that text.
+**Czech 150000.** The shipped Czech list is 88% good at 100000-125000
+and 100% good at 125000-150000. Ranks 40000 to 150000 carry 5.8% of
+Czech running text, more than the whole English 20000-to-300000 tail
+carries. Czech at 40000 was too shallow by a wide margin. 150000 covers
+95.7% of Czech tokens and still has headroom by this measurement, so if
+a later need appears, going deeper is defensible. There is no reason to
+do it yet.
 
-Byte cost of the two tiers together, as `[word,count]` JSON:
+Byte cost, measured on the files that ship. The core tier is eager, the
+ext tier is lazy-loaded after first paint:
 
-| list | entries | raw | gzip |
+| file | entries | raw | gzip |
 |---|---|---|---|
-| en | 20000 | 339 KiB | 94 KiB |
-| en | 30000 | 507 KiB | 142 KiB |
-| cs | 40000 | 715 KiB | 200 KiB |
-| cs | 100000 | 1775 KiB | 508 KiB |
-| cs | 150000 | 2661 KiB | 765 KiB |
+| `words-en.js` | 3000 | 51 KiB | 21 KiB |
+| `words-ext-en.js` | 47000 | 791 KiB | 279 KiB |
+| `words-cs.js` | 3000 | 53 KiB | 22 KiB |
+| `words-ext-cs.js` | 147000 | 2663 KiB | 904 KiB |
 
 The extension tier is lazy-loaded after first paint, so the cost is
 bandwidth and memory, not time to first keystroke. The size choice needs
