@@ -11,6 +11,7 @@ import { BIGRAMS as BIGRAMS_CS } from './bigrams-cs.js';
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
 const output = document.getElementById('output');
+const hudEl = document.getElementById('hud');
 const suggestionsEl = document.getElementById('suggestions');
 const layoutModeEl = document.getElementById('layoutMode');
 const deadZoneEl = document.getElementById('deadZone');
@@ -124,7 +125,7 @@ function readColors() {
   const v = (name) => style.getPropertyValue(name).trim();
   return {
     bg: v('--bg'), line: v('--line'), letter: v('--fg'), muted: v('--muted'),
-    path: v('--trail'), pathCenter: v('--trail-center'), hud: v('--fg'),
+    path: v('--trail'), pathCenter: v('--trail-center'),
   };
 }
 let colors = readColors();
@@ -263,7 +264,9 @@ function resize() {
   // it 4 px above the wheel rim so the chips sit in thumb reach.
   // Clamped so a short canvas (settings open on a small screen) cannot
   // push the strip up over the output box. 88 = the strip's two-row
-  // height in style.css; keep in sync.
+  // height in style.css; keep in sync. The canvas is sized from the same
+  // numbers (--stage-h in style.css), so at full height the strip's top
+  // edge lands on the canvas top edge.
   suggestionsEl.style.bottom = `${Math.min(2 * armLength + WHEEL_MARGIN + 4, rect.height - 88)}px`;
   placeCornerButtons();
   draw();
@@ -431,8 +434,9 @@ function renderSuggestions() {
 const caretEl = document.createElement('span');
 caretEl.className = 'caret';
 
-// The output box has a fixed height (see #output in style.css), so long
-// text scrolls. Keep the caret in view after every change.
+// The output box takes the free height of the column but never grows
+// with the text (see #output in style.css), so long text scrolls. Keep
+// the caret in view after every change.
 function renderOutput() {
   if (!typedText) {
     output.textContent = '(draw from the center)';
@@ -727,13 +731,17 @@ function draw() {
     ctx.fillText('space', center.x, center.y);
   }
 
-  // HUD.
-  ctx.fillStyle = colors.hud;
-  ctx.font = '13px sans-serif';
-  ctx.textAlign = 'left';
+  renderHud();
+}
+
+// The HUD is a DOM line above the typed text, not canvas ink: the band
+// it used to sit in now belongs to the text box. draw() runs on every
+// pointer move, so write only on a real change; the string is the same
+// for most moves inside one sector.
+function renderHud() {
   const hud = `state:${currentSnapshot.state}  sector:${currentSnapshot.sector ?? '-'}  dir:${currentSnapshot.direction ?? '-'}  lines:${currentSnapshot.crossings ?? 0}  b${BUILD}`
     + (extError ? `  ext:${extError}` : '');
-  ctx.fillText(hud, 10, 16);
+  if (hudEl.textContent !== hud) hudEl.textContent = hud;
 }
 
 function handleResult(result, point) {

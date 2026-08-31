@@ -711,9 +711,20 @@ and symbol pad. They share a shape, and the rules below hold for both.
 
 ## Phone-keyboard page layout
 
-- Top to bottom: compact header, typed text, canvas. The canvas fills
-  the rest of the screen down to the bottom edge, where a phone
-  keyboard sits.
+- Top to bottom: compact header, the one-line debug HUD, typed text,
+  canvas. The canvas sits at the bottom edge, where a phone keyboard
+  sits, and the typed text takes all the free height above it (user
+  request 2026-08-31). Before that the canvas took the free height and
+  the text kept a fixed two lines, which left an empty band above the
+  wheel and a cramped text box.
+- The canvas height comes from the column width, not from the leftover
+  space: 0.88 x width for the wheel's diameter, plus 104 px for the
+  suggestion row and its 16 px gap, which lands the row's top edge on
+  the canvas top edge. In CSS this is `--stage-h`
+  (`calc(88cqw + 104px)`, a container query unit against `main`; the
+  `@supports` fallback for Safari before 16 is `55vh`). It must stay in
+  step with `resize()` in `main.js`, which derives the arm length and
+  the row's parking height from the same numbers.
 - The suggestion row is an absolute overlay on the canvas, parked with
   its bottom edge 4 px above the wheel rim, so the chips sit in thumb
   reach (user request 2026-08-26). Empty parts of the strip pass
@@ -732,10 +743,9 @@ and symbol pad. They share a shape, and the rules below hold for both.
   a 12 px inset while the wheel hugs the right edge, and move inward
   with the wheel when it is centered. Their distance from the bottom
   follows the arm length, so main.js places all of them in `resize()`.
-  A panel under them starts at the
-  canvas top edge, which the CSS derives from the typed-text box's
-  height, kept in one variable (`--output-h`) that the box and the
-  panels both read.
+  A panel under them is the canvas box: same bottom edge, same height
+  (`--stage-h`), so it covers the wheel and the suggestion row and
+  leaves the typed text readable.
 - The top bar holds only the name, Clear, and a Settings toggle. The
   hint text and all controls (layout, theme, dead zone) sit
   inside the collapsed settings block, so the touch area keeps most of
@@ -744,10 +754,13 @@ and symbol pad. They share a shape, and the rules below hold for both.
   ("How to type", a native details element), closed by default and
   not remembered. It matters in the first sessions only; open
   settings usually means reaching for the controls.
-- The typed-text box has a fixed two-line height and scrolls, with the
-  newest line kept in view. The suggestion row height is fixed and the
-  row sits outside the flex flow. Nothing above the canvas changes
-  size mid-gesture, so the decoder center stays under the finger.
+- The typed-text box scrolls instead of growing, with the newest line
+  kept in view. Its height is the free space of the column, with a
+  74 px floor (`--output-h`) for the case where the settings panel is
+  open on a short screen; there the canvas gives height back instead of
+  the page overflowing. The suggestion row height is fixed and the row
+  sits outside the flex flow. Nothing above the canvas changes size
+  mid-gesture, so the decoder center stays under the finger.
 - The wheel anchors to the bottom of the canvas, 12 px margin. On a
   touch screen (primary pointer coarse) it also hugs the right edge,
   under a right thumb; with a mouse (desktop testing) it centers
@@ -835,7 +848,10 @@ storage failure (private browsing) never breaks the feature itself.
 
 - HUD line: state, sector, direction, crossing count, and
   the loaded build number (`bN`, from the `?v=` asset pinning in
-  `index.html`). A stale phone cache is visible as an old `bN`.
+  `index.html`). A stale phone cache is visible as an old `bN`. It is
+  the `#hud` element between the header and the typed text, one fixed
+  monospace line; it was canvas ink until 2026-08-31, when the typed
+  text took that band.
 - Dead zone radius slider.
 - The canvas exposes the wheel center as a `data-center="x,y"`
   attribute (canvas coordinates), so Playwright tests gesture around

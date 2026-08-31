@@ -37,10 +37,11 @@
 }
 
 :root {
-  /* Height of the typed-text box. The canvas starts right below it, so
-     the emoji button and the emoji picker measure their top edge from
-     this number too. Not a theme variable: it survives the inline
-     theme variables main.js writes on the same element. */
+  /* Smallest the typed-text box may get. It normally takes all the free
+     height between the HUD line and the canvas; this floor is what it
+     keeps when the settings panel is open on a short screen. Not a theme
+     variable: it survives the inline theme variables main.js writes on
+     the same element. */
   --output-h: 74px;
 }
 
@@ -146,10 +147,42 @@ main {
   min-height: 0;
   /* Anchor for the absolutely positioned #suggestions overlay. */
   position: relative;
+  /* Query container for --stage-h below, so the canvas height follows
+     the column width and not the viewport: in the desktop column the
+     page is 480 px wide inside a much wider window. */
+  container-type: inline-size;
+}
+
+/* The canvas is now the fixed part of the column and the text box is the
+   elastic one, so the height has to come from somewhere. It comes from
+   the width, which is what the wheel is sized from: main.js takes the
+   arm length as 0.44 * min(width, height) and parks the suggestion strip
+   88 px tall, 16 px above the wheel rim. 88cqw = the wheel's diameter,
+   +104 = the strip and its gap, which lands the strip's top edge exactly
+   on the canvas top edge. Keep in sync with resize() in main.js. */
+:root {
+  --stage-h: calc(88cqw + 104px);
+}
+
+/* Container query units need Safari 16 or later. The fallback has to be
+   an @supports override of the variable, not a second height line on the
+   canvas: a var() that fails at computed-value time falls back to the
+   property's initial value (auto), not to an earlier declaration, so a
+   plain pair of height lines would leave an old phone with a 150 px
+   canvas. This value only approximates the line above. */
+@supports not (height: 1cqw) {
+  :root {
+    --stage-h: 55vh;
+  }
 }
 
 #stage {
-  flex: 1;
+  /* Grow no, shrink yes: with the settings panel open on a short screen
+     the column runs out of room, and the canvas giving some back is
+     better than the page overflowing. main.js re-reads its real size on
+     every resize, so a shrunk canvas still draws a correct wheel. */
+  flex: 0 1 auto;
+  height: var(--stage-h);
   width: 100%;
   min-height: 0;
   touch-action: none;
@@ -160,18 +193,35 @@ main {
   padding: 8px 12px;
   font-size: 22px;
   line-height: 1.3;
-  /* Fixed height: the canvas must not resize mid-gesture, which would
-     move the decoder's center under the finger. Two text lines; longer
-     text scrolls and main.js keeps the newest line in view. The height
-     is a variable because the emoji button and the emoji picker are
-     positioned from the canvas top edge, which is this box's bottom
-     edge; three copies of 74 would drift apart. */
-  height: var(--output-h);
+  /* Takes the free height of the column (user request 2026-08-31). Its
+     own box stays put while you type, because it scrolls: growing text
+     must never resize the canvas mid-gesture, which would move the
+     decoder's center under the finger. main.js keeps the caret in view.
+     The floor keeps two lines readable when the settings panel is
+     open. */
+  flex: 1;
+  min-height: var(--output-h);
   overflow-y: auto;
   background: var(--bg);
   word-break: break-word;
   /* enter taps insert real newlines; keep them visible */
   white-space: pre-wrap;
+}
+
+/* The decoder state line. It was drawn on the canvas, in the band the
+   typed text now owns; one fixed line at the top of the column costs
+   nothing and leaves the space below it to the text. Monospace and
+   nowrap so a changing state cannot reflow or resize anything under
+   it. `b42` is the loaded build number. */
+#hud {
+  height: 16px;
+  padding: 2px 12px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* The caret is our own element, not a browser caret: #output is a div,
@@ -347,14 +397,15 @@ main {
    would resize it to zero and drag the decoder's center through a
    resize cycle; an overlay leaves the wheel untouched underneath and
    swallows every pointer event on its own.
-   It starts at the canvas top edge, so the canvas (which still draws
-   its HUD line) is hidden completely. Only one panel is ever open. */
+   It is the canvas box: same bottom edge, same height, so the wheel and
+   the suggestion strip are covered and the typed text above stays
+   readable while you pick an emoji. Only one panel is ever open. */
 .pad-panel {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  top: var(--output-h);
+  height: var(--stage-h);
   z-index: 3;
   display: flex;
   flex-direction: column;

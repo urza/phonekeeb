@@ -11,7 +11,7 @@
      sw.js caches one pinned build for offline use; freshness still
      comes from the ?v= pinning below (the worker fetches navigations
      network-first and never mixes two builds). -->
-<link rel="manifest" href="manifest.webmanifest?v=42" />
+<link rel="manifest" href="manifest.webmanifest?v=43" />
 <!-- JS keeps this meta in sync with the active theme's --bg. -->
 <meta name="theme-color" content="#fafafa" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -24,7 +24,7 @@
      ?v= query and the import map below pin every asset to one build.
      Bump every ?v= in this file, in cards.html, and the BUILD constant
      in sw.js together on each push (grep "?v="). -->
-<link rel="stylesheet" href="style.css?v=42" />
+<link rel="stylesheet" href="style.css?v=43" />
 </head>
 <body>
 <header>
@@ -105,9 +105,15 @@
   </div>
 </header>
 
-<!-- Phone-keyboard order: typed text on top, suggestion row under it,
-     canvas at the bottom of the screen where a phone keyboard sits. -->
+<!-- Phone-keyboard order, top to bottom: the debug HUD line, the typed
+     text, the suggestion row, then the canvas at the bottom of the
+     screen where a phone keyboard sits. The typed text takes all the
+     free height (user request 2026-08-31): it is what you read while
+     typing, so the spare space belongs to it and not to the empty band
+     above the wheel. The HUD is one fixed line at the top, out of the
+     way. -->
 <main>
+  <div id="hud" aria-hidden="true"></div>
   <div id="output" aria-live="polite"></div>
   <div id="suggestions"></div>
   <canvas id="stage"></canvas>
@@ -154,25 +160,25 @@
 <script type="importmap">
 {
   "imports": {
-    "./gesture-decoder.js": "./gesture-decoder.js?v=42",
-    "./layout.js": "./layout.js?v=42",
-    "./layouts.js": "./layouts.js?v=42",
-    "./themes.js": "./themes.js?v=42",
-    "./prediction.js": "./prediction.js?v=42",
-    "./words-en.js": "./words-en.js?v=42",
-    "./words-cs.js": "./words-cs.js?v=42",
-    "./bigrams-en.js": "./bigrams-en.js?v=42",
-    "./bigrams-cs.js": "./bigrams-cs.js?v=42",
-    "./trigrams-en.js": "./trigrams-en.js?v=42",
-    "./trigrams-cs.js": "./trigrams-cs.js?v=42",
-    "./words-ext-en.js": "./words-ext-en.js?v=42",
-    "./words-ext-cs.js": "./words-ext-cs.js?v=42",
-    "./emoji-picker.js": "./emoji-picker.js?v=42",
-    "./emoji-data.js": "./emoji-data.js?v=42",
-    "./symbols-pad.js": "./symbols-pad.js?v=42"
+    "./gesture-decoder.js": "./gesture-decoder.js?v=43",
+    "./layout.js": "./layout.js?v=43",
+    "./layouts.js": "./layouts.js?v=43",
+    "./themes.js": "./themes.js?v=43",
+    "./prediction.js": "./prediction.js?v=43",
+    "./words-en.js": "./words-en.js?v=43",
+    "./words-cs.js": "./words-cs.js?v=43",
+    "./bigrams-en.js": "./bigrams-en.js?v=43",
+    "./bigrams-cs.js": "./bigrams-cs.js?v=43",
+    "./trigrams-en.js": "./trigrams-en.js?v=43",
+    "./trigrams-cs.js": "./trigrams-cs.js?v=43",
+    "./words-ext-en.js": "./words-ext-en.js?v=43",
+    "./words-ext-cs.js": "./words-ext-cs.js?v=43",
+    "./emoji-picker.js": "./emoji-picker.js?v=43",
+    "./emoji-data.js": "./emoji-data.js?v=43",
+    "./symbols-pad.js": "./symbols-pad.js?v=43"
   }
 }
 </script>
-<script type="module" src="main.js?v=42"></script>
+<script type="module" src="main.js?v=43"></script>
 </body>
 </html>
