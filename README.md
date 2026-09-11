@@ -1,7 +1,10 @@
 # phonekeeb
 
-A gesture keyboard for iOS. See `gesture-keyboard-handoff.md` for the full
+What would typing on touchscreens look like if it were designed from first principles, rather than inheriting the baggage of QWERTY? See `gesture-keyboard-handoff.md` for the full
 project concept, prior art, and design decisions.
+
+<img width="739" height="1600" alt="image" src="https://github.com/user-attachments/assets/98781fd3-2e32-4a27-91d5-5f90ef663a11" />
+
 
 Status: web prototype of the gesture decoder and letter layout. No Swift
 code yet.
